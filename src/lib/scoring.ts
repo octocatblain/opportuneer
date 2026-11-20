@@ -208,7 +208,8 @@ export function scoreJob(job: JobInput): JobFit {
       /(us|usa|united states|uk|eu|europe|canada|americas|emea|latam)[ -]only|must (be|reside) in (the )?(us|usa|united states|uk|europe)/.test(`${loc} ${desc}`) ||
       /\blatam\b|latin america|\(us\)|us-based|\busa\b|\bus only\b/.test(lc(job.title));
     const africaInLocation = /\b(africa|kenya|nairobi)\b/.test(loc);
-    if (restricted && !africaInLocation) {
+    const worldwideLoc = !loc.trim() || /worldwide|anywhere|global|any location|^remote$/.test(loc.trim());
+    if ((restricted || !worldwideLoc) && !africaInLocation) {
       locPts = 0;
       excluded = true;
       excludeReason = excludeReason ?? `Remote, but limited to ${job.location || "another region"}`;

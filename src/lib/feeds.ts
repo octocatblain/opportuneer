@@ -316,7 +316,12 @@ async function himalayas(): Promise<RawJob[]> {
         companyName: j.companyName,
         url: j.guid,
         description: htmlToText(j.description ?? ""),
-        location: j.locationRestrictions?.length ? j.locationRestrictions.join(", ") : "Worldwide",
+        // A list of most countries in the world is not a "specifically Africa/Kenya" role.
+        location: !j.locationRestrictions?.length
+          ? "Worldwide"
+          : j.locationRestrictions.length > 15
+            ? `Worldwide (${j.locationRestrictions.length} countries)`
+            : j.locationRestrictions.join(", "),
         remote: true,
         employment: employmentOf(j.employmentType),
         salary: j.maxSalary || j.minSalary ? { min: j.minSalary ?? undefined, max: j.maxSalary ?? undefined, currency: j.currency ?? "USD", period: j.salaryPeriod === "annual" ? "year" : "month" } : {},
