@@ -1,0 +1,87 @@
+import Link from "next/link";
+import { setStageAction } from "@/app/actions";
+import { Flash, ScorePill, STAGE_LABEL, TrackBadge } from "@/components/ui";
+import { db } from "@/lib/db";
+
+export const dynamic = "force-dynamic";
+
+const BOARD = ["SHORTLISTED", "DRAFTED", "SENT", "REPLIED", "INTERVIEW", "WON"] as const;
+
+export default async function Pipeline({ searchParams }: { searchParams: Promise<{ track?: string; ok?: string; error?: string }> }) {
+  const sp = await searchParams;
+  const track = sp.track === "JOB" || sp.track === "PITCH" ? sp.track : undefined;
+  const opps = await db.opportunity.findMany({
+    where: { stage: { in: [...BOARD] }, ...(track ? { track } : {}) },
+    orderBy: [{ updatedAt: "desc" }],
+    include: { company: { select: { name: true } } },
+  });
+
+  return (
+    <div>
+      <Flash ok={sp.ok} error={sp.error} />
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">Pipeline</h1>
+        <div className="flex gap-1 text-sm">
+          {[
+            [undefined, "All"],
+            ["JOB", "Jobs"],
+            ["PITCH", "Pitches"],
+          ].map(([t, l]) => (
+            <Link
+              key={l}
+              href={t ? `/pipeline?track=${t}` : "/pipeline"}
+              className={`rounded-md px-3 py-1.5 ${track === t ? "bg-slate-900 text-white" : "border border-slate-300 bg-white"}`}
+            >
+              {l}
+            </Link>
+          ))}
+        </div>
+      </div>
+      <p className="mb-4 text-sm text-slate-500">New jobs start in “Found” (see Today / Jobs). Shortlist the ones you want, and they appear here.</p>
+      <div className="grid gap-3 overflow-x-auto pb-4 md:grid-cols-3 xl:grid-cols-6">
+        {BOARD.map((stage) => {
+          const items = opps.filter((o) => o.stage === stage);
+          return (
+            <div key={stage} className="min-w-56 rounded-lg bg-slate-100 p-2">
+              <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                {STAGE_LABEL[stage]} · {items.length}
+              </h2>
+              <div className="space-y-2">
+                {items.map((o) => {
+                  const due = o.stage === "SENT" && o.followUpAt && o.followUpAt <= new Date();
+                  const idx = BOARD.indexOf(stage);
+                  const next = BOARD[idx + 1];
+                  return (
+                    <div key={o.id} className={`rounded-md border bg-white p-2 text-sm shadow-sm ${due ? "border-amber-400" : "border-slate-200"}`}>
+                      <Link href={`/opportunities/${o.id}`} className="block font-medium hover:underline">
+                        {o.title}
+                      </Link>
+                      <div className="mt-0.5 text-xs text-slate-500">{o.company?.name}</div>
+                      <div className="mt-2 flex items-center justify-between gap-1">
+                        <span className="flex items-center gap-1">
+                          <ScorePill score={o.fitScore} />
+                          <TrackBadge track={o.track} />
+                        </span>
+                        {next && (
+                          <form action={setStageAction}>
+                            <input type="hidden" name="id" value={o.id} />
+                            <input type="hidden" name="stage" value={next} />
+                            <input type="hidden" name="back" value={track ? `/pipeline?track=${track}` : "/pipeline"} />
+                            <button className="rounded border border-slate-300 px-1.5 py-0.5 text-xs hover:bg-slate-50" title={`Move to ${STAGE_LABEL[next]}`}>
+                              → {STAGE_LABEL[next].split(" ")[0]}
+                            </button>
+                          </form>
+                        )}
+                      </div>
+                      {due && <div className="mt-1 text-xs font-medium text-amber-700">Follow-up due</div>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

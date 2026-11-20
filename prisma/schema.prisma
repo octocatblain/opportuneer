@@ -1,0 +1,123 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Track {
+  JOB // apply as an employee
+  PITCH // pitch Red Star Standard
+}
+
+enum Stage {
+  FOUND
+  SHORTLISTED
+  DRAFTED
+  SENT
+  REPLIED
+  INTERVIEW // interview (job) or meeting/proposal (pitch)
+  WON
+  LOST
+  ARCHIVED
+}
+
+enum DocKind {
+  CV
+  COVER_LETTER
+  EMAIL
+  PITCH_EMAIL
+  PROPOSAL
+  FOLLOW_UP
+}
+
+model Company {
+  id                String        @id @default(cuid())
+  name              String
+  website           String?
+  industry          String? // key from config/industries
+  location          String?
+  employees         Int? // estimated headcount
+  revenueNote       String? // free-text revenue/budget signal
+  aiMaturity        Int? // 1 = no tech/AI at all ... 5 = mature AI team
+  growthSignals     String? // expansion, funding, tenders, hiring
+  recurringNeeds    String? // ongoing work: maintenance, automation, support
+  contactName       String?
+  contactEmail      String?
+  contactRole       String?
+  notes             String?
+  research          String? // AI-written research summary
+  score             Int? // 0-100 company fit
+  scoreBreakdown    Json?
+  recommendation    Track? // primary route the app suggests
+  recommendBoth     Boolean       @default(false)
+  recommendReason   String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  opportunities     Opportunity[]
+
+  @@unique([name])
+}
+
+model Opportunity {
+  id            String     @id @default(cuid())
+  track         Track
+  title         String // job title, or pitch headline
+  companyId     String?
+  company       Company?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  source        String // remotive, arbeitnow, manual, linkedin-paste, research...
+  sourceId      String? // id at the source, for de-duplication
+  url           String?
+  description   String?
+  location      String?
+  remote        Boolean    @default(false)
+  employment    String? // full-time, contract, part-time
+  salaryMin     Int?
+  salaryMax     Int?
+  currency      String? // KES, USD, EUR...
+  salaryPeriod  String? // month, year
+  fitScore      Int? // 0-100
+  fitBreakdown  Json?
+  stage         Stage      @default(FOUND)
+  followUpAt    DateTime?
+  sentAt        DateTime?
+  postedAt      DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  documents     Document[]
+  activities    Activity[]
+
+  @@unique([source, sourceId])
+  @@index([stage])
+  @@index([fitScore])
+}
+
+model Document {
+  id            String      @id @default(cuid())
+  opportunityId String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  kind          DocKind
+  subject       String? // for emails
+  content       String // markdown/plain text or HTML (CV)
+  pdfPath       String? // relative to /storage
+  provider      String? // which AI wrote it
+  gmailDraftId  String?
+  createdAt     DateTime    @default(now())
+}
+
+model Activity {
+  id            String      @id @default(cuid())
+  opportunityId String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  type          String // stage_change, generated, gmail_draft, note, scan
+  message       String
+  createdAt     DateTime    @default(now())
+}
+
+model Setting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
