@@ -143,7 +143,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
                 </div>
               ) : d.kind === "PROPOSAL" ? (
                 <div className="space-y-2 text-sm">
-                  {d.subject && <p className="text-slate-600">Why these packages: {d.subject}</p>}
+                  {d.subject && <pre className="whitespace-pre-wrap rounded bg-rose-50 p-3 text-xs text-slate-700">{d.subject}</pre>}
                   <pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded bg-slate-50 p-3 text-xs">{d.content}</pre>
                 </div>
               ) : (
@@ -195,6 +195,28 @@ export default async function OpportunityPage({ params, searchParams }: { params
           {fit?.lines && (
             <Card title="Why this score">
               <Breakdown lines={fit.lines} />
+              {fit.trust && (
+                <div className="mt-3 border-t border-slate-100 pt-2 text-sm">
+                  <span className="font-medium">Trust: </span>
+                  <span
+                    className={
+                      fit.trust.level === "verified"
+                        ? "text-emerald-700"
+                        : fit.trust.level === "ok"
+                          ? "text-slate-700"
+                          : "text-red-700"
+                    }
+                  >
+                    {{ verified: "Verified employer", ok: "Looks genuine", unclear: "Unclear post", suspicious: "Possible scam" }[fit.trust.level]}
+                  </span>
+                  <ul className="mt-1 list-disc pl-5 text-xs text-slate-600">
+                    {fit.trust.reasons.map((r) => (
+                      <li key={r}>{r}</li>
+                    ))}
+                  </ul>
+                  <p className="mt-1 text-xs text-slate-500">Always check the employer&apos;s own website or LinkedIn page, and never pay to apply.</p>
+                </div>
+              )}
               {fit.excluded && <p className="mt-2 text-sm text-red-700">Auto-archived: {fit.excludeReason}</p>}
             </Card>
           )}

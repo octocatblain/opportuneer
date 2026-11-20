@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
+import { GoogleGenAI } from "@google/genai";
 import type { z } from "zod";
 
 export type GenerateOptions = {
@@ -60,6 +61,22 @@ const openai: AIProvider = {
   },
 };
 
+// ---------- Gemini (free tier available via Google AI Studio) ----------
+const gemini: AIProvider = {
+  name: "gemini",
+  available: () => Boolean(process.env.GEMINI_API_KEY),
+  async generate({ system, prompt, maxTokens = 32000 }) {
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    const res = await ai.models.generateContent({
+      model: process.env.GEMINI_MODEL || "gemini-flash-latest",
+      contents: prompt,
+      config: { systemInstruction: system, maxOutputTokens: maxTokens },
+    });
+    if (!res.text) throw new Error(`Gemini returned no text (${res.candidates?.[0]?.finishReason ?? "unknown reason"})`);
+    return res.text;
+  },
+};
+
 // ---------- Mock (no keys yet) ----------
 const mock: AIProvider = {
   name: "mock",
@@ -67,17 +84,17 @@ const mock: AIProvider = {
   async generate({ prompt }) {
     return JSON.stringify({
       _mock: true,
-      note: "No AI key configured. Add ANTHROPIC_API_KEY or OPENAI_API_KEY to .env to get real drafts.",
+      note: "No AI key configured. Add GEMINI_API_KEY, ANTHROPIC_API_KEY or OPENAI_API_KEY to .env to get real drafts.",
       promptPreview: prompt.slice(0, 200),
     });
   },
 };
 
-const registry: Record<string, AIProvider> = { claude, openai };
+const registry: Record<string, AIProvider> = { claude, openai, gemini };
 
 /** Providers in the order set by AI_PROVIDERS (default: claude, then openai). */
 export function providerChain(): AIProvider[] {
-  const order = (process.env.AI_PROVIDERS || "claude,openai")
+  const order = (process.env.AI_PROVIDERS || "claude,openai,gemini")
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
@@ -131,8 +148,10 @@ export function aiStatus() {
   return {
     claude: claude.available(),
     openai: openai.available(),
+    gemini: gemini.available(),
     order: providerChain().map((p) => p.name),
     claudeModel: process.env.ANTHROPIC_MODEL || "claude-opus-5-5",
     openaiModel: process.env.OPENAI_MODEL || "gpt-5",
+    geminiModel: process.env.GEMINI_MODEL || "gemini-flash-latest",
   };
 }

@@ -22,7 +22,7 @@ import { createDraft } from "@/lib/gmail";
 import { providerChain } from "@/lib/ai";
 
 function requireAI() {
-  if (providerChain()[0].name === "mock") throw new Error("No AI key configured: add ANTHROPIC_API_KEY or OPENAI_API_KEY to .env and restart the app.");
+  if (providerChain()[0].name === "mock") throw new Error("No AI key configured: add GEMINI_API_KEY, ANTHROPIC_API_KEY or OPENAI_API_KEY to .env and restart the app.");
 }
 
 const slug = (s: string) =>
@@ -85,7 +85,7 @@ export async function researchCompanyById(id: string, extraText = "") {
   }
   if (!text.trim()) throw new Error("Add a website or some notes about the company first.");
   const { data, mock } = await researchCompany(c.name, text);
-  if (mock) throw new Error("No AI key configured: add ANTHROPIC_API_KEY or OPENAI_API_KEY to .env.");
+  if (mock) throw new Error("No AI key configured: add GEMINI_API_KEY, ANTHROPIC_API_KEY or OPENAI_API_KEY to .env.");
   await db.company.update({
     where: { id },
     data: {
@@ -135,6 +135,8 @@ export async function saveJob(raw: RawJob, contact?: { name?: string | null; ema
     companyName: company.name,
     companyIndustry: company.industry,
     companyAiMaturity: company.aiMaturity,
+    verified: raw.verified,
+    source: raw.source,
   });
   if (fit.industry && !company.industry) await db.company.update({ where: { id: company.id }, data: { industry: fit.industry } });
 
@@ -149,6 +151,7 @@ export async function saveJob(raw: RawJob, contact?: { name?: string | null; ema
       description: raw.description,
       location: raw.location,
       remote: raw.remote,
+      verified: Boolean(raw.verified),
       employment: raw.employment,
       salaryMin: raw.salary.min ? Math.round(raw.salary.min) : null,
       salaryMax: raw.salary.max ? Math.round(raw.salary.max) : null,
@@ -177,6 +180,8 @@ export async function rescoreJob(id: string) {
     companyName: o.company?.name,
     companyIndustry: o.company?.industry,
     companyAiMaturity: o.company?.aiMaturity,
+    verified: o.verified,
+    source: o.source,
   });
   await db.opportunity.update({ where: { id }, data: { fitScore: fit.score, fitBreakdown: fitJson(fit) } });
 }
@@ -211,7 +216,7 @@ export async function importJob(input: { text?: string; url?: string; source?: s
   if (!raw && input.url) raw = await fetchPageText(input.url);
   if (!raw) throw new Error("Paste the job text or a URL.");
   const { data, mock } = await extractJob(raw);
-  if (mock) throw new Error("No AI key configured: add ANTHROPIC_API_KEY or OPENAI_API_KEY to .env.");
+  if (mock) throw new Error("No AI key configured: add GEMINI_API_KEY, ANTHROPIC_API_KEY or OPENAI_API_KEY to .env.");
   const { opp } = await saveJob(
     {
       source: input.source || (input.url?.includes("linkedin") ? "linkedin-paste" : "manual"),
@@ -319,13 +324,27 @@ export async function generatePitch(id: string) {
   const pitch = await writePitch({ companyName: c.name, research: c.research, contactName: c.contactName, contactRole: c.contactRole, includeFoundingOffer: offer });
   await saveDoc(id, "PITCH_EMAIL", pitch.data.body, { subject: pitch.data.subject, provider: pitch.provider });
 
-  const proposal = await writeProposal({ companyName: c.name, research: c.research, packageKeys: pitch.data.packageKeys });
+  const proposal = await writeProposal({
+    companyName: c.name,
+    research: c.research,
+    angle: pitch.data.chosenAngle,
+    packageKeys: pitch.data.packageKeys,
+    otherServices: pitch.data.otherServices,
+  });
   const date = new Date().toISOString().slice(0, 10);
   const pdf = await htmlToPdf(markdownHtml(proposal.text, `${rss.name} proposal for ${c.name}`), `${o.id}/${date}-${slug(c.name)}-red-star-standard-proposal.pdf`);
-  await saveDoc(id, "PROPOSAL", proposal.text, { pdfPath: pdf, provider: proposal.provider, subject: pitch.data.rationale });
+  const angles = pitch.data.angles
+    .sort((x, y) => y.fit - x.fit)
+    .map((a) => `${a.fit}/10 ${a.service}: ${a.why}`)
+    .join("\n");
+  await saveDoc(id, "PROPOSAL", proposal.text, {
+    pdfPath: pdf,
+    provider: proposal.provider,
+    subject: `Chosen angle: ${pitch.data.chosenAngle}\n\nWhy: ${pitch.data.rationale}\n\nAngles considered:\n${angles}`,
+  });
 
   if (["FOUND", "SHORTLISTED"].includes(o.stage)) await db.opportunity.update({ where: { id }, data: { stage: "DRAFTED" } });
-  await log(id, "generated", `Pitch email and proposal drafted (${pitch.provider}); packages: ${pitch.data.packageKeys.join(", ")}${offer ? "; founding offer included" : ""}`);
+  await log(id, "generated", `Pitch email and proposal drafted (${pitch.provider}); angle: ${pitch.data.chosenAngle}; packages: ${[...pitch.data.packageKeys, ...pitch.data.otherServices].join(", ")}${offer ? "; founding offer included" : ""}`);
 }
 
 export async function generateFollowUp(id: string) {

@@ -20,7 +20,59 @@ export type JobFit = {
   excluded: boolean;
   excludeReason?: string;
   monthlyUsd: number | null;
+  trust: Trust;
 };
+
+export type Trust = { level: "verified" | "ok" | "unclear" | "suspicious"; reasons: string[] };
+
+const FREE_MAIL = /@(gmail|yahoo|outlook|hotmail|live|aol|proton|protonmail|icloud|ymail)\.[a-z.]+/i;
+const ANON_EMPLOYER = /^(unknown|confidential|anonymous|n\/a|-|a leading|our client|leading|undisclosed)|(company|organisation|organization|firm|client)$/i;
+
+/**
+ * Is this a real, clear post from an identifiable employer?
+ * Kenyan scams usually ask for fees, use free-mail or WhatsApp-only contacts, or hide the employer.
+ */
+export function assessTrust(input: { companyName?: string | null; description?: string | null; verified?: boolean; source?: string }): Trust {
+  const d = lc(input.description);
+  const name = (input.companyName ?? "").trim();
+  const reasons: string[] = [];
+  let suspicious = false;
+  let unclear = false;
+
+  if (/(registration|processing|application|training|medical|interview|placement|clearance)\s+fee|pay (a |the )?fee|fee of (ksh|kes)|send (money|ksh|kes)|refundable/.test(d)) {
+    suspicious = true;
+    reasons.push("Asks candidates to pay a fee");
+  }
+  if (/(apply|send (your )?(cv|application)|contact)[^.]{0,40}(whatsapp|telegram)/.test(d)) {
+    suspicious = true;
+    reasons.push("Applications go through WhatsApp/Telegram");
+  }
+  const emails = (input.description ?? "").match(/[\w.+-]+@[\w-]+\.[\w.]+/g) ?? [];
+  if (emails.length && emails.every((e) => FREE_MAIL.test(e))) {
+    suspicious = true;
+    reasons.push(`Recruiter uses a free email address (${emails[0]})`);
+  }
+  if (!name || ANON_EMPLOYER.test(name)) {
+    unclear = true;
+    reasons.push("Employer is not named");
+  }
+  if (/on behalf of (a |our )?client|our client,? a|confidential client/.test(d) && !input.verified) {
+    unclear = true;
+    reasons.push("Agency post for an unnamed client");
+  }
+  if (d.length < 400) {
+    unclear = true;
+    reasons.push("Very short description");
+  } else if (!/(responsibilit|requirement|qualification|you will|what you'll do|duties|skills|experience)/.test(d)) {
+    unclear = true;
+    reasons.push("No clear duties or requirements");
+  }
+
+  if (suspicious) return { level: "suspicious", reasons };
+  if (unclear) return { level: "unclear", reasons };
+  if (input.verified) return { level: "verified", reasons: ["Employer verified by the job board", ...reasons] };
+  return { level: "ok", reasons: reasons.length ? reasons : ["Named employer, clear duties, no red flags"] };
+}
 
 const lc = (s: string | null | undefined) => (s ?? "").toLowerCase();
 
@@ -73,6 +125,8 @@ export type JobInput = {
   companyName?: string | null;
   companyIndustry?: string | null;
   companyAiMaturity?: number | null;
+  verified?: boolean;
+  source?: string;
 };
 
 export function scoreJob(job: JobInput): JobFit {
@@ -145,19 +199,28 @@ export function scoreJob(job: JobInput): JobFit {
   const excludedRegion = locations.excludedRegions.find((r) => loc.includes(r));
   const kenyan = locations.accepted.some((l) => loc.includes(l));
   const sponsors = /visa sponsor|sponsorship|relocation (support|package|assistance)/.test(desc);
-  if (job.remote) {
+  const mentionsAfrica = /\b(africa|african|kenya|kenyan|nairobi|east africa|sub-saharan)\b/.test(`${loc} ${desc}`);
+  if (job.remote && kenyan) {
+    locPts = 15;
+    locNote = `Remote, Kenya-based (${job.location})`;
+  } else if (job.remote) {
     const restricted =
       /(us|usa|united states|uk|eu|europe|canada|americas|emea|latam)[ -]only|must (be|reside) in (the )?(us|usa|united states|uk|europe)/.test(`${loc} ${desc}`) ||
       /\blatam\b|latin america|\(us\)|us-based|\busa\b|\bus only\b/.test(lc(job.title));
-    const worldwide = /worldwide|anywhere|global|africa|kenya|emea|any location|^remote$/.test(loc.trim()) || !loc || locations.accepted.some((l) => loc.includes(l));
-    if (restricted || !worldwide) {
+    const africaInLocation = /\b(africa|kenya|nairobi)\b/.test(loc);
+    if (restricted && !africaInLocation) {
       locPts = 0;
       excluded = true;
       excludeReason = excludeReason ?? `Remote, but limited to ${job.location || "another region"}`;
       locNote = excludeReason;
+    } else if (!mentionsAfrica) {
+      locPts = 0;
+      excluded = true;
+      excludeReason = excludeReason ?? "Remote, but the post doesn't say it's open to Africa or Kenya";
+      locNote = excludeReason;
     } else {
       locPts = 15;
-      locNote = "Remote, open to Kenya";
+      locNote = africaInLocation ? `Remote, open to ${job.location}` : "Remote; the post mentions Africa/Kenya";
     }
   } else if (kenyan) {
     locPts = 15;
@@ -179,8 +242,16 @@ export function scoreJob(job: JobInput): JobFit {
   }
   lines.push({ label: "Location", points: locPts, max: 15, note: locNote });
 
+  // 6. Trust gate: unclear or suspicious posts are archived, not scored higher.
+  const trust = assessTrust({ companyName: job.companyName, description: job.description, verified: job.verified, source: job.source });
+  if (trust.level === "suspicious" || trust.level === "unclear") {
+    excluded = true;
+    excludeReason = excludeReason ?? `${trust.level === "suspicious" ? "Possible scam" : "Unclear post"}: ${trust.reasons.join("; ")}`;
+  }
+
   const score = lines.reduce((a, l) => a + l.points, 0);
   return {
+    trust,
     score: excluded ? Math.min(score, 25) : score,
     lines,
     titleFamily: fam?.key ?? null,

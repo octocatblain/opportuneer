@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { company as rss, industries, packages, profile } from "@/config/profile";
+import { company as rss, industries, packages, profile, serviceLines } from "@/config/profile";
 import { generateJson, generateText } from "@/lib/ai";
 import { extractBody } from "@/lib/cv";
 
@@ -67,7 +67,7 @@ Return:
 - growthSignals: separate signals with semicolons (new branches, funding, hiring, tenders, new products), or null
 - recurringNeeds: ongoing work an AI/software agency could own, separated by semicolons (customer support load, reporting, website/SEO, integrations, maintenance), or null
 - contactName / contactEmail / contactRole: only if present in the material
-- research: 4-6 sentence brief: what they do, where they are weak digitally, 2-3 concrete AI/automation opportunities, and anything that suggests they can or cannot pay.
+- research: 5-7 sentence brief: what they do, where they are weak (operations, systems, data, website, marketing, customer service), 3 concrete opportunities across AI/automation, software and marketing/growth, and anything that suggests they can or cannot pay.
 
 <material>
 ${sourceText.slice(0, 40000)}
@@ -162,11 +162,34 @@ Subject: "Application: <role> – ${profile.name}".
 // ---------- Red Star Standard pitch + proposal ----------
 
 export const Pitch = z.object({
+  angles: z.array(z.object({ service: z.string(), why: z.string(), fit: z.number().int().min(1).max(10) })),
+  chosenAngle: z.string(),
   subject: z.string(),
   body: z.string(),
   packageKeys: z.array(z.string()),
+  otherServices: z.array(z.string()),
   rationale: z.string(),
 });
+
+function priceLabel(p: (typeof packages)[number]) {
+  if (!p.priceKes) return "price on request";
+  return `from KES ${p.priceKes.toLocaleString()}${p.monthlyKes && p.kind !== "retainer" ? ` + KES ${p.monthlyKes.toLocaleString()}/mo` : p.kind === "retainer" ? "/mo" : ""}`;
+}
+
+export function serviceMenu() {
+  const priced = packages
+    .map((p) => `- ${p.key}: ${p.name} (${priceLabel(p)}; ${p.duration}). ${p.summary}${p.qualifies ? "" : " [small entry offer: use only as a first step towards bigger or ongoing work]"}`)
+    .join("\n");
+  const lines = Object.entries(serviceLines)
+    .map(([group, items]) => `- ${group}: ${items.join(", ")}`)
+    .join("\n");
+  return `<priced_packages>
+${priced}
+</priced_packages>
+<all_service_lines note="custom-quoted after the free call">
+${lines}
+</all_service_lines>`;
+}
 
 export function writePitch(input: {
   companyName: string;
@@ -175,40 +198,37 @@ export function writePitch(input: {
   contactRole?: string | null;
   includeFoundingOffer: boolean;
 }) {
-  const menu = packages
-    .map((p) => `- ${p.key}: ${p.name}, from KES ${p.priceKes.toLocaleString()}${p.monthlyKes ? ` (+ KES ${p.monthlyKes.toLocaleString()}/mo)` : ""}, ${p.duration}. ${p.summary}${p.qualifies ? "" : " [entry offer only, never the main ask]"}`)
-    .join("\n");
   return generateJson(Pitch, {
-    system: `You write first-contact sales emails for ${rss.name} (${rss.website}), an AI consultancy run by ${profile.name} in Nairobi. ${VOICE}
-The goal is a 30-minute free consultation, not a sale in the first email.`,
-    prompt: `Write a cold pitch email to ${input.contactName ? `${input.contactName}${input.contactRole ? ` (${input.contactRole})` : ""}` : "the decision maker"} at ${input.companyName}.
-- 120-180 words. Open with one specific observation about their business from the research, not with "I hope this finds you well".
-- Name ONE concrete problem and ONE concrete AI/automation fix with a believable outcome.
-- Recommend 1-2 packages from the menu below (prefer ones that lead to ongoing work: retainers, Strategy Sprint leading to a PoC). Quote the starting price only if it helps.
-- ${input.includeFoundingOffer ? `Mention the founding-client offer in one sentence: ${rss.foundingOffer.text}.` : "Do not mention discounts."}
-- Call to action: a free 30-minute call; link ${rss.pricingUrl} for pricing.
+    system: `You are the business-development lead for ${rss.name} (${rss.website}), an AI, software and growth agency run by ${profile.name} in Nairobi. ${VOICE}
+You choose the strongest angle for each prospect from the WHOLE service menu (consulting, AI development, software and web, industry solutions, and the AI Growth Studio marketing services), then write the first-contact email. The goal of the email is a free 30-minute call, not a sale.`,
+    prompt: `Step 1: Consider every service line and package below against the research. In "angles", list the 3-5 strongest options, each with the service, why it fits this company (evidence from the research), and a fit score 1-10. Weigh: size of the pain, whether they can afford it (they must be able to pay at least KES ${rss.clientFloorKes.toLocaleString()} or a monthly retainer), and how likely it leads to long-term, recurring work.
+Step 2: Set "chosenAngle" to the single best way in. It may combine a quick, low-risk first step with the bigger engagement it leads to.
+Step 3: Write the email to ${input.contactName ? `${input.contactName}${input.contactRole ? ` (${input.contactRole})` : ""}` : "the decision maker"} at ${input.companyName}:
+- 120-180 words. Open with one specific observation about their business, not "I hope this finds you well".
+- One concrete problem, one concrete fix (from the chosen angle) with a believable outcome. Mention a starting price only if it helps.
+- ${input.includeFoundingOffer ? `One sentence on the founding-client offer: ${rss.foundingOffer.text}.` : "Do not mention discounts."}
+- Call to action: a free 30-minute call; pricing at ${rss.pricingUrl}.
 - Signature: ${profile.name}, Founder, ${rss.name}, ${profile.phone}, ${rss.website}
-"packageKeys" lists the package keys you recommended. "rationale" explains in 2 sentences why these packages fit this client's budget and retention potential.
+"packageKeys": keys of the priced packages that belong in the proposal. "otherServices": any custom-quoted service lines to include. "rationale": 2 sentences on why this angle fits their budget and retention potential.
 
-<packages>
-${menu}
-</packages>
+${serviceMenu()}
 
 <research>${input.research}</research>`,
-    maxTokens: 4000,
+    maxTokens: 8000,
     effort: "high",
   });
 }
 
-export async function writeProposal(input: { companyName: string; research: string; packageKeys: string[] }) {
-  const chosen = packages.filter((p) => input.packageKeys.includes(p.key));
+export async function writeProposal(input: { companyName: string; research: string; angle: string; packageKeys: string[]; otherServices: string[] }) {
+  const chosen = packages.filter((p) => input.packageKeys.includes(p.key)).map((p) => ({ name: p.name, price: priceLabel(p), duration: p.duration, summary: p.summary }));
   return generateText({
     system: `You write one-page proposals for ${rss.name}. ${VOICE} Output clean Markdown only.`,
-    prompt: `Write a one-page proposal for ${input.companyName}.
-Sections: Where you are today; What we propose (phases with outcomes); Investment (use these packages and prices exactly, KES before VAT); Timeline; Payment terms; Next step.
+    prompt: `Write a one-page proposal for ${input.companyName} built around this angle: ${input.angle}
+Sections: Where you are today; What we propose (phases with outcomes, starting with a low-risk first phase and showing the ongoing work it leads to); Investment (use the package prices exactly, KES before VAT; custom-quoted services say "quoted after a free scoping call"); Timeline; Payment terms; Next step.
 Payment terms: ${rss.terms.join("; ")}.
 
 <packages>${JSON.stringify(chosen)}</packages>
+<custom_services>${input.otherServices.join(", ")}</custom_services>
 <research>${input.research}</research>`,
     maxTokens: 6000,
     effort: "high",

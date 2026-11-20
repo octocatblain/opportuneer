@@ -73,6 +73,7 @@ model Opportunity {
   description   String?
   location      String?
   remote        Boolean    @default(false)
+  verified      Boolean    @default(false) // job board marked the employer/post as verified
   employment    String? // full-time, contract, part-time
   salaryMin     Int?
   salaryMax     Int?

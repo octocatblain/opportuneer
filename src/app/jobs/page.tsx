@@ -33,7 +33,7 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<{ v
         {[
           ["new", "New & shortlisted"],
           ["all", "All"],
-          ["archived", "Auto-archived (pay/location mismatch)"],
+          ["archived", "Auto-archived (pay, location or unclear post)"],
         ].map(([v, l]) => (
           <Link key={v} href={`/jobs?view=${v}`} className={`rounded-md px-3 py-1.5 ${view === v ? "bg-slate-900 text-white" : "border border-slate-300 bg-white"}`}>
             {l}

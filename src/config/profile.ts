@@ -131,17 +131,45 @@ export const company = {
   clientFloorKes: 60000,
 };
 
+/**
+ * Every priced offer on redstarstandard.co.ke/pricing and /services.
+ * The pitch writer considers ALL of these (plus the custom service lines below) and picks the best angle.
+ */
 export const packages: Package[] = [
+  // Fixed-price starters
   { key: "quick-win", name: "AI Quick-Win Sprint", priceKes: 15000, kind: "one-off", duration: "1 week", summary: "One working automation live plus a 1-hour AI training for the team", qualifies: false },
-  { key: "whatsapp-ai", name: "WhatsApp AI Assistant", priceKes: 30000, monthlyKes: 5000, kind: "setup+retainer", duration: "live in 1-2 weeks", summary: "24/7 FAQ answers in English and Swahili, lead qualification, bookings, monthly tuning", qualifies: true },
-  { key: "team-training", name: "Team AI Training", priceKes: 25000, kind: "one-off", duration: "3-4 hours, up to 20 people", summary: "Hands-on training on the team's own documents and tasks, playbook and certificate", qualifies: false },
+  { key: "shop-starter", name: "Shop Starter", priceKes: 7500, kind: "one-off", duration: "2-3 days", summary: "Google and Maps listing, WhatsApp ready to chat and sell, M-Pesa at the counter (small shops)", qualifies: false },
+  { key: "whatsapp-ai", name: "WhatsApp AI Assistant", priceKes: 30000, monthlyKes: 5000, kind: "setup+retainer", duration: "live in 1-2 weeks", summary: "24/7 FAQ answers in English and Swahili, lead qualification, bookings, monthly tuning (Meta fees at cost)", qualifies: true },
   { key: "ai-website", name: "AI-Ready Website + GEO", priceKes: 50000, kind: "one-off", duration: "2-3 weeks", summary: "Fast mobile-first website found on Google and cited in ChatGPT/Gemini answers", qualifies: false },
+  // Training, strategy and build
+  { key: "team-training", name: "Team AI Training", priceKes: 25000, kind: "one-off", duration: "3-4 hours, up to 20 people", summary: "Hands-on training on the team's own documents and tasks, playbook and certificate", qualifies: false },
   { key: "strategy-sprint", name: "Strategy Sprint", priceKes: 60000, kind: "one-off", duration: "2-4 weeks", summary: "AI readiness scorecard, ranked use cases with ROI, 90-day roadmap", qualifies: true },
-  { key: "growth-studio", name: "AI Growth Studio (SEO/GEO, ads, content)", priceKes: 30000, monthlyKes: 30000, kind: "retainer", duration: "monthly", summary: "Monthly AI-powered marketing: SEO/GEO, ads, design, newsletters", qualifies: true },
-  { key: "poc-mvp", name: "PoC / MVP Build", priceKes: 250000, kind: "one-off", duration: "4-12 weeks", summary: "Fixed scope and price, working product on the client's data, go/no-go report", qualifies: true },
+  { key: "poc-mvp", name: "PoC / MVP Build", priceKes: 250000, kind: "one-off", duration: "PoC 4-6 weeks, MVP 8-12 weeks", summary: "Fixed scope and price, working product on the client's data, go/no-go report", qualifies: true },
   { key: "dedicated-team", name: "Dedicated AI Team", priceKes: 150000, monthlyKes: 150000, kind: "retainer", duration: "monthly", summary: "Engineers and a strategist, scale up or down, weekly reporting", qualifies: true },
-  { key: "support", name: "Support & maintenance", priceKes: 5000, monthlyKes: 5000, kind: "retainer", duration: "monthly", summary: "Hosting, security updates, backups and small improvements", qualifies: false },
+  // Custom builds (quoted after the free call)
+  { key: "business-website", name: "Business website with M-Pesa checkout", priceKes: 80000, kind: "one-off", duration: "custom", summary: "Typically KES 80,000-250,000 depending on scope", qualifies: true },
+  { key: "web-app", name: "Custom web app / business system", priceKes: 250000, kind: "one-off", duration: "custom", summary: "From about KES 250,000; portals, dashboards, workflow systems, integrations", qualifies: true },
+  { key: "support", name: "Support & maintenance", priceKes: 5000, monthlyKes: 5000, kind: "retainer", duration: "monthly", summary: "Hosting, security updates, backups and small improvements (from KES 5,000/mo)", qualifies: true },
+  // AI Growth Studio (monthly marketing)
+  { key: "ads-studio", name: "AI Ads Studio", priceKes: 30000, monthlyKes: 30000, kind: "retainer", duration: "monthly, KES 30k-150k", summary: "AI-produced ad creative and campaign management", qualifies: true },
+  { key: "design-studio", name: "AI Design Studio", priceKes: 25000, monthlyKes: 25000, kind: "retainer", duration: "monthly, KES 25k-200k", summary: "Ongoing brand and marketing design", qualifies: true },
+  { key: "newsletter-ops", name: "Newsletter Operations", priceKes: 15000, monthlyKes: 15000, kind: "retainer", duration: "monthly, KES 15k-80k", summary: "Customer newsletters written, designed and sent", qualifies: true },
+  { key: "seo-geo", name: "AI SEO / GEO / AEO", priceKes: 30000, monthlyKes: 30000, kind: "retainer", duration: "monthly, KES 30k-100k+", summary: "Rank on Google and get cited by ChatGPT/Gemini answers", qualifies: true },
+  { key: "ghostwriting", name: "AI Ghostwriting", priceKes: 15000, monthlyKes: 15000, kind: "retainer", duration: "monthly, KES 15k-80k+", summary: "Thought-leadership posts and articles for leaders", qualifies: true },
+  { key: "growth-ops", name: "Growth Operations", priceKes: 0, kind: "retainer", duration: "monthly", summary: "Base fee + 10-50% profit share on growth delivered", qualifies: true },
+  { key: "instagram-agency", name: "Instagram Content Agency", priceKes: 25000, monthlyKes: 25000, kind: "retainer", duration: "monthly, KES 25k-120k", summary: "Instagram content and community management", qualifies: true },
+  { key: "clipping", name: "Clipping-as-a-Service", priceKes: 20000, monthlyKes: 20000, kind: "retainer", duration: "monthly, KES 20k-100k or rev-share", summary: "Short-form clips from long videos and events", qualifies: true },
+  { key: "ugc-studio", name: "UGC Studio (Human + AI)", priceKes: 0, kind: "retainer", duration: "per video, package or retainer", summary: "User-generated-style video content", qualifies: true },
 ];
+
+/** The full service menu (custom-quoted). The pitch writer can propose any of these. */
+export const serviceLines: Record<string, string[]> = {
+  "AI Consulting": ["AI Strategy & Roadmap", "AI Readiness Assessment", "AI Solution Design & Architecture", "Generative AI Consulting", "Data Engineering & Analytics", "AI Integration", "AI Governance & Responsible AI", "AI Training & Adoption"],
+  "AI Development": ["AI Software Development", "Enterprise AI Development", "AI-Native Development", "Generative AI Development", "AI SaaS Development", "AI Product Engineering", "AI App Development", "AI Modernisation", "AI PoC & MVP Development"],
+  "Software & Web": ["Custom Software Development", "Web Application Development", "E-commerce Development", "CMS", "Next.js / React / Angular / Node.js / Laravel / Python / Flutter development", "PostgreSQL / MongoDB / MySQL development"],
+  "Industry Solutions": ["AI in Banking", "AI in Manufacturing", "AI in E-commerce", "AI in Real Estate", "AI in Insurance", "Data Governance", "AI in Legal", "AI in HR", "AI in Healthcare", "AI in Food & Agriculture", "AI in Education", "AI for SaaS", "AI in Software Development"],
+  "AI Growth Studio": ["AI Ads Studio", "AI Design Studio", "Newsletter Operations", "AI SEO / GEO / AEO", "AI Ghostwriting", "Growth Operations", "Instagram Content Agency", "Clipping-as-a-Service", "UGC Studio (Human + AI)"],
+};
 
 /** Search terms used by the job feeds (one request per term). */
 export const searchTerms = [

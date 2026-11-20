@@ -16,7 +16,38 @@ export type RawJob = {
   employment: string | null;
   salary: Salary;
   postedAt: Date | null;
+  /** The board itself marks the employer/post as verified (e.g. BrighterMonday badge). */
+  verified?: boolean;
 };
+
+/** Pull the first schema.org JobPosting out of a page (handles @graph). */
+function jobPostingLd($: cheerio.CheerioAPI) {
+  for (const el of $('script[type="application/ld+json"]').toArray()) {
+    try {
+      const data = JSON.parse($(el).text());
+      const items = Array.isArray(data) ? data : data["@graph"] ? data["@graph"] : [data];
+      const job = items.find((x: { "@type"?: string }) => x["@type"] === "JobPosting");
+      if (job) return { job, graph: items as Record<string, unknown>[] };
+    } catch {
+      /* ignore broken JSON-LD */
+    }
+  }
+  return null;
+}
+
+function ldSalary(job: { baseSalary?: { currency?: string; value?: { minValue?: number; maxValue?: number; value?: number; unitText?: string } } }): Salary {
+  const v = job.baseSalary?.value;
+  if (!v) return {};
+  const unit = (v.unitText ?? "").toUpperCase();
+  return {
+    min: v.minValue ?? v.value,
+    max: v.maxValue,
+    currency: job.baseSalary?.currency,
+    period: unit === "YEAR" ? "year" : unit === "HOUR" ? "hour" : unit === "MONTH" ? "month" : undefined,
+  };
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 const UA = { "User-Agent": "Mozilla/5.0 (Opportuneer personal job search)" };
 
@@ -167,7 +198,147 @@ async function myjobmag(): Promise<RawJob[]> {
   return out;
 }
 
-export const feeds: Record<string, () => Promise<RawJob[]>> = { myjobmag, remotive, jobicy, remoteok };
+// ---- BrighterMonday Kenya (category pages; keeps the board's "verified" employer badge) ----
+async function brightermonday(): Promise<RawJob[]> {
+  const pages = [
+    "https://www.brightermonday.co.ke/jobs/software-data",
+    "https://www.brightermonday.co.ke/jobs/software-data?page=2",
+    "https://www.brightermonday.co.ke/jobs/software-data?page=3",
+    "https://www.brightermonday.co.ke/jobs/engineering-technology",
+    "https://www.brightermonday.co.ke/jobs/consulting-strategy",
+  ];
+  const cards = new Map<string, { title: string; company: string; verified: boolean }>();
+  for (const url of pages) {
+    const $ = cheerio.load(await getText(url));
+    $('a[href*="/listings/"]').each((_, a) => {
+      const href = $(a).attr("href")!.split("?")[0];
+      if (cards.has(href)) return;
+      // Walk up to the card that holds just this listing.
+      let el = $(a);
+      while (el.parent().length && new Set(el.parent().find('a[href*="/listings/"]').map((_, x) => $(x).attr("href")!.split("?")[0]).get()).size === 1) el = el.parent();
+      const html = $.html(el);
+      const company = el.find('a[href*="/company/"]').first().text().trim() || el.find("p").first().text().trim();
+      cards.set(href, { title: $(a).text().trim(), company, verified: /id="verified"|#verified/.test(html) });
+    });
+    await sleep(800);
+  }
+  const out: RawJob[] = [];
+  for (const [url, card] of cards) {
+    if (!card.title || !matchTitleFamily(card.title)) continue;
+    try {
+      const $ = cheerio.load(await getText(url));
+      const ld = jobPostingLd($);
+      const job = ld?.job ?? {};
+      const orgId = job.hiringOrganization?.["@id"];
+      const org = ld?.graph.find((x) => x["@id"] === orgId) as { name?: string } | undefined;
+      const addr = job.jobLocation?.address ?? {};
+      out.push({
+        source: "brightermonday",
+        sourceId: url,
+        title: job.title || card.title,
+        companyName: org?.name || card.company || "Unknown",
+        url,
+        description: htmlToText(job.description ?? ""),
+        location: [addr.addressLocality, addr.addressRegion].filter(Boolean).join(", ") || "Kenya",
+        remote: /home based|remote/i.test(String(job.description ?? "").slice(0, 600)),
+        employment: employmentOf(job.employmentType),
+        salary: ldSalary(job),
+        postedAt: job.datePosted ? new Date(job.datePosted) : null,
+        verified: card.verified,
+      });
+    } catch {
+      /* skip a listing that fails to load */
+    }
+    await sleep(500);
+  }
+  return out;
+}
+
+// ---- Remote4Africa (remote jobs open to Africa; attribution: link back) ----
+async function remote4africa(): Promise<RawJob[]> {
+  const links = new Map<string, string>();
+  for (const term of ["software engineer", "full stack", "automation", "AI engineer", "solutions engineer", "devops"]) {
+    const $ = cheerio.load(await getText(`https://remote4africa.com/jobs/search?q=${encodeURIComponent(term)}`));
+    $('a[href^="/jobs/"]').each((_, a) => {
+      const href = $(a).attr("href")!;
+      const title = $(a).text().replace(/\s+/g, " ").trim();
+      if (/^\/jobs\/(search|plans)/.test(href) || links.has(href)) return;
+      if (title) links.set(href, title);
+    });
+    await sleep(800);
+  }
+  const out: RawJob[] = [];
+  for (const [href, title] of links) {
+    if (!matchTitleFamily(title)) continue;
+    const url = `https://remote4africa.com${href}`;
+    try {
+      const $ = cheerio.load(await getText(url));
+      const job = jobPostingLd($)?.job;
+      if (!job) continue;
+      const eligible = (job.applicantLocationRequirements ?? []).map((x: { name?: string }) => x.name).filter(Boolean).join(", ");
+      out.push({
+        source: "remote4africa",
+        sourceId: href,
+        title: job.title || title,
+        companyName: job.hiringOrganization?.name || "Unknown",
+        url,
+        description: htmlToText(job.description ?? ""),
+        location: eligible || "Africa",
+        remote: true,
+        employment: employmentOf(job.employmentType),
+        salary: ldSalary(job),
+        postedAt: job.datePosted ? new Date(job.datePosted) : null,
+      });
+    } catch {
+      /* skip */
+    }
+    await sleep(500);
+  }
+  return out;
+}
+
+// ---- Himalayas (remote; searched for roles open to Kenya; attribution: link back) ----
+async function himalayas(): Promise<RawJob[]> {
+  type H = {
+    jobs: {
+      title: string; companyName: string; employmentType: string; minSalary: number | null; maxSalary: number | null; currency: string | null;
+      salaryPeriod: string; locationRestrictions: string[]; description: string; pubDate: number; applicationLink: string; guid: string;
+    }[];
+  };
+  const out: RawJob[] = [];
+  for (const term of searchTerms) {
+    const data = await getJson<H>(`https://himalayas.app/jobs/api/search?q=${encodeURIComponent(term)}&country=Kenya`);
+    for (const j of data.jobs ?? []) {
+      out.push({
+        source: "himalayas",
+        sourceId: j.guid,
+        title: j.title,
+        companyName: j.companyName,
+        url: j.guid,
+        description: htmlToText(j.description ?? ""),
+        location: j.locationRestrictions?.length ? j.locationRestrictions.join(", ") : "Worldwide",
+        remote: true,
+        employment: employmentOf(j.employmentType),
+        salary: j.maxSalary || j.minSalary ? { min: j.minSalary ?? undefined, max: j.maxSalary ?? undefined, currency: j.currency ?? "USD", period: j.salaryPeriod === "annual" ? "year" : "month" } : {},
+        postedAt: j.pubDate ? new Date(j.pubDate * 1000) : null,
+      });
+    }
+    await sleep(500);
+  }
+  return out;
+}
+
+export const feeds: Record<string, () => Promise<RawJob[]>> = {
+  // Kenya
+  brightermonday,
+  myjobmag,
+  // Remote, Africa-focused first
+  remote4africa,
+  himalayas,
+  remotive,
+  jobicy,
+  remoteok,
+};
 
 /** Fetch a job page (company careers page, BrighterMonday link, etc.) as plain text. */
 export async function fetchPageText(url: string) {

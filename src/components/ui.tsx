@@ -80,16 +80,18 @@ export function Card({ title, children, actions }: { title?: string; children: R
 export function OppRow({
   o,
 }: {
-  o: { id: string; title: string; track: "JOB" | "PITCH"; fitScore: number | null; location: string | null; remote: boolean; source: string; company: { name: string } | null; fitBreakdown?: unknown };
+  o: { id: string; title: string; track: "JOB" | "PITCH"; fitScore: number | null; location: string | null; remote: boolean; source: string; verified?: boolean; company: { name: string } | null; fitBreakdown?: unknown };
 }) {
   const fb = o.fitBreakdown as { belowTarget?: boolean } | null;
+  const location = o.remote ? `Remote${o.location ? ` (${o.location})` : ""}` : (o.location ?? "");
   return (
     <Link href={`/opportunities/${o.id}`} className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-slate-50">
       <ScorePill score={o.fitScore} />
       <div className="min-w-0 flex-1">
         <div className="truncate font-medium">{o.title}</div>
         <div className="truncate text-xs text-slate-500">
-          {o.company?.name ?? "—"} · {o.remote ? "Remote" : (o.location ?? "")} · {o.source}
+          {o.company?.name ?? "—"} · {location} · {o.source}
+          {o.verified && <span className="ml-2 rounded bg-emerald-100 px-1.5 text-emerald-800">verified employer</span>}
           {fb?.belowTarget && <span className="ml-2 rounded bg-amber-100 px-1.5 text-amber-800">below pay target</span>}
         </div>
       </div>

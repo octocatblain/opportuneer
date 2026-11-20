@@ -43,7 +43,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
               <li>APIs &amp; Services → Library → enable the <b>Gmail API</b>.</li>
               <li>OAuth consent screen → External, Testing mode → add {profile.email} as a test user.</li>
               <li>
-                Credentials → Create OAuth client ID → Web application. Authorised redirect URI: <code className="rounded bg-slate-100 px-1">http://localhost:3100/api/auth/callback/google</code>
+                Credentials → Create OAuth client ID → Web application. Authorised redirect URI: <code className="rounded bg-slate-100 px-1">http://localhost:3000/api/auth/callback/google</code>
               </li>
               <li>
                 Paste the Client ID and Secret into <code className="rounded bg-slate-100 px-1">.env</code> as GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, then restart the app.
@@ -82,8 +82,8 @@ export default async function Settings({ searchParams }: { searchParams: Promise
           <ul className="space-y-1 text-sm">
             {packages.map((p) => (
               <li key={p.key}>
-                {p.name}: KES {p.priceKes.toLocaleString()}
-                {p.monthlyKes ? ` + ${p.monthlyKes.toLocaleString()}/mo` : ""} {p.qualifies ? "" : <span className="text-xs text-slate-400">(entry offer)</span>}
+                {p.name}: {p.priceKes ? `KES ${p.priceKes.toLocaleString()}` : "price on request"}
+                {p.monthlyKes && p.kind !== "retainer" ? ` + ${p.monthlyKes.toLocaleString()}/mo` : p.kind === "retainer" && p.priceKes ? "/mo" : ""} {p.qualifies ? "" : <span className="text-xs text-slate-400">(entry offer)</span>}
               </li>
             ))}
           </ul>
@@ -122,7 +122,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
           ) : (
             <p className="text-sm text-slate-500">No scan yet.</p>
           )}
-          <p className="mt-2 text-xs text-slate-500">Sources: MyJobMag Kenya, Remotive, Jobicy, Remote OK. Each job links back to its original post.</p>
+          <p className="mt-2 text-xs text-slate-500">Sources: BrighterMonday and MyJobMag (Kenya); Remote4Africa, Himalayas, Remotive, Jobicy and Remote OK (remote, kept only when the post is open to Africa or Kenya). Each job links back to its original post.</p>
         </Card>
       </div>
     </div>
