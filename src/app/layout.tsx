@@ -1,41 +1,32 @@
-import type { Metadata } from "next";
-import Link from "next/link";
+import type { Metadata, Viewport } from "next";
+import { Anton, Instrument_Serif, Inter_Tight } from "next/font/google";
 import "./globals.css";
 import { ScanOverlay } from "@/components/scan-overlay";
+import { NavLinks } from "@/components/nav-links";
+
+const interTight = Inter_Tight({ subsets: ["latin"], variable: "--font-inter-tight", display: "swap" });
+const instrumentSerif = Instrument_Serif({ subsets: ["latin"], weight: "400", style: ["normal", "italic"], variable: "--font-instrument-serif", display: "swap" });
+const anton = Anton({ subsets: ["latin"], weight: "400", variable: "--font-anton", display: "swap" });
 
 export const metadata: Metadata = {
   title: "Opportuneer",
   description: "Strategic job search and Red Star Standard client pipeline",
 };
 
-const nav = [
-  { href: "/", label: "Today" },
-  { href: "/pipeline", label: "Pipeline" },
-  { href: "/jobs", label: "Jobs" },
-  { href: "/companies", label: "Companies" },
-  { href: "/add", label: "Add job" },
-  { href: "/settings", label: "Settings" },
-];
+export const viewport: Viewport = { themeColor: "#0e1014" };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
-      <body className="min-h-screen bg-slate-50 text-slate-900 antialiased">
-        <header data-app-shell className="border-b border-slate-200 bg-white">
-          <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
-            <Link href="/" className="text-lg font-bold tracking-tight">
-              <span className="text-rose-700">Oppor</span>tuneer
-            </Link>
-            <nav className="flex flex-wrap gap-1 text-sm">
-              {nav.map((n) => (
-                <Link key={n.href} href={n.href} className="rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-100 hover:text-slate-900">
-                  {n.label}
-                </Link>
-              ))}
-            </nav>
+    <html lang="en" className={`${interTight.variable} ${instrumentSerif.variable} ${anton.variable}`}>
+      <body className="min-h-screen bg-canvas text-ink antialiased">
+        <header data-app-shell className="sticky top-0 z-40 px-4 pt-4">
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
+            <NavLinks />
           </div>
         </header>
-        <main data-app-shell className="mx-auto max-w-7xl px-4 py-6">{children}</main>
+        <main data-app-shell className="mx-auto max-w-7xl px-4 pb-16 pt-8">
+          {children}
+        </main>
         <ScanOverlay />
       </body>
     </html>

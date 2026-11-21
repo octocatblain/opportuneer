@@ -1,5 +1,86 @@
 @import "tailwindcss";
 
-body {
-  font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+/*
+ * Opportuneer design tokens.
+ * Direction (from c:/home/design-inspiration): cool pale canvas + near-black stacked cards (SOHub),
+ * a warm signal red-orange (agrume / "Hi, I'm Leo"), tight grotesk headings with serif-italic
+ * accent words, condensed display numerals (Horeca), pill buttons and chips, numbered sections.
+ */
+@theme {
+  --font-sans: var(--font-inter-tight), "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  --font-serif: var(--font-instrument-serif), Georgia, "Times New Roman", serif;
+  --font-display: var(--font-anton), "Arial Narrow", Impact, sans-serif;
+
+  --color-canvas: #eef1f4;
+  --color-ink: #0e1014;
+  --color-ink-2: #1b1e25;
+  --color-ink-3: #2b2f38;
+  --color-ink-4: #444955;
+  --color-mist: #a7adb8;
+  --color-signal: #ef4b23;
+  --color-signal-dark: #c93a17;
+  --color-signal-soft: #fde6dd;
+  --color-cream: #fbf0c8;
+  --color-sky-soft: #dbeefe;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-sans);
+    letter-spacing: -0.005em;
+  }
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.025em;
+  }
+  ::selection {
+    background: var(--color-signal);
+    color: white;
+  }
+}
+
+@layer components {
+  /* Big page heading: tight grotesk with an optional <em> rendered in serif italic. */
+  .page-title {
+    font-size: clamp(2rem, 4vw, 3.25rem);
+    line-height: 1;
+    font-weight: 600;
+    letter-spacing: -0.04em;
+    color: var(--color-ink);
+  }
+  .page-title em,
+  .serif-accent {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    color: var(--color-signal);
+  }
+  .eyebrow {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--color-ink-4);
+  }
+  .link {
+    color: var(--color-signal-dark);
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 3px;
+    transition: text-decoration-color 150ms;
+  }
+  .link:hover {
+    text-decoration-color: currentColor;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+  }
 }

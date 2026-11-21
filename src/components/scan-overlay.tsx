@@ -60,12 +60,27 @@ export function ScanOverlay() {
   const elapsed = secs >= 60 ? `${Math.floor(secs / 60)}m ${secs % 60}s` : `${secs}s`;
 
   return (
-    <div role="alertdialog" aria-modal="true" aria-live="polite" aria-label="Scan in progress" className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
-      <div className="mx-4 w-full max-w-sm rounded-xl bg-white p-6 text-center shadow-2xl">
-        <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-rose-700" />
-        <h2 className="text-lg font-semibold">Scanning job boards…</h2>
-        <p className="mt-1 text-sm text-slate-600">The app is locked until the scan finishes. New jobs will appear automatically.</p>
-        <p className="mt-3 text-xs tabular-nums text-slate-500">Elapsed {elapsed}</p>
+    <div role="alertdialog" aria-modal="true" aria-live="polite" aria-label="Scan in progress" className="fixed inset-0 z-[100] flex items-center justify-center bg-canvas/70 backdrop-blur-md">
+      <div className="relative mx-4 w-full max-w-md">
+        <div aria-hidden className="absolute inset-x-6 -top-3 h-10 rounded-[28px] bg-ink-3" />
+        <div aria-hidden className="absolute inset-x-3 -top-1.5 h-10 rounded-[28px] bg-ink-2" />
+        <div className="relative rounded-[28px] bg-ink p-8 text-white shadow-2xl">
+          <div className="flex items-center gap-3">
+            <span aria-hidden className="relative flex h-3 w-3">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-signal opacity-75" />
+              <span className="relative inline-flex h-3 w-3 rounded-full bg-signal" />
+            </span>
+            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/60">Scan in progress</span>
+          </div>
+          <h2 className="mt-5 text-3xl font-semibold leading-tight tracking-tight">
+            Scanning the <span className="serif-accent">job boards</span>…
+          </h2>
+          <p className="mt-2 text-sm text-white/60">The app is locked until the scan finishes. New jobs will appear automatically.</p>
+          <div className="mt-6 flex items-end justify-between">
+            <span className="text-xs uppercase tracking-[0.14em] text-white/40">Elapsed</span>
+            <span className="font-display text-5xl leading-none tabular-nums">{elapsed}</span>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -18,9 +18,9 @@ export default async function Settings({ searchParams }: { searchParams: Promise
   return (
     <div className="space-y-6">
       <Flash ok={sp.ok} error={sp.error} />
-      <h1 className="text-2xl font-bold">Settings</h1>
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card title="Gmail (drafts only)">
+      <h1 className="page-title">Settings</h1>
+      <div className="grid items-start gap-6 lg:grid-cols-2">
+        <Card index={1} title="Gmail (drafts only)">
           {gmail ? (
             <div className="space-y-3 text-sm">
               <p>
@@ -43,16 +43,16 @@ export default async function Settings({ searchParams }: { searchParams: Promise
               <li>APIs &amp; Services → Library → enable the <b>Gmail API</b>.</li>
               <li>OAuth consent screen → External, Testing mode → add {profile.email} as a test user.</li>
               <li>
-                Credentials → Create OAuth client ID → Web application. Authorised redirect URI: <code className="rounded bg-slate-100 px-1">http://localhost:3000/api/auth/callback/google</code>
+                Credentials → Create OAuth client ID → Web application. Authorised redirect URI: <code className="rounded-md bg-canvas px-1.5">http://localhost:3000/api/auth/callback/google</code>
               </li>
               <li>
-                Paste the Client ID and Secret into <code className="rounded bg-slate-100 px-1">.env</code> as GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, then restart the app.
+                Paste the Client ID and Secret into <code className="rounded-md bg-canvas px-1.5">.env</code> as GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, then restart the app.
               </li>
             </ol>
           )}
         </Card>
 
-        <Card title="AI providers">
+        <Card index={2} title="AI providers">
           <ul className="space-y-1 text-sm">
             <li>
               Claude:{" "}
@@ -70,7 +70,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
               {ai.order[0] === "mock" && <span className="text-amber-700"> (add a key to .env to get real drafts)</span>}
             </li>
           </ul>
-          <p className="mt-2 text-xs text-slate-500">Change the order with AI_PROVIDERS in .env, e.g. “openai,claude”.</p>
+          <p className="mt-2 text-xs text-ink-4">Change the order with AI_PROVIDERS in .env, e.g. “openai,claude”.</p>
           {ai.gemini && (
             <p className="mt-2 text-xs text-amber-700">
               Gemini&apos;s free tier may let Google use prompts (including your CV details) to improve its products. Keep it last in AI_PROVIDERS once you
@@ -79,7 +79,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
           )}
         </Card>
 
-        <Card title="Job search targets">
+        <Card index={3} title="Job search targets">
           <ul className="space-y-1 text-sm">
             <li>Titles: {titleFamilies.map((t) => t.label).join(" · ")}</li>
             <li>Industries: {industries.map((i) => i.label).join(" · ")}</li>
@@ -90,15 +90,15 @@ export default async function Settings({ searchParams }: { searchParams: Promise
             <li>Locations: Kenya ({locations.accepted.slice(0, 5).join(", ")}…), remote, abroad only with visa sponsorship. East Africa excluded.</li>
             <li>Notice period: {profile.noticePeriod}</li>
           </ul>
-          <p className="mt-2 text-xs text-slate-500">Edit these in src/config/profile.ts.</p>
+          <p className="mt-2 text-xs text-ink-4">Edit these in src/config/profile.ts.</p>
         </Card>
 
-        <Card title="Red Star Standard offer">
+        <Card index={4} title="Red Star Standard offer">
           <ul className="space-y-1 text-sm">
             {packages.map((p) => (
               <li key={p.key}>
                 {p.name}: {p.priceKes ? `KES ${p.priceKes.toLocaleString()}` : "price on request"}
-                {p.monthlyKes && p.kind !== "retainer" ? ` + ${p.monthlyKes.toLocaleString()}/mo` : p.kind === "retainer" && p.priceKes ? "/mo" : ""} {p.qualifies ? "" : <span className="text-xs text-slate-400">(entry offer)</span>}
+                {p.monthlyKes && p.kind !== "retainer" ? ` + ${p.monthlyKes.toLocaleString()}/mo` : p.kind === "retainer" && p.priceKes ? "/mo" : ""} {p.qualifies ? "" : <span className="text-xs text-mist">(entry offer)</span>}
               </li>
             ))}
           </ul>
@@ -108,13 +108,13 @@ export default async function Settings({ searchParams }: { searchParams: Promise
           </p>
         </Card>
 
-        <Card title="Last scan">
+        <Card index={5} title="Last scan">
           {scan ? (
             <div className="text-sm">
               <p>{new Date(scan.at).toLocaleString("en-GB")}</p>
               <table className="mt-2 w-full text-left text-xs">
                 <thead>
-                  <tr className="text-slate-500">
+                  <tr className="text-ink-4">
                     <th>Source</th>
                     <th>Fetched</th>
                     <th>Matching titles</th>
@@ -135,9 +135,9 @@ export default async function Settings({ searchParams }: { searchParams: Promise
               {scan.errors.length > 0 && <p className="mt-2 text-xs text-red-700">{scan.errors.join(" · ")}</p>}
             </div>
           ) : (
-            <p className="text-sm text-slate-500">No scan yet.</p>
+            <p className="text-sm text-ink-4">No scan yet.</p>
           )}
-          <p className="mt-2 text-xs text-slate-500">Sources: BrighterMonday and MyJobMag (Kenya); Remote4Africa, Himalayas, Remotive, Jobicy and Remote OK (remote, kept only when the post is open to Africa or Kenya). Each job links back to its original post.</p>
+          <p className="mt-2 text-xs text-ink-4">Sources: BrighterMonday and MyJobMag (Kenya); Remote4Africa, Himalayas, Remotive, Jobicy and Remote OK (remote, kept only when the post is open to Africa or Kenya). Each job links back to its original post.</p>
         </Card>
       </div>
     </div>

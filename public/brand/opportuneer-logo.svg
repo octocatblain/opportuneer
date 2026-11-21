@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 276 64" width="276" height="64">
+  <title>Opportuneer</title>
+  <g>
+  <rect width="64" height="64" rx="16" fill="#0e1014"/>
+  <circle cx="28" cy="36" r="14" fill="none" stroke="#ef4b23" stroke-width="8"/>
+  <path d="M46 6 Q46 18 58 18 Q46 18 46 30 Q46 18 34 18 Q46 18 46 6 Z" fill="#ffffff" stroke="#0e1014" stroke-width="3" stroke-linejoin="round" paint-order="stroke"/>
+</g>
+  <text x="80" y="44" font-family="'Inter Tight', 'Segoe UI', Arial, sans-serif" font-weight="600" font-size="34" letter-spacing="-1.2" fill="#0e1014">Opportuneer</text>
+</svg>

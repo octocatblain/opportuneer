@@ -47,13 +47,13 @@ export default async function OpportunityPage({ params, searchParams }: { params
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold">{o.title}</h1>
+            <h1 className="page-title">{o.title}</h1>
             <ScorePill score={o.fitScore} />
             <TrackBadge track={o.track} />
           </div>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1 text-sm text-ink-4">
             {o.company ? (
-              <Link href={`/companies/${o.company.id}`} className="font-medium text-sky-700 hover:underline">
+              <Link href={`/companies/${o.company.id}`} className="font-medium link">
                 {o.company.name}
               </Link>
             ) : (
@@ -67,7 +67,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
             {o.url && (
               <>
                 {" · "}
-                <a href={o.url} target="_blank" className="text-sky-700 hover:underline">
+                <a href={o.url} target="_blank" className="link">
                   original post ↗
                 </a>
               </>
@@ -76,7 +76,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
         </div>
         <form action={setStageAction} className="flex items-center gap-2">
           <input type="hidden" name="id" value={o.id} />
-          <select name="stage" defaultValue={o.stage} className="rounded-md border border-slate-300 px-2 py-2 text-sm">
+          <select name="stage" defaultValue={o.stage} className="rounded-full border border-ink/15 bg-white px-4 py-2.5 text-sm font-medium">
             {STAGES.map((s) => (
               <option key={s} value={s}>
                 {STAGE_LABEL[s]}
@@ -89,7 +89,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <Card title={isJob ? "Application" : "Pitch"}>
+          <Card index={1} title={isJob ? "Application" : "Pitch"}>
             <div className="flex flex-wrap items-center gap-2">
               <form action={generateAction}>
                 <input type="hidden" name="id" value={o.id} />
@@ -109,7 +109,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
               )}
             </div>
             {isJob && (
-              <p className="mt-2 text-xs text-slate-500">
+              <p className="mt-2 text-xs text-ink-4">
                 Red Star Standard will {mention ? "" : "not "}be mentioned for this role
                 {mention ? " (contract, fractional or AI-lead role)." : " (traditional full-time role)."}
               </p>
@@ -130,21 +130,21 @@ export default async function OpportunityPage({ params, searchParams }: { params
               title={DOC_LABEL[d.kind]}
               actions={
                 d.pdfPath ? (
-                  <a href={`/api/files/${d.pdfPath}`} target="_blank" className="text-sm text-sky-700 hover:underline">
+                  <a href={`/api/files/${d.pdfPath}`} target="_blank" className="text-sm link">
                     Open PDF ↗
                   </a>
                 ) : null
               }
             >
               {d.kind === "CV" ? (
-                <div className="text-sm text-slate-600">
+                <div className="text-sm text-ink-4">
                   <p>Built from your master CV. Open the PDF to review it.</p>
-                  {d.subject && <pre className="mt-2 whitespace-pre-wrap rounded bg-slate-50 p-2 text-xs">What changed: {d.subject}</pre>}
+                  {d.subject && <pre className="mt-2 whitespace-pre-wrap rounded-2xl bg-canvas p-2 text-xs">What changed: {d.subject}</pre>}
                 </div>
               ) : d.kind === "PROPOSAL" ? (
                 <div className="space-y-2 text-sm">
-                  {d.subject && <pre className="whitespace-pre-wrap rounded bg-rose-50 p-3 text-xs text-slate-700">{d.subject}</pre>}
-                  <pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded bg-slate-50 p-3 text-xs">{d.content}</pre>
+                  {d.subject && <pre className="whitespace-pre-wrap rounded bg-signal-soft p-3 text-xs text-ink-3">{d.subject}</pre>}
+                  <pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded-2xl bg-canvas p-3 text-xs">{d.content}</pre>
                 </div>
               ) : (
                 <form action={gmail && emailKinds.includes(d.kind) ? gmailDraftAction : saveDocAction} className="space-y-2">
@@ -165,7 +165,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
                       )}
                       {d.gmailDraftId && <span className="text-xs text-emerald-700">Draft in Gmail ✓</span>}
                       {!gmail && (
-                        <Link href="/settings" className="text-xs text-sky-700 hover:underline">
+                        <Link href="/settings" className="text-xs link">
                           Connect Gmail to send drafts there
                         </Link>
                       )}
@@ -177,62 +177,62 @@ export default async function OpportunityPage({ params, searchParams }: { params
                   )}
                 </form>
               )}
-              {d.kind === "COVER_LETTER" && <p className="mt-2 text-xs text-slate-500">Text edits here update the email copy only; regenerate to rebuild the PDF.</p>}
-              <p className="mt-2 text-xs text-slate-400">
+              {d.kind === "COVER_LETTER" && <p className="mt-2 text-xs text-ink-4">Text edits here update the email copy only; regenerate to rebuild the PDF.</p>}
+              <p className="mt-2 text-xs text-mist">
                 {d.provider} · {d.createdAt.toLocaleString("en-GB")}
               </p>
             </Card>
           ))}
 
           {o.description && (
-            <Card title={isJob ? "Job description" : "Notes"}>
-              <p className="max-h-96 overflow-auto whitespace-pre-wrap text-sm leading-relaxed text-slate-700">{o.description}</p>
+            <Card index={2} title={isJob ? "Job description" : "Notes"}>
+              <p className="max-h-96 overflow-auto whitespace-pre-wrap text-sm leading-relaxed text-ink-3">{o.description}</p>
             </Card>
           )}
         </div>
 
         <div className="space-y-6">
           {fit?.lines && (
-            <Card title="Why this score">
+            <Card index={3} title="Why this score">
               <Breakdown lines={fit.lines} />
               {fit.trust && (
-                <div className="mt-3 border-t border-slate-100 pt-2 text-sm">
+                <div className="mt-3 border-t border-ink/5 pt-2 text-sm">
                   <span className="font-medium">Trust: </span>
                   <span
                     className={
                       fit.trust.level === "verified"
                         ? "text-emerald-700"
                         : fit.trust.level === "ok"
-                          ? "text-slate-700"
+                          ? "text-ink-3"
                           : "text-red-700"
                     }
                   >
                     {{ verified: "Verified employer", ok: "Looks genuine", unclear: "Unclear post", suspicious: "Possible scam" }[fit.trust.level]}
                   </span>
-                  <ul className="mt-1 list-disc pl-5 text-xs text-slate-600">
+                  <ul className="mt-1 list-disc pl-5 text-xs text-ink-4">
                     {fit.trust.reasons.map((r) => (
                       <li key={r}>{r}</li>
                     ))}
                   </ul>
-                  <p className="mt-1 text-xs text-slate-500">Always check the employer&apos;s own website or LinkedIn page, and never pay to apply.</p>
+                  <p className="mt-1 text-xs text-ink-4">Always check the employer&apos;s own website or LinkedIn page, and never pay to apply.</p>
                 </div>
               )}
               {fit.excluded && <p className="mt-2 text-sm text-red-700">Auto-archived: {fit.excludeReason}</p>}
             </Card>
           )}
           {o.company && (
-            <Card title="Company">
+            <Card index={4} title="Company">
               <p className="text-sm">
                 <TrackBadge track={o.company.recommendation} both={o.company.recommendBoth} />
               </p>
-              <p className="mt-2 text-sm text-slate-600">{o.company.recommendReason}</p>
-              <Link href={`/companies/${o.company.id}`} className="mt-2 block text-sm text-sky-700 hover:underline">
+              <p className="mt-2 text-sm text-ink-4">{o.company.recommendReason}</p>
+              <Link href={`/companies/${o.company.id}`} className="mt-2 block text-sm link">
                 Research / edit company →
               </Link>
             </Card>
           )}
           {isJob && (
-            <Card title="Details (correct if wrong)">
+            <Card index={5} title="Details (correct if wrong)">
               <form action={updateOpportunityAction} className="space-y-2 text-sm">
                 <input type="hidden" name="id" value={o.id} />
                 <input name="location" defaultValue={o.location ?? ""} placeholder="Location" className={input} />
@@ -251,7 +251,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
                     <option value="hour">per hour</option>
                   </select>
                 </div>
-                <label className="block text-xs text-slate-600">
+                <label className="block text-xs text-ink-4">
                   Follow up on
                   <input name="followUpAt" type="date" defaultValue={o.followUpAt?.toISOString().slice(0, 10) ?? ""} className={input} />
                 </label>
@@ -259,11 +259,11 @@ export default async function OpportunityPage({ params, searchParams }: { params
               </form>
             </Card>
           )}
-          <Card title="Activity">
+          <Card index={6} title="Activity">
             <ul className="space-y-2 text-xs">
               {o.activities.map((a) => (
                 <li key={a.id}>
-                  <span className="text-slate-400">{a.createdAt.toLocaleString("en-GB")}</span>
+                  <span className="text-mist">{a.createdAt.toLocaleString("en-GB")}</span>
                   <br />
                   {a.message}
                 </li>
