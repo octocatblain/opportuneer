@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
+import { ScanOverlay } from "@/components/scan-overlay";
 
 export const metadata: Metadata = {
   title: "Opportuneer",
@@ -20,7 +21,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body className="min-h-screen bg-slate-50 text-slate-900 antialiased">
-        <header className="border-b border-slate-200 bg-white">
+        <header data-app-shell className="border-b border-slate-200 bg-white">
           <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
             <Link href="/" className="text-lg font-bold tracking-tight">
               <span className="text-rose-700">Oppor</span>tuneer
@@ -34,7 +35,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             </nav>
           </div>
         </header>
-        <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>
+        <main data-app-shell className="mx-auto max-w-7xl px-4 py-6">{children}</main>
+        <ScanOverlay />
       </body>
     </html>
   );

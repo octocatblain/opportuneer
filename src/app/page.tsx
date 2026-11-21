@@ -43,7 +43,7 @@ export default async function Today({ searchParams }: { searchParams: Promise<{ 
             {lastScan ? `Last scan ${new Date(lastScan.at).toLocaleString("en-GB")}` : "No scan yet. Run one to fill your shortlist."}
           </p>
         </div>
-        <form action={scanAction}>
+        <form action={scanAction} data-scan-form>
           <SubmitButton className={btn} pending="Scanning job boards… (1–2 min)">
             Scan job boards now
           </SubmitButton>

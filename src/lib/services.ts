@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import { Prisma, type Opportunity, type Company } from "@prisma/client";
 import { company as rss, profile } from "@/config/profile";
 import { db, setSetting } from "@/lib/db";
+import { scanStatus, setScanRunning } from "@/lib/scan-status";
 import { feeds, fetchPageText, type RawJob } from "@/lib/feeds";
 import { parseSalary } from "@/lib/salary";
 import { matchTitleFamily, recommend, scoreCompany, scoreJob, shouldMentionCompany, type JobFit } from "@/lib/scoring";
@@ -187,6 +188,16 @@ export async function rescoreJob(id: string) {
 }
 
 export async function runScan() {
+  if ((await scanStatus()).running) throw new Error("A scan is already running. Wait for it to finish.");
+  await setScanRunning(true);
+  try {
+    return await doScan();
+  } finally {
+    await setScanRunning(false);
+  }
+}
+
+async function doScan() {
   const counts: Record<string, { fetched: number; matched: number; added: number }> = {};
   const errors: string[] = [];
   for (const [name, fn] of Object.entries(feeds)) {
