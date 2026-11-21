@@ -54,14 +54,29 @@ export default async function Settings({ searchParams }: { searchParams: Promise
 
         <Card title="AI providers">
           <ul className="space-y-1 text-sm">
-            <li>Claude: {ai.claude ? `ready (${ai.claudeModel})` : "no ANTHROPIC_API_KEY"}</li>
+            <li>
+              Claude:{" "}
+              {ai.claude
+                ? `ready (${ai.claudeModel}${ai.claudePremiumModel ? `; ${ai.claudePremiumModel} for CVs, letters and pitches` : ""})`
+                : "no ANTHROPIC_API_KEY"}
+            </li>
             <li>OpenAI: {ai.openai ? `ready (${ai.openaiModel})` : "no OPENAI_API_KEY"}</li>
+            <li>Gemini: {ai.gemini ? `ready (${ai.geminiModel})` : "no GEMINI_API_KEY"}</li>
+            <li>
+              Paid calls today (Claude + OpenAI): <b>{ai.paidCallsToday}</b> of {ai.paidCallLimit}
+            </li>
             <li>
               Order tried: <b>{ai.order.join(" → ")}</b>
               {ai.order[0] === "mock" && <span className="text-amber-700"> (add a key to .env to get real drafts)</span>}
             </li>
           </ul>
           <p className="mt-2 text-xs text-slate-500">Change the order with AI_PROVIDERS in .env, e.g. “openai,claude”.</p>
+          {ai.gemini && (
+            <p className="mt-2 text-xs text-amber-700">
+              Gemini&apos;s free tier may let Google use prompts (including your CV details) to improve its products. Keep it last in AI_PROVIDERS once you
+              have a paid key, or remove it from the list.
+            </p>
+          )}
         </Card>
 
         <Card title="Job search targets">
