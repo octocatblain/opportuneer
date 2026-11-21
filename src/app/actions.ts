@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import type { Stage } from "@prisma/client";
 import { db } from "@/lib/db";
 import { disconnectGmail } from "@/lib/gmail";
+import { resetConfigSection, saveConfigSection } from "@/lib/config";
 import { detectIndustry } from "@/lib/scoring";
 import * as svc from "@/lib/services";
 
@@ -171,4 +172,14 @@ export async function deleteOpportunityAction(form: FormData) {
 export async function disconnectGmailAction() {
   await disconnectGmail();
   revalidatePath("/settings");
+}
+
+export async function saveConfigAction(form: FormData) {
+  const section = str(form, "section") ?? "";
+  await attempt("/settings", () => saveConfigSection(section, String(form.get("json") ?? "")), `Saved "${section}"`);
+}
+
+export async function resetConfigAction(form: FormData) {
+  const section = str(form, "section") ?? "";
+  await attempt("/settings", () => resetConfigSection(section), `Reset "${section}" to defaults`);
 }

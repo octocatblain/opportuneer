@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { company as rss, industries, packages, profile, serviceLines } from "@/config/profile";
+import { cfg } from "@/lib/config";
+import type { Package } from "@/config/profile";
 import { generateJson, generateText } from "@/lib/ai";
 import { extractBody } from "@/lib/cv";
 
@@ -40,8 +41,8 @@ JSON keys: title, companyName, companyWebsite, location, remote, employment, sal
 
 // ---------- Company research ----------
 
-export const CompanyResearch = z.object({
-  industry: z.enum(industries.map((i) => i.key) as [string, ...string[]]).nullable(),
+export const companyResearchSchema = () => z.object({
+  industry: z.enum(cfg().industries.map((i) => i.key) as [string, ...string[]]).nullable(),
   location: z.string().nullable(),
   employees: z.number().int().nullable(),
   revenueNote: z.string().nullable(),
@@ -55,12 +56,12 @@ export const CompanyResearch = z.object({
 });
 
 export function researchCompany(name: string, sourceText: string) {
-  return generateJson(CompanyResearch, {
-    system: `You are a business analyst helping ${rss.name}, a Nairobi AI consultancy, qualify prospects. Be sceptical and evidence-based.`,
+  return generateJson(companyResearchSchema(), {
+    system: `You are a business analyst helping ${cfg().company.name}, a Nairobi AI consultancy, qualify prospects. Be sceptical and evidence-based.`,
     prompt: `Assess "${name}" from the material below (their website text and any notes).
 
 Return:
-- industry: one of ${industries.map((i) => `"${i.key}" (${i.label})`).join(", ")}, or null
+- industry: one of ${cfg().industries.map((i) => `"${i.key}" (${i.label})`).join(", ")}, or null
 - employees: best estimate of headcount, or null if no evidence
 - revenueNote: any budget/revenue evidence (branches, turnover, funding, client list), or null
 - aiMaturity: 1 = paper/Excel, no tech team ... 5 = in-house data/AI team. null if unknown
@@ -87,14 +88,14 @@ export async function tailorCv(input: {
   mentionCompany: boolean;
 }) {
   const { text, provider } = await generateText({
-    system: `You tailor ${profile.name}'s CV to a specific job. ${VOICE}
+    system: `You tailor ${cfg().profile.name}'s CV to a specific job. ${VOICE}
 You receive the CV's <body> HTML. Return the full tailored <body> inner HTML in a single \`\`\`html fenced block, followed by a short "CHANGES:" list.
 Rules:
 - Keep every existing CSS class and the overall structure, so the existing stylesheet still applies.
 - You may: rewrite the role line and summary for this job, reorder skills and bullets so the most relevant come first, drop less relevant bullets, and lightly rephrase bullets using the job's vocabulary when it is truthful.
 - You may NOT add any employer, project, tool, number, date or achievement that is not already in the CV.
 - Keep it to two A4 pages: if you add emphasis somewhere, trim elsewhere.
-- ${input.mentionCompany ? `Keep the Red Star Standard/AI consulting angle visible: Blain runs ${rss.name} (${rss.website}), an AI consultancy. Mention it once in the summary only if the CV already supports it.` : "Do not mention Red Star Standard or any side business; present Blain purely as a candidate for this employer."}`,
+- ${input.mentionCompany ? `Keep the Red Star Standard/AI consulting angle visible: Blain runs ${cfg().company.name} (${cfg().company.website}), an AI consultancy. Mention it once in the summary only if the CV already supports it.` : "Do not mention Red Star Standard or any side business; present Blain purely as a candidate for this employer."}`,
     prompt: `Job: ${input.jobTitle} at ${input.companyName}
 
 <job_description>
@@ -127,11 +128,11 @@ export function writeCoverLetter(input: {
   mentionCompany: boolean;
 }) {
   return generateJson(Letter, {
-    system: `You write cover letters for ${profile.name}. ${VOICE}`,
+    system: `You write cover letters for ${cfg().profile.name}. ${VOICE}`,
     prompt: `Write a cover letter (250-350 words) for ${input.jobTitle} at ${input.companyName}.
-Structure: why this company (specific, from the research or posting), the 2-3 most relevant proofs from the CV (with real numbers from the CV), how Blain would help them adopt AI/automation in practical steps, a short close with availability (notice period: ${profile.noticePeriod}).
-${input.mentionCompany ? `Mention briefly that he runs ${rss.name}, an AI consultancy, as evidence he can lead AI adoption.` : "Do not mention Red Star Standard or any side business."}
-"subject" is the letter's subject line. "body" is the letter text starting with "Dear ..." (use the hiring manager's name only if known, else "Dear Hiring Manager,") and ending with the sign-off "${profile.name}". Use blank lines between paragraphs.
+Structure: why this company (specific, from the research or posting), the 2-3 most relevant proofs from the CV (with real numbers from the CV), how Blain would help them adopt AI/automation in practical steps, a short close with availability (notice period: ${cfg().profile.noticePeriod}).
+${input.mentionCompany ? `Mention briefly that he runs ${cfg().company.name}, an AI consultancy, as evidence he can lead AI adoption.` : "Do not mention Red Star Standard or any side business."}
+"subject" is the letter's subject line. "body" is the letter text starting with "Dear ..." (use the hiring manager's name only if known, else "Dear Hiring Manager,") and ending with the sign-off "${cfg().profile.name}". Use blank lines between paragraphs.
 
 <cv>${input.cvText}</cv>
 <job>${input.jobDescription.slice(0, 15000)}</job>
@@ -148,10 +149,10 @@ export function writeApplicationEmail(input: {
   coverLetter: string;
 }) {
   return generateJson(Letter, {
-    system: `You write short job-application emails for ${profile.name}. ${VOICE}`,
+    system: `You write short job-application emails for ${cfg().profile.name}. ${VOICE}`,
     prompt: `Write the email that carries the attached CV and cover letter for ${input.jobTitle} at ${input.companyName}.
-80-140 words. Greeting to ${input.contactName || "the hiring team"}. One line on the role, two lines with the strongest proof, mention the attachments, close politely. Signature: ${profile.name}, ${profile.phone}, ${profile.links.linkedin}.
-Subject: "Application: <role> – ${profile.name}".
+80-140 words. Greeting to ${input.contactName || "the hiring team"}. One line on the role, two lines with the strongest proof, mention the attachments, close politely. Signature: ${cfg().profile.name}, ${cfg().profile.phone}, ${cfg().profile.links.linkedin}.
+Subject: "Application: <role> – ${cfg().profile.name}".
 
 <cover_letter>${input.coverLetter}</cover_letter>`,
     maxTokens: 3000,
@@ -171,16 +172,16 @@ export const Pitch = z.object({
   rationale: z.string(),
 });
 
-function priceLabel(p: (typeof packages)[number]) {
+function priceLabel(p: Package) {
   if (!p.priceKes) return "price on request";
   return `from KES ${p.priceKes.toLocaleString()}${p.monthlyKes && p.kind !== "retainer" ? ` + KES ${p.monthlyKes.toLocaleString()}/mo` : p.kind === "retainer" ? "/mo" : ""}`;
 }
 
 export function serviceMenu() {
-  const priced = packages
+  const priced = cfg().packages
     .map((p) => `- ${p.key}: ${p.name} (${priceLabel(p)}; ${p.duration}). ${p.summary}${p.qualifies ? "" : " [small entry offer: use only as a first step towards bigger or ongoing work]"}`)
     .join("\n");
-  const lines = Object.entries(serviceLines)
+  const lines = Object.entries(cfg().serviceLines)
     .map(([group, items]) => `- ${group}: ${items.join(", ")}`)
     .join("\n");
   return `<priced_packages>
@@ -199,16 +200,16 @@ export function writePitch(input: {
   includeFoundingOffer: boolean;
 }) {
   return generateJson(Pitch, {
-    system: `You are the business-development lead for ${rss.name} (${rss.website}), an AI, software and growth agency run by ${profile.name} in Nairobi. ${VOICE}
+    system: `You are the business-development lead for ${cfg().company.name} (${cfg().company.website}), an AI, software and growth agency run by ${cfg().profile.name} in Nairobi. ${VOICE}
 You choose the strongest angle for each prospect from the WHOLE service menu (consulting, AI development, software and web, industry solutions, and the AI Growth Studio marketing services), then write the first-contact email. The goal of the email is a free 30-minute call, not a sale.`,
-    prompt: `Step 1: Consider every service line and package below against the research. In "angles", list the 3-5 strongest options, each with the service, why it fits this company (evidence from the research), and a fit score 1-10. Weigh: size of the pain, whether they can afford it (they must be able to pay at least KES ${rss.clientFloorKes.toLocaleString()} or a monthly retainer), and how likely it leads to long-term, recurring work.
+    prompt: `Step 1: Consider every service line and package below against the research. In "angles", list the 3-5 strongest options, each with the service, why it fits this company (evidence from the research), and a fit score 1-10. Weigh: size of the pain, whether they can afford it (they must be able to pay at least KES ${cfg().company.clientFloorKes.toLocaleString()} or a monthly retainer), and how likely it leads to long-term, recurring work.
 Step 2: Set "chosenAngle" to the single best way in. It may combine a quick, low-risk first step with the bigger engagement it leads to.
 Step 3: Write the email to ${input.contactName ? `${input.contactName}${input.contactRole ? ` (${input.contactRole})` : ""}` : "the decision maker"} at ${input.companyName}:
 - 120-180 words. Open with one specific observation about their business, not "I hope this finds you well".
 - One concrete problem, one concrete fix (from the chosen angle) with a believable outcome. Mention a starting price only if it helps.
-- ${input.includeFoundingOffer ? `One sentence on the founding-client offer: ${rss.foundingOffer.text}.` : "Do not mention discounts."}
-- Call to action: a free 30-minute call; pricing at ${rss.pricingUrl}.
-- Signature: ${profile.name}, Founder, ${rss.name}, ${profile.phone}, ${rss.website}
+- ${input.includeFoundingOffer ? `One sentence on the founding-client offer: ${cfg().company.foundingOffer.text}.` : "Do not mention discounts."}
+- Call to action: a free 30-minute call; pricing at ${cfg().company.pricingUrl}.
+- Signature: ${cfg().profile.name}, Founder, ${cfg().company.name}, ${cfg().profile.phone}, ${cfg().company.website}
 "packageKeys": keys of the priced packages that belong in the proposal. "otherServices": any custom-quoted service lines to include. "rationale": 2 sentences on why this angle fits their budget and retention potential.
 
 ${serviceMenu()}
@@ -220,12 +221,12 @@ ${serviceMenu()}
 }
 
 export async function writeProposal(input: { companyName: string; research: string; angle: string; packageKeys: string[]; otherServices: string[] }) {
-  const chosen = packages.filter((p) => input.packageKeys.includes(p.key)).map((p) => ({ name: p.name, price: priceLabel(p), duration: p.duration, summary: p.summary }));
+  const chosen = cfg().packages.filter((p) => input.packageKeys.includes(p.key)).map((p) => ({ name: p.name, price: priceLabel(p), duration: p.duration, summary: p.summary }));
   return generateText({
-    system: `You write one-page proposals for ${rss.name}. ${VOICE} Output clean Markdown only.`,
+    system: `You write one-page proposals for ${cfg().company.name}. ${VOICE} Output clean Markdown only.`,
     prompt: `Write a one-page proposal for ${input.companyName} built around this angle: ${input.angle}
 Sections: Where you are today; What we propose (phases with outcomes, starting with a low-risk first phase and showing the ongoing work it leads to); Investment (use the package prices exactly, KES before VAT; custom-quoted services say "quoted after a free scoping call"); Timeline; Payment terms; Next step.
-Payment terms: ${rss.terms.join("; ")}.
+Payment terms: ${cfg().company.terms.join("; ")}.
 
 <packages>${JSON.stringify(chosen)}</packages>
 <custom_services>${input.otherServices.join(", ")}</custom_services>
@@ -237,7 +238,7 @@ Payment terms: ${rss.terms.join("; ")}.
 
 export function writeFollowUp(input: { kind: "job" | "pitch"; companyName: string; title: string; previous: string; daysSince: number }) {
   return generateJson(Letter, {
-    system: `You write polite, short follow-up emails for ${profile.name}. ${VOICE}`,
+    system: `You write polite, short follow-up emails for ${cfg().profile.name}. ${VOICE}`,
     prompt: `Write a follow-up (60-100 words) ${input.daysSince} days after this ${input.kind === "job" ? "job application" : "pitch"} for "${input.title}" at ${input.companyName}. Add one new piece of value (a relevant idea or proof), and ask one easy question. Subject should start with "Re: ".
 
 <previous_email>${input.previous}</previous_email>`,

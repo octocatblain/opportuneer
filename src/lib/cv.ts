@@ -1,9 +1,10 @@
 import fs from "node:fs/promises";
 import * as cheerio from "cheerio";
-import { profile } from "@/config/profile";
+import { cfg, loadConfig } from "@/lib/config";
 
 export async function loadCvHtml(): Promise<string> {
-  return fs.readFile(profile.cvHtmlPath, "utf8");
+  await loadConfig();
+  return fs.readFile(cfg().profile.cvHtmlPath, "utf8");
 }
 
 /** Split the master CV into its <head> (styles) and <body> so the AI only edits content. */

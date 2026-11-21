@@ -2,12 +2,13 @@ import Link from "next/link";
 import { addCompanyAction } from "@/app/actions";
 import { SubmitButton } from "@/components/submit-button";
 import { btn, Card, Flash, input, ScorePill, TrackBadge } from "@/components/ui";
-import { industries } from "@/config/profile";
+import { loadConfig } from "@/lib/config";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
 export default async function Companies({ searchParams }: { searchParams: Promise<{ error?: string; filter?: string }> }) {
+  const { industries } = await loadConfig();
   const sp = await searchParams;
   const where =
     sp.filter === "pitch"

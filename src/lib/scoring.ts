@@ -1,12 +1,4 @@
-import {
-  company as rss,
-  industries,
-  locations,
-  lowMaturityKeywords,
-  payFloors,
-  techCompanyKeywords,
-  titleFamilies,
-} from "@/config/profile";
+import { cfg } from "@/lib/config";
 import { monthlyUsd, type Salary } from "@/lib/salary";
 
 export type ScoreLine = { label: string; points: number; max: number; note: string };
@@ -79,7 +71,7 @@ const lc = (s: string | null | undefined) => (s ?? "").toLowerCase();
 export function matchTitleFamily(title: string) {
   const t = lc(title);
   let best: { key: string; label: string; weight: number } | null = null;
-  for (const fam of titleFamilies) {
+  for (const fam of cfg().titleFamilies) {
     if (fam.keywords.some((k) => t.includes(k))) {
       if (!best || fam.weight > best.weight) best = fam;
     }
@@ -106,7 +98,7 @@ export const countKeywords = (text: string, keywords: string[]) => keywords.filt
  */
 export function detectIndustry(name?: string | null, description?: string | null) {
   let best: { key: string; hits: number } | null = null;
-  for (const ind of industries) {
+  for (const ind of cfg().industries) {
     const nameHits = countKeywords(lc(name), ind.keywords);
     const descHits = countKeywords(lc(description).slice(0, 6000), ind.keywords);
     const hits = nameHits * 2 + descHits;
@@ -139,13 +131,13 @@ export function scoreJob(job: JobInput): JobFit {
   const titlePts = fam ? Math.round(30 * fam.weight) : 0;
   lines.push({ label: "Job title", points: titlePts, max: 30, note: fam ? fam.label : "Not one of your target titles" });
 
-  // 2. Industry (20): non-tech priority industries are the main focus
+  // 2. Industry (20): non-tech priority cfg().industries are the main focus
   const industry = job.companyIndustry ?? detectIndustry(job.companyName, job.description);
   lines.push({
     label: "Industry",
     points: industry ? 20 : 5,
     max: 20,
-    note: industry ? industries.find((i) => i.key === industry)!.label : "Industry not in your priority list (or unknown)",
+    note: industry ? cfg().industries.find((i) => i.key === industry)!.label : "Industry not in your priority list (or unknown)",
   });
 
   // 3. Late AI adopter (15)
@@ -155,8 +147,8 @@ export function scoreJob(job: JobInput): JobFit {
     maturityPts = [0, 15, 13, 8, 4, 2][job.companyAiMaturity];
     maturityNote = `AI maturity ${job.companyAiMaturity}/5`;
   } else {
-    const low = countKeywords(desc, lowMaturityKeywords);
-    const tech = countKeywords(desc, techCompanyKeywords);
+    const low = countKeywords(desc, cfg().lowMaturityKeywords);
+    const tech = countKeywords(desc, cfg().techCompanyKeywords);
     if (low > tech && low >= 2) {
       maturityPts = Math.min(15, 9 + low * 2);
       maturityNote = "Post mentions manual/legacy work or transformation";
@@ -168,8 +160,8 @@ export function scoreJob(job: JobInput): JobFit {
   lines.push({ label: "Late AI adopter", points: maturityPts, max: 15, note: maturityNote });
 
   // 4. Pay (20)
-  const isLocal = !job.remote || locations.accepted.some((l) => loc.includes(l));
-  const floor = isLocal ? payFloors.localMonthlyUsd : payFloors.remoteMonthlyUsd;
+  const isLocal = !job.remote || cfg().locations.accepted.some((l) => loc.includes(l));
+  const floor = isLocal ? cfg().payFloors.localMonthlyUsd : cfg().payFloors.remoteMonthlyUsd;
   const usd = job.salary ? monthlyUsd(job.salary) : null;
   let payPts = 10;
   let payNote = "Salary not stated";
@@ -180,7 +172,7 @@ export function scoreJob(job: JobInput): JobFit {
     if (usd >= floor) {
       payPts = 20;
       payNote = `~$${usd.toLocaleString()}/mo meets your $${floor.toLocaleString()} floor`;
-    } else if (usd >= floor * (1 - payFloors.belowTargetTolerance)) {
+    } else if (usd >= floor * (1 - cfg().payFloors.belowTargetTolerance)) {
       payPts = 6;
       belowTarget = true;
       payNote = `~$${usd.toLocaleString()}/mo is below your $${floor.toLocaleString()} floor`;
@@ -196,8 +188,8 @@ export function scoreJob(job: JobInput): JobFit {
   // 5. Location (15)
   let locPts = 0;
   let locNote = "";
-  const excludedRegion = locations.excludedRegions.find((r) => loc.includes(r));
-  const kenyan = locations.accepted.some((l) => loc.includes(l));
+  const excludedRegion = cfg().locations.excludedRegions.find((r) => loc.includes(r));
+  const kenyan = cfg().locations.accepted.some((l) => loc.includes(l));
   const sponsors = /visa sponsor|sponsorship|relocation (support|package|assistance)/.test(desc);
   const mentionsAfrica = /\b(africa|african|kenya|kenyan|nairobi|east africa|sub-saharan)\b/.test(`${loc} ${desc}`);
   if (job.remote && kenyan) {
@@ -311,12 +303,12 @@ export function scoreCompany(c: CompanyInput): CompanyScore {
   const rPts = r === 0 ? 4 : r === 1 ? 12 : r === 2 ? 16 : 20;
   lines.push({ label: "Recurring-work potential", points: rPts, max: 20, note: r ? `${r} ongoing need(s)` : "None recorded" });
 
-  const indPts = c.industry && industries.some((i) => i.key === c.industry) ? 10 : 3;
+  const indPts = c.industry && cfg().industries.some((i) => i.key === c.industry) ? 10 : 3;
   lines.push({
     label: "Priority industry",
     points: indPts,
     max: 10,
-    note: industries.find((i) => i.key === c.industry)?.label ?? "Not a priority industry",
+    note: cfg().industries.find((i) => i.key === c.industry)?.label ?? "Not a priority industry",
   });
 
   // Floor: must plausibly afford a KES 60k Strategy Sprint or a retainer.
@@ -356,7 +348,7 @@ export function recommend(
     return {
       track: "PITCH",
       both: false,
-      reason: `No matching job open, but the company can likely afford ${rss.clientFloorKes.toLocaleString()} KES+ work and has room for AI with ongoing needs.`,
+      reason: `No matching job open, but the company can likely afford ${cfg().company.clientFloorKes.toLocaleString()} KES+ work and has room for AI with ongoing needs.`,
     };
   }
   if (!cs.canAffordFloor && (c.employees === null || c.employees === undefined)) {

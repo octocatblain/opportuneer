@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-import { searchTerms } from "@/config/profile";
+import { cfg } from "@/lib/config";
 import { htmlToText } from "@/lib/cv";
 import { parseSalary, type Salary } from "@/lib/salary";
 import { matchTitleFamily } from "@/lib/scoring";
@@ -80,7 +80,7 @@ const employmentOf = (s: string | null | undefined): string | null => {
 async function remotive(): Promise<RawJob[]> {
   type R = { jobs: { id: number; url: string; title: string; company_name: string; job_type: string; publication_date: string; candidate_required_location: string; salary: string; description: string }[] };
   const out: RawJob[] = [];
-  for (const term of searchTerms) {
+  for (const term of cfg().searchTerms) {
     const data = await getJson<R>(`https://remotive.com/api/remote-jobs?search=${encodeURIComponent(term)}&limit=50`);
     for (const j of data.jobs) {
       out.push({
@@ -306,7 +306,7 @@ async function himalayas(): Promise<RawJob[]> {
     }[];
   };
   const out: RawJob[] = [];
-  for (const term of searchTerms) {
+  for (const term of cfg().searchTerms) {
     const data = await getJson<H>(`https://himalayas.app/jobs/api/search?q=${encodeURIComponent(term)}&country=Kenya`);
     for (const j of data.jobs ?? []) {
       out.push({

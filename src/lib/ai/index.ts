@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
 import { GoogleGenAI } from "@google/genai";
 import type { z } from "zod";
+import { cfg, loadConfig } from "@/lib/config";
 
 export type GenerateOptions = {
   system: string;
@@ -25,7 +26,7 @@ const claude: AIProvider = {
   async generate({ system, prompt, maxTokens = 32000, effort = "high" }) {
     const client = new Anthropic();
     const stream = client.beta.messages.stream({
-      model: process.env.ANTHROPIC_MODEL || "claude-opus-5-5",
+      model: cfg().ai.claudeModel,
       max_tokens: maxTokens,
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
@@ -51,7 +52,7 @@ const openai: AIProvider = {
   async generate({ system, prompt, maxTokens = 32000 }) {
     const client = new OpenAI();
     const res = await client.responses.create({
-      model: process.env.OPENAI_MODEL || "gpt-5",
+      model: cfg().ai.openaiModel,
       instructions: system,
       input: prompt,
       max_output_tokens: maxTokens,
@@ -68,7 +69,7 @@ const gemini: AIProvider = {
   async generate({ system, prompt, maxTokens = 32000 }) {
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const res = await ai.models.generateContent({
-      model: process.env.GEMINI_MODEL || "gemini-flash-latest",
+      model: cfg().ai.geminiModel,
       contents: prompt,
       config: { systemInstruction: system, maxOutputTokens: maxTokens },
     });
@@ -150,8 +151,8 @@ export function aiStatus() {
     openai: openai.available(),
     gemini: gemini.available(),
     order: providerChain().map((p) => p.name),
-    claudeModel: process.env.ANTHROPIC_MODEL || "claude-opus-5-5",
-    openaiModel: process.env.OPENAI_MODEL || "gpt-5",
-    geminiModel: process.env.GEMINI_MODEL || "gemini-flash-latest",
+    claudeModel: cfg().ai.claudeModel,
+    openaiModel: cfg().ai.openaiModel,
+    geminiModel: cfg().ai.geminiModel,
   };
 }

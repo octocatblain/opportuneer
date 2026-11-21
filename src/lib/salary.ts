@@ -1,4 +1,4 @@
-import { KES_PER_USD } from "@/config/profile";
+import { cfg } from "@/lib/config";
 
 export type Salary = {
   min?: number;
@@ -7,20 +7,20 @@ export type Salary = {
   period?: "month" | "year" | "hour";
 };
 
-const FX_TO_USD: Record<string, number> = {
+const fxToUsd = (): Record<string, number> => ({
   USD: 1,
-  KES: 1 / KES_PER_USD,
+  KES: 1 / cfg().fx.kesPerUsd,
   EUR: 1.08,
   GBP: 1.27,
   CAD: 0.73,
   AUD: 0.66,
-};
+});
 
 /** Monthly salary in USD (uses the top of the range when present). */
 export function monthlyUsd(s: Salary): number | null {
   const amount = s.max ?? s.min;
   if (!amount) return null;
-  const rate = FX_TO_USD[(s.currency ?? "USD").toUpperCase()];
+  const rate = fxToUsd()[(s.currency ?? "USD").toUpperCase()];
   if (rate === undefined) return null;
   let monthly = amount;
   if (s.period === "year") monthly = amount / 12;

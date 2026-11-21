@@ -3,13 +3,14 @@ import { notFound } from "next/navigation";
 import { researchCompanyAction, startPitchAction, updateCompanyAction } from "@/app/actions";
 import { SubmitButton } from "@/components/submit-button";
 import { Breakdown, btn, btnGhost, Card, Flash, input, OppRow, ScorePill, TrackBadge } from "@/components/ui";
-import { industries } from "@/config/profile";
+import { loadConfig } from "@/lib/config";
 import { db } from "@/lib/db";
 import type { ScoreLine } from "@/lib/scoring";
 
 export const dynamic = "force-dynamic";
 
 export default async function CompanyPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; error?: string }> }) {
+  const { industries } = await loadConfig();
   const { id } = await params;
   const sp = await searchParams;
   const c = await db.company.findUnique({

@@ -1,7 +1,7 @@
 import path from "node:path";
 import fs from "node:fs/promises";
 import { Prisma, type Opportunity, type Company } from "@prisma/client";
-import { company as rss, profile } from "@/config/profile";
+import { cfg, loadConfig } from "@/lib/config";
 import { db, setSetting } from "@/lib/db";
 import { feeds, fetchPageText, type RawJob } from "@/lib/feeds";
 import { parseSalary } from "@/lib/salary";
@@ -35,12 +35,14 @@ const slug = (s: string) =>
 const FOLLOW_UP_DAYS = { JOB: 6, PITCH: 4 } as const;
 
 export async function log(opportunityId: string, type: string, message: string) {
+  await loadConfig();
   await db.activity.create({ data: { opportunityId, type, message } });
 }
 
 // ---------------- Companies ----------------
 
 export async function upsertCompany(name: string, data: Partial<Prisma.CompanyCreateInput> = {}) {
+  await loadConfig();
   const clean = name.trim() || "Unknown";
   return db.company.upsert({
     where: { name: clean },
@@ -50,6 +52,7 @@ export async function upsertCompany(name: string, data: Partial<Prisma.CompanyCr
 }
 
 export async function rescoreCompany(id: string) {
+  await loadConfig();
   const c = await db.company.findUniqueOrThrow({
     where: { id },
     include: { opportunities: { where: { track: "JOB", stage: { notIn: ["LOST", "ARCHIVED"] } }, orderBy: { fitScore: "desc" }, take: 1 } },
@@ -70,6 +73,7 @@ export async function rescoreCompany(id: string) {
 }
 
 export async function researchCompanyById(id: string, extraText = "") {
+  await loadConfig();
   requireAI();
   const c = await db.company.findUniqueOrThrow({ where: { id } });
   let text = `${c.notes ?? ""}\n${extraText}`;
@@ -112,6 +116,7 @@ function fitJson(fit: JobFit) {
 }
 
 export async function saveJob(raw: RawJob, contact?: { name?: string | null; email?: string | null; website?: string | null }) {
+  await loadConfig();
   const existing = await db.opportunity.findUnique({ where: { source_sourceId: { source: raw.source, sourceId: raw.sourceId } } });
   if (existing) return { opp: existing, created: false };
   // Same role from another board?
@@ -169,6 +174,7 @@ export async function saveJob(raw: RawJob, contact?: { name?: string | null; ema
 }
 
 export async function rescoreJob(id: string) {
+  await loadConfig();
   const o = await db.opportunity.findUniqueOrThrow({ where: { id }, include: { company: true } });
   const fit = scoreJob({
     title: o.title,
@@ -187,6 +193,7 @@ export async function rescoreJob(id: string) {
 }
 
 export async function runScan() {
+  await loadConfig();
   const counts: Record<string, { fetched: number; matched: number; added: number }> = {};
   const errors: string[] = [];
   for (const [name, fn] of Object.entries(feeds)) {
@@ -211,6 +218,7 @@ export async function runScan() {
 
 /** Paste a job description or a URL (LinkedIn: paste the text, not the link). */
 export async function importJob(input: { text?: string; url?: string; source?: string }) {
+  await loadConfig();
   requireAI();
   let raw = input.text?.trim() ?? "";
   if (!raw && input.url) raw = await fetchPageText(input.url);
@@ -239,6 +247,7 @@ export async function importJob(input: { text?: string; url?: string; source?: s
 // ---------------- Stages ----------------
 
 export async function setStage(id: string, stage: Opportunity["stage"]) {
+  await loadConfig();
   const o = await db.opportunity.findUniqueOrThrow({ where: { id } });
   const data: Prisma.OpportunityUpdateInput = { stage };
   if (stage === "SENT") {
@@ -258,14 +267,15 @@ async function saveDoc(opportunityId: string, kind: Prisma.DocumentCreateInput["
 
 async function archiveCopy(rel: string, name: string) {
   try {
-    await fs.mkdir(profile.coverLetterArchiveDir, { recursive: true });
-    await fs.copyFile(path.join(STORAGE_DIR, rel), path.join(profile.coverLetterArchiveDir, name));
+    await fs.mkdir(cfg().profile.coverLetterArchiveDir, { recursive: true });
+    await fs.copyFile(path.join(STORAGE_DIR, rel), path.join(cfg().profile.coverLetterArchiveDir, name));
   } catch {
     /* archive is optional */
   }
 }
 
 export async function generateApplication(id: string) {
+  await loadConfig();
   requireAI();
   const o = await db.opportunity.findUniqueOrThrow({ where: { id }, include: { company: true } });
   const companyName = o.company?.name ?? "the company";
@@ -281,7 +291,7 @@ export async function generateApplication(id: string) {
   const letter = await writeCoverLetter({ cvText: cv.text, jobTitle: o.title, companyName, jobDescription: o.description ?? "", companyResearch: o.company?.research, mentionCompany: mention });
   const letterPdf = await htmlToPdf(
     letterHtml({
-      from: [profile.name, profile.location, profile.email, profile.phone],
+      from: [cfg().profile.name, cfg().profile.location, cfg().profile.email, cfg().profile.phone],
       date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
       to: [companyName],
       subject: letter.data.subject,
@@ -300,22 +310,25 @@ export async function generateApplication(id: string) {
 }
 
 export async function foundingOfferActive() {
+  await loadConfig();
   const won = await db.opportunity.count({ where: { track: "PITCH", stage: "WON" } });
-  return won < rss.foundingOffer.maxFoundingClients;
+  return won < cfg().company.foundingOffer.maxFoundingClients;
 }
 
 export async function startPitch(companyId: string) {
+  await loadConfig();
   const c = await db.company.findUniqueOrThrow({ where: { id: companyId } });
   const existing = await db.opportunity.findFirst({ where: { companyId, track: "PITCH", stage: { notIn: ["LOST", "ARCHIVED"] } } });
   if (existing) return existing;
   const opp = await db.opportunity.create({
-    data: { track: "PITCH", title: `${rss.name} pitch: ${c.name}`, companyId, source: "research", sourceId: `pitch-${companyId}-${Date.now()}`, fitScore: c.score, stage: "SHORTLISTED" },
+    data: { track: "PITCH", title: `${cfg().company.name} pitch: ${c.name}`, companyId, source: "research", sourceId: `pitch-${companyId}-${Date.now()}`, fitScore: c.score, stage: "SHORTLISTED" },
   });
   await log(opp.id, "created", "Pitch opportunity created");
   return opp;
 }
 
 export async function generatePitch(id: string) {
+  await loadConfig();
   requireAI();
   const o = await db.opportunity.findUniqueOrThrow({ where: { id }, include: { company: true } });
   const c = o.company as Company;
@@ -332,7 +345,7 @@ export async function generatePitch(id: string) {
     otherServices: pitch.data.otherServices,
   });
   const date = new Date().toISOString().slice(0, 10);
-  const pdf = await htmlToPdf(markdownHtml(proposal.text, `${rss.name} proposal for ${c.name}`), `${o.id}/${date}-${slug(c.name)}-red-star-standard-proposal.pdf`);
+  const pdf = await htmlToPdf(markdownHtml(proposal.text, `${cfg().company.name} proposal for ${c.name}`), `${o.id}/${date}-${slug(c.name)}-red-star-standard-proposal.pdf`);
   const angles = pitch.data.angles
     .sort((x, y) => y.fit - x.fit)
     .map((a) => `${a.fit}/10 ${a.service}: ${a.why}`)
@@ -348,6 +361,7 @@ export async function generatePitch(id: string) {
 }
 
 export async function generateFollowUp(id: string) {
+  await loadConfig();
   requireAI();
   const o = await db.opportunity.findUniqueOrThrow({ where: { id }, include: { company: true, documents: { orderBy: { createdAt: "desc" } } } });
   const prev = o.documents.find((d) => d.kind === "EMAIL" || d.kind === "PITCH_EMAIL");
@@ -359,11 +373,13 @@ export async function generateFollowUp(id: string) {
 }
 
 export async function updateDocument(docId: string, subject: string | null, content: string) {
+  await loadConfig();
   await db.document.update({ where: { id: docId }, data: { subject, content } });
 }
 
 /** Put an email document into Gmail as a draft, attaching the latest PDFs for this opportunity. */
 export async function gmailDraft(docId: string, to: string | null) {
+  await loadConfig();
   const doc = await db.document.findUniqueOrThrow({ where: { id: docId }, include: { opportunity: { include: { documents: { orderBy: { createdAt: "desc" } }, company: true } } } });
   const o = doc.opportunity;
   const attachments: string[] = [];
