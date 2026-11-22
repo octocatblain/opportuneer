@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { SideSheet } from "@/components/side-sheet";
+import { Spinner } from "@/components/loading-overlay";
 
 const POLL_MS = 2000;
 
@@ -60,26 +62,19 @@ export function ScanOverlay() {
   const elapsed = secs >= 60 ? `${Math.floor(secs / 60)}m ${secs % 60}s` : `${secs}s`;
 
   return (
-    <div role="alertdialog" aria-modal="true" aria-live="polite" aria-label="Scan in progress" className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/60">
-      <div className="relative mx-4 w-full max-w-md">
-        <div className="relative rounded-xl bg-ink p-8 text-white shadow-pop">
-          <div className="flex items-center gap-3">
-            <span aria-hidden className="relative flex h-3 w-3">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-signal opacity-75 motion-safe:animate-ping" />
-              <span className="relative inline-flex h-3 w-3 rounded-full bg-signal" />
-            </span>
-            <span className="text-sm font-semibold text-white/70">Scan in progress</span>
-          </div>
-          <h2 className="mt-5 text-2xl font-semibold leading-tight">
-            Scanning the job boards…
-          </h2>
-          <p className="mt-2 text-sm text-white/70">The app is locked until the scan finishes. New jobs will appear automatically.</p>
-          <div className="mt-6 flex items-end justify-between">
-            <span className="text-sm text-white/60">Elapsed</span>
-            <span className="text-5xl font-semibold leading-none tabular-nums">{elapsed}</span>
-          </div>
+    <SideSheet label="Scan in progress" widthClass="max-w-lg">
+      <div aria-live="polite" className="flex h-full flex-col">
+        <div className="flex items-center gap-3 pt-4">
+          <Spinner className="h-6 w-6 text-signal" />
+          <span className="text-sm font-semibold text-ink-4">Scan in progress</span>
+        </div>
+        <h2 className="mt-5 text-2xl font-semibold leading-tight text-ink">Scanning the job boards…</h2>
+        <p className="mt-2 text-sm text-ink-4">The app is locked until the scan finishes. New jobs will appear automatically.</p>
+        <div className="mt-8 flex items-end justify-between rounded-lg border border-rule p-4">
+          <span className="text-sm text-ink-4">Elapsed</span>
+          <span className="text-5xl font-semibold leading-none tabular-nums text-ink">{elapsed}</span>
         </div>
       </div>
-    </div>
+    </SideSheet>
   );
 }

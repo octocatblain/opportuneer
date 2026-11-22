@@ -1,5 +1,6 @@
 "use client";
 
+import { ThemeToggle } from "@/components/theme-toggle";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -163,6 +164,7 @@ export function AppShell({ children, admin = false, ownSpace = "duo", name, emai
             <div className="hidden flex-1 px-2 text-sm text-muted sm:block">{adminMode ? "Administrator console" : `${SPACE_LABEL[space]} workspace`}</div>
           )}
           <div className="ml-auto flex items-center gap-3 text-sm">
+            <ThemeToggle />
             {admin && <span className="hidden rounded-lg bg-amber-soft px-2.5 py-1 text-xs font-medium text-warn-ink md:inline">{inAdmin ? "Viewing as Admin" : `Viewing as ${SPACE_LABEL[space].split(" ")[0]}`}</span>}
             <span className="hidden text-right leading-tight md:block">
               <span className="block text-sm font-medium">{name || email}</span>

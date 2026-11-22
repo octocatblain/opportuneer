@@ -40,3 +40,37 @@
     text-decoration-color: currentColor;
   }
 }
+
+@keyframes sheet-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes sheet-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* Dark theme: the ink/paper/white tokens are inverted, so existing utilities follow. */
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --color-white: #14171c;
+  --color-paper: #0b0d10;
+  --color-paper-2: #1a1d23;
+  --color-paper-3: #262a32;
+  --color-canvas: #0b0d10;
+  --color-surface: #14171c;
+  --color-ink: #eef1f4;
+  --color-ink-2: #e3e7ec;
+  --color-ink-3: #d3d8df;
+  --color-ink-4: #b4bac5;
+  --color-muted: #a2a9b5;
+  --color-mist: #8a919e;
+  --color-rule: #2b2f38;
+  --color-accent: #ff6a45;
+  --color-focus: #ff6a45;
+  --color-signal-dark: #ff6a45;
+  --color-signal-soft: #3a1c13;
+  --color-leaf-soft: #3a1c13;
+  --color-amber-soft: #3d3413;
+  --color-warn-soft: #3d3413;
+  --color-warn-ink: #f3dc8f;
+  --color-info-soft: #12293d;
+  --color-info-ink: #9fd0f5;
+  --color-cream: #3d3413;
+  --color-sky-soft: #12293d;
+  --color-success-soft: #14301f;
+}

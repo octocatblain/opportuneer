@@ -22,7 +22,10 @@ export const viewport: Viewport = { themeColor: "#0e1014" };
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const user = await getUser();
   return (
-    <html lang="en" className={interTight.variable}>
+    <html lang="en" className={interTight.variable} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem("theme");if(!t&&matchMedia("(prefers-color-scheme: dark)").matches)t="dark";if(t)document.documentElement.dataset.theme=t}catch(e){}` }} />
+      </head>
       <body className="min-h-screen bg-paper text-ink antialiased">
         {user ? (
           <MotionProvider>
