@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { inviteUserAction } from "@/app/auth-actions";
+import { cookies } from "next/headers";
+import { inviteUserAction, regenerateInviteAction, revokeInviteAction } from "@/app/auth-actions";
 import { Legend, Meter, Metric, StackedBars, type BarDatum } from "@/components/dash";
 import { SubmitButton } from "@/components/submit-button";
 import { btn, Card, Chip, Flash, input, PageHeader } from "@/components/ui";
@@ -15,6 +16,12 @@ export const metadata: Metadata = { title: "Admin" };
 export default async function Admin({ searchParams }: { searchParams: Promise<{ ok?: string; error?: string }> }) {
   const me = await requireSuper();
   const sp = await searchParams;
+  // The full invitation link is shown only right after it is made (kept 5 minutes in a cookie, never stored in clear).
+  const raw = (await cookies()).get("opp_invite_link")?.value;
+  let link: { email: string; url: string } | null = null;
+  try {
+    link = raw ? JSON.parse(raw) : null;
+  } catch {}
   const dayStart = new Date();
   dayStart.setHours(0, 0, 0, 0);
   const chartFrom = new Date(dayStart.getTime() - 6 * 86400_000);
@@ -60,6 +67,13 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
         }
       />
 
+      {link && (
+        <Card title={`Invitation link for ${link.email}`}>
+          <p className="mb-2 text-sm text-muted">Send this to them yourself. It works once, for 14 days, and only for this email. It is shown here now and cannot be shown again (use “Get new link” if you lose it).</p>
+          <input readOnly value={link.url} aria-label="Invitation link" className={`${input} font-mono text-xs`} />
+        </Card>
+      )}
+
       <div className="grid gap-4 xl:grid-cols-12">
         <div className="xl:col-span-8">
           <Card
@@ -103,7 +117,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
             <ul className="divide-y divide-rule">
               {users.map((u) => (
                 <li key={u.id} className="flex flex-wrap items-center gap-3 py-3">
-                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-leaf-soft text-sm font-semibold text-leaf-deep">{(u.name ?? u.email)[0]?.toUpperCase()}</span>
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-signal-soft text-sm font-semibold text-signal-dark">{(u.name ?? u.email)[0]?.toUpperCase()}</span>
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-medium">
                       {u.name ?? u.email} {u.id === me.id && <span className="text-xs text-muted">(you)</span>}
@@ -131,8 +145,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
         <div className="xl:col-span-4">
           <Card title="Invite a user">
             <form action={inviteUserAction} className="space-y-3">
-              <p className="text-sm text-ink-3">Only an invited email can create an account. The workspace they land in follows the tracks you choose.</p>
-              {pending.length > 0 && <p className="text-xs text-muted">Pending: {pending.map((i) => `${i.email} (${i.trackAccess})`).join(", ")}</p>}
+              <p className="text-sm text-ink-3">Accounts can only be created from the one-time link made here. The workspace they land in follows the tracks you choose.</p>
               <input name="email" type="email" required placeholder="Email to invite" className={input} />
               <select name="trackAccess" defaultValue="BOTH" className={input} aria-label="Tracks">
                 <option value="BOTH">Duo: both tracks</option>
@@ -140,9 +153,34 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
                 <option value="PITCH">Pitches: pitching only</option>
               </select>
               <SubmitButton className={`${btn} w-full`} pending="Saving…">
-                Invite this email
+                Create invitation link
               </SubmitButton>
             </form>
+            {pending.length > 0 && (
+              <div className="mt-5 border-t border-rule pt-4">
+                <h3 className="mb-2 text-sm font-semibold">Pending invitations</h3>
+                <ul className="space-y-3">
+                  {pending.map((i) => (
+                    <li key={i.id} className="text-sm">
+                      <div className="truncate font-medium">{i.email}</div>
+                      <div className="text-xs text-muted">
+                        {SPACE_LABEL[spaceForAccess(i.trackAccess)].split(" ")[0]} · {i.expiresAt ? (i.expiresAt.getTime() < Date.now() ? "link expired" : `link valid until ${i.expiresAt.toLocaleDateString("en-GB")}`) : "no link yet"}
+                      </div>
+                      <div className="mt-1 flex gap-3">
+                        <form action={regenerateInviteAction}>
+                          <input type="hidden" name="id" value={i.id} />
+                          <SubmitButton className="link text-xs font-medium" pending="Making…">Get new link</SubmitButton>
+                        </form>
+                        <form action={revokeInviteAction}>
+                          <input type="hidden" name="id" value={i.id} />
+                          <SubmitButton className="link text-xs font-medium" pending="Withdrawing…" confirm={`Withdraw the invitation for ${i.email}?`}>Withdraw</SubmitButton>
+                        </form>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </Card>
         </div>
       </div>

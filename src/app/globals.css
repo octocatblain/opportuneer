@@ -14,8 +14,8 @@
     letter-spacing: -0.005em;
   }
   ::selection {
-    background: var(--color-leaf);
-    color: var(--color-ink);
+    background: var(--color-signal);
+    color: white;
   }
 }
 
@@ -30,7 +30,7 @@
     color: var(--color-ink);
   }
   .link {
-    color: var(--color-leaf-dark);
+    color: var(--color-signal-dark);
     text-decoration: underline;
     text-decoration-color: transparent;
     text-underline-offset: 3px;

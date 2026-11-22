@@ -18,7 +18,6 @@ export function Footer({ signedIn, admin, ownSpace = "duo" }: { signedIn: boolea
     : [
         ["/waitlist", "Join the waitlist"],
         ["/login", "Sign in"],
-        ["/register", "I have an invitation"],
       ];
   return (
     <footer className="mt-8 bg-ink text-white">

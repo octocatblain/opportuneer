@@ -21,7 +21,7 @@ export function Flash({ ok, error }: { ok?: string; error?: string }) {
   return (
     <div
       role="status"
-      className={`mb-6 rounded-2xl px-4 py-3 text-sm ${error ? "bg-signal-soft text-signal-dark" : "bg-leaf-soft text-leaf-deep"}`}
+      className={`mb-6 rounded-2xl px-4 py-3 text-sm ${error ? "bg-signal-soft text-signal-dark" : "bg-white text-ink"}`}
     >
       <span className="font-semibold">{error ? "Error: " : "Done: "}</span>
       {error ?? ok}
@@ -56,11 +56,11 @@ export function PageHeader({
 const CHIP_TONES = {
   light: "bg-paper text-ink-3",
   dark: "bg-ink-3 text-white",
-  signal: "bg-leaf-soft text-leaf-deep",
+  signal: "bg-signal-soft text-signal-dark",
   cream: "bg-warn-soft text-warn-ink",
   sky: "bg-info-soft text-info-ink",
-  mint: "bg-leaf-soft text-leaf-deep",
-  amber: "bg-amber-soft text-warn-ink",
+  mint: "bg-success-soft text-success",
+  amber: "bg-warn-soft text-warn-ink",
 } as const;
 
 export function Chip({ children, tone = "light" }: { children: React.ReactNode; tone?: keyof typeof CHIP_TONES }) {
@@ -81,7 +81,7 @@ export function TrackBadge({ track, both }: { track: "JOB" | "PITCH" | null; bot
 
 export function ScorePill({ score }: { score: number | null | undefined }) {
   const s = score ?? 0;
-  const tone = score == null ? "bg-paper text-muted" : s >= 70 ? "bg-leaf text-ink" : s >= 50 ? "bg-ink text-white" : "bg-paper-2 text-ink-3";
+  const tone = score == null ? "bg-paper text-muted" : s >= 70 ? "bg-signal-dark text-white" : s >= 50 ? "bg-ink text-white" : "bg-paper-2 text-ink-3";
   return (
     <span
       title={score == null ? "Not scored" : `Fit score ${score}/100`}
@@ -104,7 +104,7 @@ export function Breakdown({ lines }: { lines: ScoreLine[] }) {
             </span>
           </div>
           <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-paper-2">
-            <div className="h-full rounded-full bg-leaf" style={{ width: `${l.max ? Math.max(0, Math.min(100, Math.round((l.points / l.max) * 100))) : 0}%` }} />
+            <div className="h-full rounded-full bg-signal" style={{ width: `${l.max ? Math.max(0, Math.min(100, Math.round((l.points / l.max) * 100))) : 0}%` }} />
           </div>
           {l.note && <div className="mt-1 text-xs text-muted">{l.note}</div>}
         </li>
@@ -214,7 +214,7 @@ export const input =
 export const btn =
   "inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-ink-3 active:translate-y-px active:bg-ink-2 disabled:opacity-60";
 export const btnSignal =
-  "inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-leaf px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-[#7db835] active:translate-y-px disabled:opacity-60";
+  "inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-signal-dark px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-signal-deep active:translate-y-px active:bg-signal-deep disabled:opacity-60";
 export const btnGhost =
   "inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-rule bg-white px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-paper-2 active:translate-y-px active:bg-paper-3 disabled:opacity-60";
 

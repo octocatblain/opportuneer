@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cfg, loadConfig, saveConfigSection } from "@/lib/config";
 import { db } from "@/lib/db";
@@ -14,7 +15,12 @@ import {
   hashPassword,
   normalizeEmail,
   passwordProblem,
+  inviteForToken,
+  INVITE_DAYS,
+  inviteTokenHash,
+  newInviteToken,
   registerMember,
+  SIGNUP_CLOSED,
   requireSuper,
   requireUser,
   startSession,
@@ -52,25 +58,28 @@ export async function loginAction(form: FormData) {
   redirect(landingFor(user!, next));
 }
 
+/** Create an account from an invitation link. The email always comes from the invite, never from the form. */
 export async function registerAction(form: FormData) {
   await loadConfig();
-  const email = normalizeEmail(text(form, "email"));
+  const token = text(form, "invite");
   const name = text(form, "name") || null;
   const password = String(form.get("password") ?? "");
-  const next = safeNext(text(form, "next"));
-  if (!cfg().auth.allowPassword) fail("/register", next, "Email sign-up is turned off.");
+  const back = (msg: string): never => redirect(`/register?invite=${encodeURIComponent(token)}&error=${encodeURIComponent(msg)}`);
+  if (!cfg().auth.allowPassword) back("Email sign-up is turned off.");
   const { ip } = await clientInfo();
-  if (throttled(`register-ip:${ip ?? "?"}`, 10)) fail("/register", next, "Too many attempts. Try again later.");
-  if (!validEmail(email)) fail("/register", next, "Enter a valid email address.");
+  if (throttled(`register-ip:${ip ?? "?"}`, 10)) back("Too many attempts. Try again later.");
+  const invite = await inviteForToken(token);
+  if (!invite) redirect(`/login?error=${encodeURIComponent(SIGNUP_CLOSED)}`);
   const problem = passwordProblem(password);
-  if (problem) fail("/register", next, problem);
-  if (password !== String(form.get("confirm") ?? "")) fail("/register", next, "Passwords don't match.");
-  const existing = await db.user.findUnique({ where: { email } });
-  if (existing) fail("/register", next, "An account with this email already exists. Sign in instead.");
-  const made = await registerMember({ email, name, passwordHash: await hashPassword(password) });
-  if ("error" in made) fail("/register", next, made.error);
-  await startSession((made as { user: { id: string } }).user.id, "password");
-  redirect(landingFor((made as { user: { role: "USER"; trackAccess: "JOB" | "PITCH" | "BOTH" } }).user, next));
+  if (problem) back(problem);
+  if (password !== String(form.get("confirm") ?? "")) back("Passwords don't match.");
+  const existing = await db.user.findUnique({ where: { email: normalizeEmail(invite!.email) } });
+  if (existing) back("An account with this email already exists. Sign in instead.");
+  const made = await registerMember({ token, name, passwordHash: await hashPassword(password) });
+  if ("error" in made) back(made.error);
+  const user = (made as { user: { id: string; role: "USER"; trackAccess: "JOB" | "PITCH" | "BOTH" } }).user;
+  await startSession(user.id, "password");
+  redirect(landingFor(user, "/"));
 }
 
 export async function logoutAction(form?: FormData) {
@@ -108,16 +117,49 @@ export async function changePasswordAction(form: FormData) {
   redirect(`${base}/settings?ok=${encodeURIComponent("Password updated; other devices were signed out.")}`);
 }
 
-/** Admin: invite an email to create an account (any number of users). Optionally tied to a waitlist entry so cohort and free/founding dates carry over. */
+const INVITE_COOKIE = "opp_invite_link";
+
+/** Mint a fresh secret for an invite and park the full link in a short-lived cookie so the admin page can show it once. */
+async function issueInviteLink(inviteId: string) {
+  const token = newInviteToken();
+  await db.invite.update({ where: { id: inviteId }, data: { tokenHash: inviteTokenHash(token), expiresAt: new Date(Date.now() + INVITE_DAYS * 86400_000) } });
+  const inv = await db.invite.findUniqueOrThrow({ where: { id: inviteId }, select: { email: true } });
+  const h = await headers();
+  const origin = h.get("origin") ?? `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
+  (await cookies()).set(INVITE_COOKIE, JSON.stringify({ email: inv.email, url: `${origin}/register?invite=${token}` }), { httpOnly: true, sameSite: "lax", path: "/admin", maxAge: 300, secure: process.env.NODE_ENV === "production" });
+}
+
+/** Admin: invite an email. Creates the invite and one invitation link (shown once on /admin). Optionally tied to a waitlist entry so cohort and free/founding dates carry over. */
 export async function inviteUserAction(form: FormData) {
   const admin = await requireSuper();
   const email = normalizeEmail(text(form, "email"));
   if (!validEmail(email)) redirect(`/admin?error=${encodeURIComponent("Enter a valid email address.")}`);
   const access = text(form, "trackAccess");
   if (await db.user.findUnique({ where: { email }, select: { id: true } })) redirect(`/admin?error=${encodeURIComponent("That email already has an account.")}`);
-  if (await db.invite.findFirst({ where: { email, status: "PENDING" }, select: { id: true } })) redirect(`/admin?error=${encodeURIComponent("That email already has a pending invite.")}`);
+  if (await db.invite.findFirst({ where: { email, status: "PENDING" }, select: { id: true } })) redirect(`/admin?error=${encodeURIComponent("That email already has a pending invite. Use its Get new link button.")}`);
   const entry = await db.waitlistEntry.findUnique({ where: { email }, select: { id: true, trackInterest: true } });
-  await db.invite.create({ data: { email, trackAccess: access === "JOB" || access === "PITCH" || access === "BOTH" ? access : entry ? accessFromWaitlist(entry.trackInterest) : "BOTH", invitedById: admin.id, waitlistEntryId: entry?.id ?? null } });
+  const inv = await db.invite.create({ data: { email, trackAccess: access === "JOB" || access === "PITCH" || access === "BOTH" ? access : entry ? accessFromWaitlist(entry.trackInterest) : "BOTH", invitedById: admin.id, waitlistEntryId: entry?.id ?? null } });
   if (entry) await db.waitlistEntry.update({ where: { id: entry.id }, data: { status: "INVITED", invitedAt: new Date() } });
-  redirect(`/admin?ok=${encodeURIComponent(`${email} can now create an account.`)}`);
+  await issueInviteLink(inv.id);
+  redirect(`/admin?ok=${encodeURIComponent(`Invitation ready for ${email}. Copy the link below and send it to them.`)}`);
+}
+
+/** Admin: replace a pending invite's link with a new one (the old link stops working). */
+export async function regenerateInviteAction(form: FormData) {
+  await requireSuper();
+  const inv = await db.invite.findFirst({ where: { id: text(form, "id"), status: "PENDING" } });
+  if (!inv) redirect(`/admin?error=${encodeURIComponent("That invitation is no longer pending.")}`);
+  await issueInviteLink(inv!.id);
+  redirect(`/admin?ok=${encodeURIComponent(`New link for ${inv!.email}. The previous link no longer works.`)}`);
+}
+
+/** Admin: withdraw a pending invite. */
+export async function revokeInviteAction(form: FormData) {
+  await requireSuper();
+  const inv = await db.invite.findFirst({ where: { id: text(form, "id"), status: "PENDING" } });
+  if (inv) {
+    await db.invite.update({ where: { id: inv.id }, data: { status: "REVOKED", tokenHash: null, waitlistEntryId: null } });
+    if (inv.waitlistEntryId) await db.waitlistEntry.update({ where: { id: inv.waitlistEntryId }, data: { status: "WAITING", invitedAt: null } }).catch(() => {});
+  }
+  redirect(`/admin?ok=${encodeURIComponent("Invitation withdrawn.")}`);
 }

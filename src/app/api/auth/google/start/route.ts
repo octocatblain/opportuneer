@@ -23,5 +23,7 @@ export async function GET(req: NextRequest) {
   res.cookies.set("g_state", state, opts);
   res.cookies.set("g_next", next, opts);
   res.cookies.set("g_area", area, opts);
+  const invite = req.nextUrl.searchParams.get("invite");
+  if (invite && area === "client") res.cookies.set("g_invite", invite, opts);
   return res;
 }

@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 /** Small figures-with-label block used in the dashboard side column. */
 export function Metric({ label, value, note, tone = "leaf" }: { label: string; value: ReactNode; note?: ReactNode; tone?: "leaf" | "amber" | "ink" }) {
-  const noteTone = tone === "amber" ? "text-warn-ink" : "text-leaf-dark";
+  const noteTone = tone === "amber" ? "text-warn-ink" : "text-signal-dark";
   return (
     <div>
       <div className="text-sm text-muted">{label}</div>

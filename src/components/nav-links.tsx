@@ -125,7 +125,7 @@ export function AppShell({ children, admin = false, ownSpace = "duo", name, emai
             </Link>
           )}
           <div className="flex items-center gap-3 rounded-2xl bg-paper p-2.5">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-leaf text-sm font-semibold text-ink">{initials}</span>
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-signal-dark text-sm font-semibold text-white">{initials}</span>
             <div className="min-w-0 flex-1 leading-tight">
               <div className="truncate text-sm font-medium">{name || email}</div>
               <div className="truncate text-xs text-muted">{admin ? "Administrator" : SPACE_LABEL[ownSpace]}</div>
@@ -171,7 +171,7 @@ export function AppShell({ children, admin = false, ownSpace = "duo", name, emai
               </Link>
             ))}
             {admin && (
-              <Link href={inAdmin ? base : "/admin"} className="whitespace-nowrap rounded-lg px-3 py-1.5 font-medium text-leaf-dark">
+              <Link href={inAdmin ? base : "/admin"} className="whitespace-nowrap rounded-lg px-3 py-1.5 font-medium text-signal-dark">
                 {inAdmin ? "Open workspace" : "Admin"}
               </Link>
             )}

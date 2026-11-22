@@ -49,9 +49,9 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
         </form>
       )}
       <p className="text-center text-sm text-muted">
-        Invited to join?{" "}
-        <Link href={`/register${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="link">
-          Create your account
+        No account yet?{" "}
+        <Link href="/waitlist" className="link">
+          Join the waitlist
         </Link>
       </p>
       <p className="text-center text-xs text-muted">

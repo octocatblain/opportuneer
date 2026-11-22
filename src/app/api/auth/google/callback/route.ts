@@ -11,6 +11,8 @@ export async function GET(req: NextRequest) {
   const jar = await cookies();
   const expected = jar.get("g_state")?.value;
   const next = jar.get("g_next")?.value ?? "/";
+  const inviteToken = jar.get("g_invite")?.value;
+  jar.set("g_invite", "", { path: "/api/auth/google", maxAge: 0 });
   const admin = jar.get("g_area")?.value === "admin";
   jar.set("g_area", "", { path: "/api/auth/google", maxAge: 0 });
   jar.set("g_state", "", { path: "/api/auth/google", maxAge: 0 });
@@ -48,7 +50,7 @@ export async function GET(req: NextRequest) {
   let user = (await db.user.findUnique({ where: { googleId: claims.sub } })) ?? (await db.user.findUnique({ where: { email } }));
   if (!user && admin) return bounce("That Google account is not an administrator.");
   if (!user) {
-    const made = await registerMember({ email, name: claims.name ?? null, googleId: claims.sub });
+    const made = await registerMember({ token: inviteToken, name: claims.name ?? null, googleId: claims.sub, googleEmail: email });
     if ("error" in made) return bounce(made.error);
     user = made.user;
   } else if (!user.googleId) {

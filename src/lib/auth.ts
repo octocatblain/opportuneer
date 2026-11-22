@@ -134,18 +134,33 @@ export async function endSession() {
 }
 
 // ---------- who may sign in ----------
-export const SIGNUP_CLOSED = "Sign-up is by invitation only. This email hasn't been invited.";
+export const SIGNUP_CLOSED = "Sign-up is by invitation only. Use the invitation link you were sent.";
+export const INVITE_DAYS = 14;
+
+/** A new random invite secret; only its hash is stored. */
+export const newInviteToken = () => randomBytes(32).toString("base64url");
+export const inviteTokenHash = hashToken;
+
+/** The pending, unexpired invite for a link token, or null. Used by the middleware, the register page and sign-up. */
+export async function inviteForToken(token: string | null | undefined) {
+  if (!token || token.length < 20 || token.length > 100) return null;
+  const inv = await db.invite.findUnique({ where: { tokenHash: hashToken(token) }, include: { waitlistEntry: true } });
+  if (!inv || inv.status !== "PENDING") return null;
+  if (inv.expiresAt && inv.expiresAt.getTime() < Date.now()) return null;
+  return inv;
+}
 
 /**
- * Create a regular-user account for an invited email. A pending Invite (or the legacy allowedEmails list)
- * is required. Accepting an invite copies track access, cohort, free_until and founding_until from the
- * linked waitlist entry onto the new user. Any number of users may be invited.
+ * Create a regular-user account from an invitation link. The token must belong to a pending, unexpired invite;
+ * the account always gets the invite's email (the person cannot choose another). Accepting copies track access,
+ * cohort, free_until and founding_until from the linked waitlist entry onto the new user.
  */
-export async function registerMember(data: { email: string; name?: string | null; passwordHash?: string | null; googleId?: string | null }): Promise<{ user: User } | { error: string }> {
+export async function registerMember(data: { token: string | null | undefined; name?: string | null; passwordHash?: string | null; googleId?: string | null; googleEmail?: string | null }): Promise<{ user: User } | { error: string }> {
   await loadConfig();
-  const email = normalizeEmail(data.email);
-  const invite = await db.invite.findFirst({ where: { email, status: "PENDING" }, orderBy: { createdAt: "asc" }, include: { waitlistEntry: true } });
-  if (!invite && !cfg().auth.allowedEmails.map(normalizeEmail).includes(email)) return { error: SIGNUP_CLOSED };
+  const invite = await inviteForToken(data.token);
+  if (!invite) return { error: SIGNUP_CLOSED };
+  const email = normalizeEmail(invite.email);
+  if (data.googleEmail && normalizeEmail(data.googleEmail) !== email) return { error: `This invitation is for ${email}. Sign in with that Google account.` };
   try {
     const user = await db.$transaction(async (tx) => {
       const w = invite?.waitlistEntry;

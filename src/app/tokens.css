@@ -16,10 +16,10 @@
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
 
   /* Brand palette, read from brand/colors.json. Paper is the brand "canvas". */
-  --color-paper: #f4f4f1;
-  --color-paper-2: #ebebe7;
-  --color-paper-3: #dfdfda;
-  --color-canvas: #f4f4f1;
+  --color-paper: #eef1f4;
+  --color-paper-2: #e3e7ec;
+  --color-paper-3: #d6dbe2;
+  --color-canvas: #eef1f4;
   --color-surface: #ffffff;
   --color-ink: #0e1014;
   --color-ink-2: #1b1e25;
@@ -27,7 +27,7 @@
   --color-ink-4: #444955;
   --color-muted: #4b515d;
   --color-mist: #646a76;
-  --color-rule: #e7e7e2;
+  --color-rule: #d3d8df;
   --color-accent: #c93a17;
   --color-accent-ink: #ffffff;
   --color-focus: #c93a17;
@@ -36,14 +36,14 @@
   --color-signal-deep: #a42f12;
   --color-signal-soft: #fde6dd;
 
-  /* App accent: leaf green with amber and butter-yellow companions for charts (dashboard redesign). */
-  --color-leaf: #8cc63f;
-  --color-leaf-dark: #3d7f14;
-  --color-leaf-deep: #2f6410;
-  --color-leaf-soft: #eaf4d8;
-  --color-amber: #f6a85c;
-  --color-amber-soft: #fdebd6;
-  --color-butter: #f2e35c;
+  /* Dashboard accent tokens: aliases of the original brand palette (signal orange, ink, grey) so charts keep the brand colours. */
+  --color-leaf: #ef4b23;
+  --color-leaf-dark: #c93a17;
+  --color-leaf-deep: #a42f12;
+  --color-leaf-soft: #fde6dd;
+  --color-amber: #2b2f38;
+  --color-amber-soft: #fbf0c8;
+  --color-butter: #a9b0bc;
 
   /* State colours for chips, notices and figures. */
   --color-error: oklch(52% 0.19 27);

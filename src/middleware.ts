@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { SESSION_COOKIE, userForToken } from "@/lib/auth";
+import { inviteForToken, SESSION_COOKIE, userForToken } from "@/lib/auth";
 import { canEnterSpace, homeFor, isSpace, SPACE_COOKIE } from "@/lib/spaces";
 
 // Two areas, two sign-ins:
@@ -22,6 +22,8 @@ export async function middleware(req: NextRequest) {
   const session = await userForToken(req.cookies.get(SESSION_COOKIE)?.value);
 
   if (!session) {
+    // The sign-up page exists only behind a valid invitation link.
+    if (pathname === "/register" && !(await inviteForToken(req.nextUrl.searchParams.get("invite")))) return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent("Sign-up is by invitation only. Use the invitation link you were sent.")}`, req.url));
     if (PUBLIC.includes(pathname)) return NextResponse.next();
     if (pathname.startsWith("/api/")) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
     const login = new URL(pathname.startsWith("/admin") ? "/admin/login" : "/login", req.url);

@@ -183,6 +183,8 @@ model Invite {
   acceptedBy      User?          @relation("AcceptedBy", fields: [acceptedById], references: [id], onDelete: SetNull)
   createdAt       DateTime       @default(now())
   acceptedAt      DateTime?
+  tokenHash       String?        @unique // SHA-256 of the secret in the invite link; the link itself is shown once
+  expiresAt       DateTime?
 
   @@index([email, status])
 }
