@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import type { Prisma } from "@prisma/client";
+import { notFound, redirect } from "next/navigation";
 import { Card, Chip, Empty, input, OppRow, PAGE_SIZE, PageHeader, pageParam, Pagination, Segmented, STAGE_LABEL } from "@/components/ui";
-import { requireTrack } from "@/lib/auth";
+import { requireSpace } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { clientBase, isSpace, spaceAllowsTrack } from "@/lib/spaces";
 
 export const dynamic = "force-dynamic";
 
@@ -12,8 +14,13 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
   return { title: view === "all" ? "All jobs" : view === "archived" ? "Archived jobs" : "New jobs" };
 }
 
-export default async function Jobs({ searchParams }: { searchParams: Promise<{ view?: string; q?: string; page?: string }> }) {
-  const user = await requireTrack("JOB");
+export default async function Jobs({ params, searchParams }: { params: Promise<{ space: string }>; searchParams: Promise<{ view?: string; q?: string; page?: string }> }) {
+  const { space } = await params;
+  if (!isSpace(space)) notFound();
+  const user = await requireSpace(space);
+  const base = clientBase(space);
+  if (!spaceAllowsTrack(space, "JOB")) redirect(base);
+
   const sp = await searchParams;
   const view = sp.view ?? "new";
   const stageFilter =
@@ -33,7 +40,7 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<{ v
     take: PAGE_SIZE,
     include: { company: { select: { name: true } } },
   });
-  const hrefFor = (n: number) => `/jobs?view=${view}${sp.q ? `&q=${encodeURIComponent(sp.q)}` : ""}${n > 1 ? `&page=${n}` : ""}`;
+  const hrefFor = (n: number) => `${base}/jobs?view=${view}${sp.q ? `&q=${encodeURIComponent(sp.q)}` : ""}${n > 1 ? `&page=${n}` : ""}`;
 
   return (
     <div className="space-y-6">
@@ -41,7 +48,7 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<{ v
         eyebrow={`${total} job${total === 1 ? "" : "s"}`}
         title="Jobs"
         actions={
-          <form className="w-72 max-w-full" action="/jobs" role="search">
+          <form className="w-72 max-w-full" action={`${base}/jobs`} role="search">
             <input type="hidden" name="view" value={view} />
             <input name="q" defaultValue={sp.q} placeholder="Search title or company" aria-label="Search jobs" className={input} />
           </form>
@@ -52,7 +59,7 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<{ v
           ["new", "New & shortlisted"],
           ["all", "All"],
           ["archived", "Auto-archived (pay, location or unclear post)"],
-        ].map(([v, l]) => ({ href: `/jobs?view=${v}${sp.q ? `&q=${encodeURIComponent(sp.q)}` : ""}`, label: l, active: view === v }))}
+        ].map(([v, l]) => ({ href: `${base}/jobs?view=${v}${sp.q ? `&q=${encodeURIComponent(sp.q)}` : ""}`, label: l, active: view === v }))}
       />
       <Card>
         {jobs.length === 0 ? (
@@ -62,7 +69,7 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<{ v
             {jobs.map((o) => (
               <div key={o.id} className="flex items-center gap-2">
                 <div className="flex-1">
-                  <OppRow o={o} />
+                  <OppRow o={o} base={base} />
                 </div>
                 <span className="hidden w-28 justify-end sm:flex">
                   <Chip>{STAGE_LABEL[o.stage]}</Chip>

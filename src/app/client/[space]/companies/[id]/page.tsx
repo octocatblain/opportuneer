@@ -4,24 +4,27 @@ import { notFound } from "next/navigation";
 import { researchCompanyAction, startPitchAction, updateCompanyAction } from "@/app/actions";
 import { SubmitButton } from "@/components/submit-button";
 import { Breakdown, btn, btnGhost, Card, Flash, input, OppRow, ReadOnlyNotice, ScorePill, TrackBadge } from "@/components/ui";
-import { canView, getUser, requireUser } from "@/lib/auth";
+import { canView, getUser, requireSpace } from "@/lib/auth";
+import { clientBase, isSpace, spaceAllowsTrack } from "@/lib/spaces";
 import { loadConfig } from "@/lib/config";
 import { db } from "@/lib/db";
 import type { ScoreLine } from "@/lib/scoring";
 
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ space: string; id: string }> }): Promise<Metadata> {
   const { id } = await params;
   const viewer = await getUser();
   const c = viewer ? await db.company.findUnique({ where: { id }, select: { name: true, userId: true } }) : null;
   return { title: c && viewer && canView(viewer, c.userId) ? c.name : "Not found" };
 }
 
-export default async function CompanyPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; error?: string }> }) {
-  const viewer = await requireUser();
+export default async function CompanyPage({ params, searchParams }: { params: Promise<{ space: string; id: string }>; searchParams: Promise<{ ok?: string; error?: string }> }) {
+  const { space, id } = await params;
+  if (!isSpace(space)) notFound();
+  const viewer = await requireSpace(space);
+  const base = clientBase(space);
   const { industries } = await loadConfig();
-  const { id } = await params;
   const sp = await searchParams;
   const c = await db.company.findUnique({
     where: { id },
@@ -52,10 +55,10 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
             <p className="text-sm">{c.recommendReason ?? "Add details or research the company to get a recommendation."}</p>
             {sb && !sb.canAffordFloor && <p className="mt-2 text-sm text-warn-ink">Below your client floor: no sign they can afford a KES 60,000 Strategy Sprint or a retainer.</p>}
             <div className="mt-3 flex flex-wrap gap-2">
-              <form action={startPitchAction}>
+              {spaceAllowsTrack(space, "PITCH") && <form action={startPitchAction}>
                 <input type="hidden" name="id" value={c.id} />
                 <SubmitButton className={btn}>Start a Red Star Standard pitch</SubmitButton>
-              </form>
+              </form>}
             </div>
           </Card>
 
@@ -78,7 +81,7 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
           )}
 
           <Card index={4} title="Opportunities">
-            {c.opportunities.length === 0 ? <p className="text-sm text-muted">None yet.</p> : c.opportunities.map((o) => <OppRow key={o.id} o={o} />)}
+            {c.opportunities.length === 0 ? <p className="text-sm text-muted">None yet.</p> : c.opportunities.map((o) => <OppRow key={o.id} o={o} base={base} />)}
           </Card>
         </div>
 
@@ -119,7 +122,7 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
             <Area label="Notes" name="notes" value={c.notes} />
             <SubmitButton className={btn}>Save and re-score</SubmitButton>
           </form>
-          <Link href="/companies" className="mt-3 block text-sm link">
+          <Link href={`${base}/companies`} className="mt-3 block text-sm link">
             All companies
           </Link>
         </Card>

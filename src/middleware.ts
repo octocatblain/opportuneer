@@ -1,28 +1,55 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, userForToken } from "@/lib/auth";
+import { canEnterSpace, homeFor, isSpace, SPACE_COOKIE } from "@/lib/spaces";
 
-// Signed-out visitors can only reach the public landing page ("/"), the sign-in pages, the Google sign-in
-// routes and the app icons. Everything else needs a valid session.
+// Two areas, two sign-ins:
+//   /admin/**          superuser only (sign in at /admin/login)
+//   /client/<space>/** clients (sign in at /login); space is jobs | pitches | duo and must match the
+//                      account's track access. The superuser may enter every space.
+// Signed-out visitors can only reach the landing page, the sign-in pages, the Google sign-in routes and app icons.
 // Runs on the Node.js runtime so it can check the session in the database.
 export const config = {
   runtime: "nodejs",
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|ico|css|js)$).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|ico|css|js)$).*)"],
 };
 
-const PUBLIC = ["/", "/manifest.webmanifest", "/apple-icon", "/login", "/register", "/waitlist", "/api/auth/google/start", "/api/auth/google/callback"];
+const PUBLIC = ["/", "/manifest.webmanifest", "/apple-icon", "/login", "/register", "/waitlist", "/admin/login", "/api/auth/google/start", "/api/auth/google/callback"];
+// Pre-/client URLs: old bookmarks are sent to the same page inside the account's own space.
+const LEGACY = /^\/(pipeline|jobs|companies|opportunities|add|settings)(\/|$)/;
 
 export async function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
-  const isPublic = PUBLIC.includes(pathname);
   const session = await userForToken(req.cookies.get(SESSION_COOKIE)?.value);
 
-  if (session) {
-    if (pathname === "/login" || pathname === "/register") return NextResponse.redirect(new URL("/", req.url));
-    return NextResponse.next();
+  if (!session) {
+    if (PUBLIC.includes(pathname)) return NextResponse.next();
+    if (pathname.startsWith("/api/")) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+    const login = new URL(pathname.startsWith("/admin") ? "/admin/login" : "/login", req.url);
+    login.searchParams.set("next", pathname + search);
+    return NextResponse.redirect(login);
   }
-  if (isPublic) return NextResponse.next();
-  if (pathname.startsWith("/api/")) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  const login = new URL("/login", req.url);
-  if (pathname !== "/") login.searchParams.set("next", pathname + search);
-  return NextResponse.redirect(login);
+
+  const { user } = session;
+  const home = homeFor(user);
+  const go = (to: string) => NextResponse.redirect(new URL(to, req.url));
+
+  if (pathname === "/") return go(home);
+  if (pathname === "/login" || pathname === "/register" || pathname === "/admin/login") return go(home);
+
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) return user.role === "SUPERUSER" ? NextResponse.next() : go(home);
+
+  if (pathname === "/client" || pathname === "/client/") return go(home);
+  if (pathname.startsWith("/client/")) {
+    const space = pathname.split("/")[2];
+    if (!isSpace(space)) return NextResponse.next(); // falls through to the 404 page
+    if (!canEnterSpace(user, space)) return go(home);
+    const res = NextResponse.next();
+    // Remembered so server actions and the admin's role switcher know which space is being used.
+    res.cookies.set(SPACE_COOKIE, space, { path: "/", sameSite: "lax", httpOnly: true });
+    return res;
+  }
+
+  if (LEGACY.test(pathname) && user.role !== "SUPERUSER") return go(`${home}${pathname}${search}`);
+  if (LEGACY.test(pathname)) return go(`/client/duo${pathname}${search}`);
+  return NextResponse.next();
 }

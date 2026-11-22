@@ -58,7 +58,7 @@ export default async function AdminUser({ params, searchParams }: { params: Prom
               {opps.map((o) => (
                 <div key={o.id} className="flex items-center gap-2">
                   <div className="flex-1">
-                    <OppRow o={o} />
+                    <OppRow o={o} base="/client/duo" />
                   </div>
                   <span className="hidden w-28 justify-end sm:flex">
                     <Chip>{STAGE_LABEL[o.stage]}</Chip>
@@ -72,7 +72,7 @@ export default async function AdminUser({ params, searchParams }: { params: Prom
         ) : (
           <div className="divide-y divide-rule">
             {companies.map((c) => (
-              <Link key={c.id} href={`/companies/${c.id}`} className="group -mx-3 flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-paper active:bg-paper-2">
+              <Link key={c.id} href={`/client/duo/companies/${c.id}`} className="group -mx-3 flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-paper active:bg-paper-2">
                 <ScorePill score={c.score} />
                 <span className="min-w-0 flex-1 truncate font-medium group-hover:underline">{c.name}</span>
                 <TrackBadge track={c.recommendation} both={c.recommendBoth} />

@@ -1,16 +1,18 @@
 import Link from "next/link";
 import { BrandMark, Wordmark } from "@/components/brand-mark";
 import { Brand } from "@/components/brand-icons";
+import { clientBase, spaceAllowsTrack, type Space } from "@/lib/spaces";
 
 /** Site footer. Signed-in users get app links; visitors get sign-in links. */
-export function Footer({ signedIn, admin }: { signedIn: boolean; admin?: boolean }) {
+export function Footer({ signedIn, admin, ownSpace = "duo" }: { signedIn: boolean; admin?: boolean; ownSpace?: Space }) {
+  const base = clientBase(ownSpace);
   const links = signedIn
     ? [
-        ["/", "Today"],
-        ["/pipeline", "Pipeline"],
-        ["/jobs", "Jobs"],
-        ["/companies", "Companies"],
-        ["/settings", "Settings"],
+        [base, "Today"],
+        [`${base}/pipeline`, "Pipeline"],
+        ...(spaceAllowsTrack(ownSpace, "JOB") ? [[`${base}/jobs`, "Jobs"]] : []),
+        ...(spaceAllowsTrack(ownSpace, "PITCH") ? [[`${base}/companies`, "Companies"]] : []),
+        [`${base}/settings`, "Settings"],
         ...(admin ? [["/admin", "Admin"]] : []),
       ]
     : [

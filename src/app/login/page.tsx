@@ -33,6 +33,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
       )}
       {auth.allowPassword && (
         <form action={loginAction} className="space-y-3 rounded-xl border border-rule bg-white p-5">
+          <input type="hidden" name="area" value="client" />
           <input type="hidden" name="next" value={next} />
           <label className="block text-sm">
             <span className="text-sm font-medium text-ink-3">Email</span>

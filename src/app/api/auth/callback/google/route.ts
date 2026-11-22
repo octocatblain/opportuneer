@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
-import { requireUser } from "@/lib/auth";
+import { currentBase, requireUser } from "@/lib/auth";
 import { exchangeCode } from "@/lib/gmail";
 
 export async function GET(req: NextRequest) {
@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   const jar = await cookies();
   const expected = jar.get("gmail_oauth_state")?.value;
   jar.delete("gmail_oauth_state");
-  const back = new URL("/settings", url.origin);
+  const back = new URL(`${await currentBase(user)}/settings`, url.origin);
   if (url.searchParams.get("error")) {
     back.searchParams.set("error", `Google: ${url.searchParams.get("error")}`);
     return NextResponse.redirect(back);

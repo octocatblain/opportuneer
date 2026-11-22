@@ -7,11 +7,11 @@
 import { createHash, randomBytes } from "node:crypto";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { Prisma, type Track, type User } from "@prisma/client";
+import { Prisma, type User } from "@prisma/client";
 import { cfg, loadConfig } from "@/lib/config";
 import { db } from "@/lib/db";
 import { logEvent } from "@/lib/analytics";
-import { allowsTrack } from "@/lib/tracks";
+import { canEnterSpace, clientBase, homeFor, isSpace, spaceForAccess, SPACE_COOKIE, type Space } from "@/lib/spaces";
 
 import { normalizeEmail } from "@/lib/auth-crypto";
 export { hashPassword, normalizeEmail, passwordProblem, validEmail, verifyPassword } from "@/lib/auth-crypto";
@@ -97,11 +97,30 @@ export async function requireUser(): Promise<User> {
 
 export const isSuper = (u: Pick<User, "role">) => u.role === "SUPERUSER";
 
-/** Admin-only pages and actions. Regular users are sent home. */
+/** Admin-only pages and actions. Signed-out visitors go to the admin sign-in; clients go to their own workspace. */
 export async function requireSuper(): Promise<User> {
-  const u = await requireUser();
-  if (!isSuper(u)) redirect("/");
+  const u = await getUser();
+  if (!u) redirect("/admin/login");
+  if (!isSuper(u)) redirect(homeFor(u));
   return u;
+}
+
+/** Pages and actions inside /client/<space>. Clients may only enter their own space; the superuser may enter any. */
+export async function requireSpace(space: Space): Promise<User> {
+  const u = await requireUser();
+  if (!canEnterSpace(u, space)) redirect(homeFor(u));
+  return u;
+}
+
+/** The /client/<space> area the person is working in: the one they last visited (if allowed), else their own. */
+export async function currentSpace(user: Pick<User, "role" | "trackAccess">): Promise<Space> {
+  const c = (await cookies()).get(SPACE_COOKIE)?.value;
+  return isSpace(c) && canEnterSpace(user, c) ? c : spaceForAccess(user.trackAccess);
+}
+
+/** URL prefix of the current client area, for server actions that redirect back into it. */
+export async function currentBase(user: Pick<User, "role" | "trackAccess">): Promise<string> {
+  return clientBase(await currentSpace(user));
 }
 
 /** The superuser may read (never change) another user's records; everyone else only their own. */
@@ -116,13 +135,6 @@ export async function endSession() {
 
 // ---------- who may sign in ----------
 export const SIGNUP_CLOSED = "Sign-up is by invitation only. This email hasn't been invited.";
-
-/** Admin and track gating: send users without access to a track back home. */
-export async function requireTrack(track: Track): Promise<User> {
-  const u = await requireUser();
-  if (!allowsTrack(u.trackAccess, track)) redirect("/");
-  return u;
-}
 
 /**
  * Create a regular-user account for an invited email. A pending Invite (or the legacy allowedEmails list)

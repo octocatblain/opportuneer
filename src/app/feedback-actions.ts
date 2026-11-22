@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireSuper, requireUser } from "@/lib/auth";
+import { currentBase, requireSuper, requireUser } from "@/lib/auth";
 import { logEvent } from "@/lib/analytics";
 import { grantCredits } from "@/lib/credits";
 import { db } from "@/lib/db";
@@ -13,14 +13,15 @@ const go = (path: string, key: "ok" | "error", msg: string): never => redirect(`
 /** Any signed-in user: send feedback to the owner. */
 export async function submitFeedbackAction(form: FormData) {
   const user = await requireUser();
+  const settings = `${await currentBase(user)}/settings`;
   const message = text(form, "message").slice(0, 4000);
-  if (message.length < 3) go("/settings", "error", "Write a few words of feedback first.");
+  if (message.length < 3) go(settings, "error", "Write a few words of feedback first.");
   const kind = ["general", "bug", "idea"].includes(text(form, "kind")) ? text(form, "kind") : "general";
   const r = Math.floor(Number(text(form, "rating")));
   const rating = r >= 1 && r <= 5 ? r : null;
   await db.feedback.create({ data: { userId: user.id, kind, rating, message, page: text(form, "page").slice(0, 200) || null } });
   void logEvent("feedback_sent", user.id, { kind });
-  go("/settings", "ok", "Thanks, your feedback was sent.");
+  go(settings, "ok", "Thanks, your feedback was sent.");
 }
 
 /** Admin: add (or remove, with a negative number) credits on an account. */

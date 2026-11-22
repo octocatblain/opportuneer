@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { setStageAction } from "@/app/actions";
 import { Flash, PageHeader, ScorePill, Segmented, STAGE_LABEL, TrackBadge } from "@/components/ui";
-import { requireUser } from "@/lib/auth";
+import { requireSpace } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { clientBase, isSpace } from "@/lib/spaces";
 
 export const dynamic = "force-dynamic";
 
@@ -14,10 +16,15 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
   return { title: track === "JOB" ? "Pipeline: jobs" : track === "PITCH" ? "Pipeline: pitches" : "Pipeline" };
 }
 
-export default async function Pipeline({ searchParams }: { searchParams: Promise<{ track?: string; ok?: string; error?: string }> }) {
-  const user = await requireUser();
+export default async function Pipeline({ params, searchParams }: { params: Promise<{ space: string }>; searchParams: Promise<{ track?: string; ok?: string; error?: string }> }) {
+  const { space } = await params;
+  if (!isSpace(space)) notFound();
+  const user = await requireSpace(space);
+  const base = clientBase(space);
   const sp = await searchParams;
-  const track = sp.track === "JOB" || sp.track === "PITCH" ? sp.track : undefined;
+  const duo = space === "duo";
+  // Single-track spaces only ever show their own track.
+  const track = !duo ? (space === "jobs" ? ("JOB" as const) : ("PITCH" as const)) : sp.track === "JOB" || sp.track === "PITCH" ? sp.track : undefined;
   const opps = await db.opportunity.findMany({
     where: { userId: user.id, stage: { in: [...BOARD] }, ...(track ? { track } : {}) },
     orderBy: [{ updatedAt: "desc" }],
@@ -31,14 +38,14 @@ export default async function Pipeline({ searchParams }: { searchParams: Promise
         title="Pipeline"
         sub="New jobs start in “Found” (see Today / Jobs). Shortlist the ones you want, and they appear here."
         actions={
-          <Segmented
+          duo && <Segmented
             items={(
               [
                 [undefined, "All"],
                 ["JOB", "Jobs"],
                 ["PITCH", "Pitches"],
               ] as const
-            ).map(([t, l]) => ({ href: t ? `/pipeline?track=${t}` : "/pipeline", label: l, active: track === t }))}
+            ).map(([t, l]) => ({ href: t ? `${base}/pipeline?track=${t}` : `${base}/pipeline`, label: l, active: track === t }))}
           />
         }
       />
@@ -59,7 +66,7 @@ export default async function Pipeline({ searchParams }: { searchParams: Promise
                   const next = BOARD[idx + 1];
                   return (
                     <div key={o.id} className={`rounded-lg border bg-white p-3 text-sm ${due ? "border-signal" : "border-rule"}`}>
-                      <Link href={`/opportunities/${o.id}`} className="block font-semibold leading-snug hover:underline">
+                      <Link href={`${base}/opportunities/${o.id}`} className="block font-semibold leading-snug hover:underline">
                         {o.title}
                       </Link>
                       <div className="mt-0.5 text-xs text-muted">{o.company?.name}</div>
@@ -72,7 +79,7 @@ export default async function Pipeline({ searchParams }: { searchParams: Promise
                           <form action={setStageAction}>
                             <input type="hidden" name="id" value={o.id} />
                             <input type="hidden" name="stage" value={next} />
-                            <input type="hidden" name="back" value={track ? `/pipeline?track=${track}` : "/pipeline"} />
+                            <input type="hidden" name="back" value={duo && track ? `${base}/pipeline?track=${track}` : `${base}/pipeline`} />
                             <button className="rounded-md border border-rule px-2.5 py-1 text-xs font-medium transition-colors hover:bg-paper-2 active:bg-paper-3" title={`Move to ${STAGE_LABEL[next]}`}>
                               Move to {STAGE_LABEL[next].split(" ")[0]}
                             </button>

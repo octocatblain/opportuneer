@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { Stage } from "@prisma/client";
-import { requireSuper, requireUser } from "@/lib/auth";
+import { currentBase, requireSuper, requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { disconnectGmail } from "@/lib/gmail";
 import { resetConfigSection, saveConfigSection } from "@/lib/config";
@@ -25,6 +25,9 @@ async function attempt(back: string, fn: () => Promise<unknown>, success?: strin
   if (success) redirect(`${back}${sep}ok=${encodeURIComponent(success)}`);
 }
 
+/** Redirect prefix for the client space the person is in (remembered by middleware; admins may be in any). */
+const baseFor = currentBase;
+
 const str = (f: FormData, k: string) => {
   const v = f.get(k);
   return typeof v === "string" && v.trim() ? v.trim() : null;
@@ -36,29 +39,32 @@ const int = (f: FormData, k: string) => {
 
 export async function scanAction() {
   const user = await requireUser();
+  const base = await baseFor(user);
   let summary = "";
-  await attempt("/", async () => {
+  await attempt(base, async () => {
     const r = await svc.runScan(user.id);
     const added = Object.values(r.counts).reduce((a, c) => a + c.added, 0);
     summary = `Scan done: ${added} new matching job(s).${r.errors.length ? ` Some sources failed: ${r.errors.join("; ")}` : ""}`;
   });
-  redirect(`/?ok=${encodeURIComponent(summary)}`);
+  redirect(`${base}?ok=${encodeURIComponent(summary)}`);
 }
 
 export async function importJobAction(form: FormData) {
   const user = await requireUser();
+  const base = await baseFor(user);
   let id = "";
-  await attempt("/add", async () => {
+  await attempt(`${base}/add`, async () => {
     const opp = await svc.importJob(user.id, { text: str(form, "text") ?? undefined, url: str(form, "url") ?? undefined });
     id = opp.id;
   });
-  redirect(`/opportunities/${id}`);
+  redirect(`${base}/opportunities/${id}`);
 }
 
 export async function addCompanyAction(form: FormData) {
   const user = await requireUser();
+  const base = await baseFor(user);
   let id = "";
-  await attempt("/companies", async () => {
+  await attempt(`${base}/companies`, async () => {
     const name = str(form, "name");
     if (!name) throw new Error("Company name is required.");
     const c = await svc.upsertCompany(user.id, name, {
@@ -69,13 +75,14 @@ export async function addCompanyAction(form: FormData) {
     await svc.rescoreCompany(user.id, c.id);
     id = c.id;
   });
-  redirect(`/companies/${id}`);
+  redirect(`${base}/companies/${id}`);
 }
 
 export async function updateCompanyAction(form: FormData) {
   const user = await requireUser();
+  const base = await baseFor(user);
   const id = str(form, "id")!;
-  await attempt(`/companies/${id}`, async () => {
+  await attempt(`${base}/companies/${id}`, async () => {
     await db.company.findFirstOrThrow({ where: { id, userId: user.id }, select: { id: true } });
     await db.company.update({
       where: { id },
@@ -102,33 +109,37 @@ export async function updateCompanyAction(form: FormData) {
 
 export async function researchCompanyAction(form: FormData) {
   const user = await requireUser();
+  const base = await baseFor(user);
   const id = str(form, "id")!;
-  await attempt(`/companies/${id}`, () => svc.researchCompanyById(user.id, id, str(form, "extra") ?? ""), "Research updated");
+  await attempt(`${base}/companies/${id}`, () => svc.researchCompanyById(user.id, id, str(form, "extra") ?? ""), "Research updated");
 }
 
 export async function startPitchAction(form: FormData) {
   const user = await requireUser();
+  const base = await baseFor(user);
   const id = str(form, "id")!;
   let oppId = "";
-  await attempt(`/companies/${id}`, async () => {
+  await attempt(`${base}/companies/${id}`, async () => {
     oppId = (await svc.startPitch(user.id, id)).id;
   });
-  redirect(`/opportunities/${oppId}`);
+  redirect(`${base}/opportunities/${oppId}`);
 }
 
 export async function setStageAction(form: FormData) {
   const user = await requireUser();
+  const base = await baseFor(user);
   const id = str(form, "id")!;
-  const back = str(form, "back") ?? `/opportunities/${id}`;
+  const back = str(form, "back") ?? `${base}/opportunities/${id}`;
   await attempt(back, () => svc.setStage(user.id, id, str(form, "stage") as Stage));
 }
 
 export async function generateAction(form: FormData) {
   const user = await requireUser();
+  const base = await baseFor(user);
   const id = str(form, "id")!;
   const what = str(form, "what");
   await attempt(
-    `/opportunities/${id}`,
+    `${base}/opportunities/${id}`,
     () => (what === "pitch" ? svc.generatePitch(user.id, id) : what === "followup" ? svc.generateFollowUp(user.id, id) : svc.generateApplication(user.id, id)),
     "Drafts ready below",
   );
@@ -136,15 +147,17 @@ export async function generateAction(form: FormData) {
 
 export async function saveDocAction(form: FormData) {
   const user = await requireUser();
+  const base = await baseFor(user);
   const id = str(form, "oppId")!;
-  await attempt(`/opportunities/${id}`, () => svc.updateDocument(user.id, str(form, "docId")!, str(form, "subject"), str(form, "content") ?? ""), "Saved");
+  await attempt(`${base}/opportunities/${id}`, () => svc.updateDocument(user.id, str(form, "docId")!, str(form, "subject"), str(form, "content") ?? ""), "Saved");
 }
 
 export async function gmailDraftAction(form: FormData) {
   const user = await requireUser();
+  const base = await baseFor(user);
   const id = str(form, "oppId")!;
   await attempt(
-    `/opportunities/${id}`,
+    `${base}/opportunities/${id}`,
     async () => {
       await svc.updateDocument(user.id, str(form, "docId")!, str(form, "subject"), str(form, "content") ?? "");
       await svc.gmailDraft(user.id, str(form, "docId")!, str(form, "to"));
@@ -155,8 +168,9 @@ export async function gmailDraftAction(form: FormData) {
 
 export async function updateOpportunityAction(form: FormData) {
   const user = await requireUser();
+  const base = await baseFor(user);
   const id = str(form, "id")!;
-  await attempt(`/opportunities/${id}`, async () => {
+  await attempt(`${base}/opportunities/${id}`, async () => {
     await db.opportunity.findFirstOrThrow({ where: { id, userId: user.id }, select: { id: true } });
     await db.opportunity.update({
       where: { id },
@@ -178,16 +192,17 @@ export async function updateOpportunityAction(form: FormData) {
 
 export async function deleteOpportunityAction(form: FormData) {
   const user = await requireUser();
+  const base = await baseFor(user);
   const id = str(form, "id")!;
   await db.opportunity.deleteMany({ where: { id, userId: user.id } });
   revalidatePath("/", "layout");
-  redirect("/pipeline");
+  redirect(`${base}/pipeline`);
 }
 
 export async function disconnectGmailAction() {
   const user = await requireUser();
   await disconnectGmail(user.id);
-  revalidatePath("/settings");
+  revalidatePath("/client", "layout");
 }
 
 export async function saveConfigAction(form: FormData) {

@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { disconnectGmailAction } from "@/app/actions";
 import { changePasswordAction, logoutAction, revokeOtherSessionsAction, revokeSessionAction } from "@/app/auth-actions";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { Brand } from "@/components/brand-icons";
-import { currentSession, isSuper } from "@/lib/auth";
+import { currentSession, isSuper, requireSpace } from "@/lib/auth";
+import { isSpace } from "@/lib/spaces";
 import { db } from "@/lib/db";
 import { btn, btnGhost, Card, Flash, input } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
@@ -20,7 +21,10 @@ type Scan = { at: string; counts: Record<string, { fetched: number; matched: num
 
 export const metadata: Metadata = { title: "Settings" };
 
-export default async function Settings({ searchParams }: { searchParams: Promise<{ ok?: string; error?: string }> }) {
+export default async function Settings({ params, searchParams }: { params: Promise<{ space: string }>; searchParams: Promise<{ ok?: string; error?: string }> }) {
+  const { space } = await params;
+  if (!isSpace(space)) notFound();
+  await requireSpace(space);
   const sp = await searchParams;
   const me = await currentSession();
   if (!me) redirect("/login");

@@ -12,7 +12,8 @@ import {
 import { SourceLabel } from "@/components/brand-icons";
 import { SubmitButton } from "@/components/submit-button";
 import { Breakdown, btn, btnGhost, Card, Flash, input, ReadOnlyNotice, ScorePill, STAGE_LABEL, STAGES, TrackBadge } from "@/components/ui";
-import { canView, getUser, requireUser } from "@/lib/auth";
+import { canView, getUser, requireSpace } from "@/lib/auth";
+import { clientBase, isSpace, spaceAllowsTrack } from "@/lib/spaces";
 import { db } from "@/lib/db";
 import { gmailAccount } from "@/lib/gmail";
 import { shouldMentionCompany, type JobFit } from "@/lib/scoring";
@@ -28,7 +29,7 @@ const DOC_LABEL: Record<string, string> = {
   FOLLOW_UP: "Follow-up email",
 };
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ space: string; id: string }> }): Promise<Metadata> {
   const { id } = await params;
   const viewer = await getUser();
   const o = viewer ? await db.opportunity.findUnique({ where: { id }, select: { title: true, userId: true, company: { select: { name: true } } } }) : null;
@@ -36,15 +37,17 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   return { title: o.company?.name ? `${o.title} at ${o.company.name}` : o.title };
 }
 
-export default async function OpportunityPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; error?: string }> }) {
-  const viewer = await requireUser();
-  const { id } = await params;
+export default async function OpportunityPage({ params, searchParams }: { params: Promise<{ space: string; id: string }>; searchParams: Promise<{ ok?: string; error?: string }> }) {
+  const { space, id } = await params;
+  if (!isSpace(space)) notFound();
+  const viewer = await requireSpace(space);
+  const base = clientBase(space);
   const sp = await searchParams;
   const o = await db.opportunity.findUnique({
     where: { id },
     include: { user: { select: { email: true } }, company: true, documents: { orderBy: { createdAt: "desc" } }, activities: { orderBy: { createdAt: "desc" }, take: 30 } },
   });
-  if (!o || !canView(viewer, o.userId)) notFound();
+  if (!o || !canView(viewer, o.userId) || !spaceAllowsTrack(space, o.track)) notFound();
   const readOnly = o.userId !== viewer.id;
   const gmail = await gmailAccount(viewer.id);
   const fit = o.fitBreakdown as JobFit | null;
@@ -67,7 +70,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
           </div>
           <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
             {o.company ? (
-              <Link href={`/companies/${o.company.id}`} className="font-medium link">
+              <Link href={`${base}/companies/${o.company.id}`} className="font-medium link">
                 {o.company.name}
               </Link>
             ) : (
@@ -132,7 +135,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
             {!isJob && !o.company?.research && (
               <p className="mt-2 text-sm text-warn-ink">
                 Research the company first so the pitch is specific:{" "}
-                <Link href={`/companies/${o.companyId}`} className="underline">
+                <Link href={`${base}/companies/${o.companyId}`} className="underline">
                   open company
                 </Link>
               </p>
@@ -180,7 +183,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
                       )}
                       {d.gmailDraftId && <span className="text-xs text-success">Draft saved in Gmail</span>}
                       {!gmail && (
-                        <Link href="/settings" className="text-xs link">
+                        <Link href={`${base}/settings`} className="text-xs link">
                           Connect Gmail to send drafts there
                         </Link>
                       )}
@@ -241,7 +244,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
                 <TrackBadge track={o.company.recommendation} both={o.company.recommendBoth} />
               </p>
               <p className="mt-2 text-sm text-muted">{o.company.recommendReason}</p>
-              <Link href={`/companies/${o.company.id}`} className="mt-2 block text-sm link">
+              <Link href={`${base}/companies/${o.company.id}`} className="mt-2 block text-sm link">
                 Research or edit company
               </Link>
             </Card>

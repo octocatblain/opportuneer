@@ -1,12 +1,19 @@
 import type { Metadata } from "next";
+import { notFound, redirect } from "next/navigation";
 import { importJobAction } from "@/app/actions";
 import { Brand } from "@/components/brand-icons";
 import { SubmitButton } from "@/components/submit-button";
 import { btnSignal, Card, Flash, input, PageHeader } from "@/components/ui";
+import { requireSpace } from "@/lib/auth";
+import { clientBase, isSpace, spaceAllowsTrack } from "@/lib/spaces";
 
 export const metadata: Metadata = { title: "Add job" };
 
-export default async function AddJob({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+export default async function AddJob({ params, searchParams }: { params: Promise<{ space: string }>; searchParams: Promise<{ error?: string }> }) {
+  const { space } = await params;
+  if (!isSpace(space)) notFound();
+  await requireSpace(space);
+  if (!spaceAllowsTrack(space, "JOB")) redirect(clientBase(space));
   const sp = await searchParams;
   return (
     <div className="mx-auto max-w-3xl space-y-6">

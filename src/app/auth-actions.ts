@@ -5,8 +5,10 @@ import { redirect } from "next/navigation";
 import { cfg, loadConfig, saveConfigSection } from "@/lib/config";
 import { db } from "@/lib/db";
 import { accessFromWaitlist } from "@/lib/tracks";
+import { landingFor } from "@/lib/spaces";
 import {
   clientInfo,
+  currentBase,
   currentSession,
   endSession,
   hashPassword,
@@ -29,19 +31,25 @@ const safeNext = (n: string) => (n.startsWith("/") && !n.startsWith("//") && !n.
 const fail = (page: string, next: string, msg: string): never =>
   redirect(`${page}?error=${encodeURIComponent(msg)}${next !== "/" ? `&next=${encodeURIComponent(next)}` : ""}`);
 
+/** Client sign-in (/login) and admin sign-in (/admin/login) share this action; the "area" field says which form it came from. */
 export async function loginAction(form: FormData) {
   await loadConfig();
+  const admin = text(form, "area") === "admin";
+  const page = admin ? "/admin/login" : "/login";
   const email = normalizeEmail(text(form, "email"));
   const password = String(form.get("password") ?? "");
   const next = safeNext(text(form, "next"));
-  if (!cfg().auth.allowPassword) fail("/login", next, "Email sign-in is turned off.");
+  if (!cfg().auth.allowPassword) fail(page, next, "Email sign-in is turned off.");
   const { ip } = await clientInfo();
-  if (throttled(`login:${email}`) || throttled(`login-ip:${ip ?? "?"}`, 30)) fail("/login", next, "Too many attempts. Wait 15 minutes and try again.");
+  if (throttled(`login:${email}`) || throttled(`login-ip:${ip ?? "?"}`, 30)) fail(page, next, "Too many attempts. Wait 15 minutes and try again.");
   const user = await db.user.findUnique({ where: { email } });
   const ok = await verifyPassword(password, user?.passwordHash ?? null);
-  if (!user || !ok) fail("/login", next, user && !user.passwordHash ? "This account uses Google sign-in." : "Wrong email or password.");
+  if (!user || !ok) fail(page, next, user && !user.passwordHash ? "This account uses Google sign-in." : "Wrong email or password.");
+  // Each sign-in only admits its own kind of account (the admin form gives nothing away about client accounts).
+  if (admin && user!.role !== "SUPERUSER") fail(page, next, "Wrong email or password.");
+  if (!admin && user!.role === "SUPERUSER") fail(page, next, "Administrators sign in at /admin/login.");
   await startSession(user!.id, "password");
-  redirect(next);
+  redirect(landingFor(user!, next));
 }
 
 export async function registerAction(form: FormData) {
@@ -62,32 +70,33 @@ export async function registerAction(form: FormData) {
   const made = await registerMember({ email, name, passwordHash: await hashPassword(password) });
   if ("error" in made) fail("/register", next, made.error);
   await startSession((made as { user: { id: string } }).user.id, "password");
-  redirect(next);
+  redirect(landingFor((made as { user: { role: "USER"; trackAccess: "JOB" | "PITCH" | "BOTH" } }).user, next));
 }
 
-export async function logoutAction() {
+export async function logoutAction(form?: FormData) {
   await endSession();
-  redirect("/login");
+  redirect(form?.get("area") === "admin" ? "/admin/login" : "/login");
 }
 
 /** Revoke one session of the signed-in user (not the current one: use sign out for that). */
 export async function revokeSessionAction(form: FormData) {
   const user = await requireUser();
   await db.session.deleteMany({ where: { id: text(form, "id"), userId: user.id } });
-  revalidatePath("/settings");
+  revalidatePath("/client", "layout");
 }
 
 export async function revokeOtherSessionsAction() {
   const cur = await currentSession();
   if (!cur) redirect("/login");
   await db.session.deleteMany({ where: { userId: cur.user.id, id: { not: cur.sessionId } } });
-  revalidatePath("/settings");
+  revalidatePath("/client", "layout");
 }
 
 export async function changePasswordAction(form: FormData) {
   const cur = await currentSession();
   if (!cur) redirect("/login");
-  const fail2 = (m: string): never => redirect(`/settings?error=${encodeURIComponent(m)}`);
+  const base = await currentBase(cur.user);
+  const fail2 = (m: string): never => redirect(`${base}/settings?error=${encodeURIComponent(m)}`);
   const current = String(form.get("current") ?? "");
   const next = String(form.get("next") ?? "");
   if (cur.user.passwordHash && !(await verifyPassword(current, cur.user.passwordHash))) fail2("Current password is wrong.");
@@ -96,7 +105,7 @@ export async function changePasswordAction(form: FormData) {
   await db.user.update({ where: { id: cur.user.id }, data: { passwordHash: await hashPassword(next) } });
   // Changing the password signs out every other device.
   await db.session.deleteMany({ where: { userId: cur.user.id, id: { not: cur.sessionId } } });
-  redirect(`/settings?ok=${encodeURIComponent("Password updated; other devices were signed out.")}`);
+  redirect(`${base}/settings?ok=${encodeURIComponent("Password updated; other devices were signed out.")}`);
 }
 
 /** Admin: invite an email to create an account (any number of users). Optionally tied to a waitlist entry so cohort and free/founding dates carry over. */

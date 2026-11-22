@@ -9,6 +9,7 @@ export async function GET(req: NextRequest) {
   if (!clientId || !cfg().auth.allowGoogle) return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent("Google sign-in is not available.")}`, origin));
   const state = randomBytes(16).toString("hex");
   const next = req.nextUrl.searchParams.get("next") ?? "/";
+  const area = req.nextUrl.searchParams.get("area") === "admin" ? "admin" : "client";
   const p = new URLSearchParams({
     client_id: clientId,
     redirect_uri: `${origin}/api/auth/google/callback`,
@@ -21,5 +22,6 @@ export async function GET(req: NextRequest) {
   const opts = { httpOnly: true, sameSite: "lax" as const, maxAge: 600, path: "/api/auth/google", secure: process.env.NODE_ENV === "production" };
   res.cookies.set("g_state", state, opts);
   res.cookies.set("g_next", next, opts);
+  res.cookies.set("g_area", area, opts);
   return res;
 }
