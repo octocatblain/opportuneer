@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BrandMark } from "@/components/brand-mark";
+import { BrandMark, Wordmark } from "@/components/brand-mark";
 import { Brand } from "@/components/brand-icons";
 
 /** Site footer. Signed-in users get app links; visitors get sign-in links. */
@@ -24,7 +24,7 @@ export function Footer({ signedIn, admin }: { signedIn: boolean; admin?: boolean
         <div className="space-y-3">
           <span className="inline-flex items-center gap-2 text-sm font-semibold">
             <BrandMark size={28} className="rounded-full" />
-            Opportuneer
+            <Wordmark />
           </span>
           <p className="max-w-xs text-sm leading-relaxed text-white/60">A private workspace for strategic job search and client outreach. Every account sees only its own content.</p>
         </div>

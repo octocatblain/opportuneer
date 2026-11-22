@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BrandMark } from "@/components/brand-mark";
+import { BrandMark, Wordmark } from "@/components/brand-mark";
 
 const nav = [
   { href: "/", label: "Today" },
@@ -20,7 +20,7 @@ export function NavLinks({ admin = false }: { admin?: boolean }) {
     <>
       <Link href="/" className="inline-flex items-center gap-2 rounded-full bg-ink py-2 pl-2 pr-4 text-sm font-semibold text-white shadow-lg shadow-ink/10">
         <BrandMark size={28} className="rounded-full" />
-        Opportuneer
+        <Wordmark />
       </Link>
       <nav aria-label="Main" className="flex flex-wrap items-center gap-1 rounded-full border border-white/70 bg-white/70 p-1 text-sm shadow-lg shadow-ink/5 backdrop-blur-md">
         {(admin ? [...nav, { href: "/admin", label: "Admin" }] : nav).map((n) => (

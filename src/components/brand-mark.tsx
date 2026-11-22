@@ -13,6 +13,27 @@ export function MarkArt({ tile = true }: { tile?: boolean }) {
 }
 
 /**
+ * "Opportuneer" wordmark for dark backgrounds. The double "e" is stylised: the second (white) e
+ * sits over the first (signal orange), nudged right so only the first e's left quarter shows.
+ */
+export function Wordmark({ className }: { className?: string }) {
+  return (
+    <span className={className} aria-label="Opportuneer">
+      <span aria-hidden>
+        Opportun
+        <span className="text-white" style={{ position: "relative", zIndex: 1,WebkitTextStroke: "0.14em var(--color-ink)", paintOrder: "stroke fill" }}>
+          e
+        </span>
+        <span className="text-white" style={{ marginLeft: "-0.14em" }}>
+          e
+        </span>
+        <span className="text-white">r</span>
+      </span>
+    </span>
+  );
+}
+
+/**
  * Opportuneer mark: an orange "O" ring (the opportunity) with a white spark breaking its edge
  * (the one worth chasing, and a nod to Red Star Standard). Same artwork as src/app/icon.svg.
  */
