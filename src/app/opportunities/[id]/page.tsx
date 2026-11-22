@@ -47,13 +47,13 @@ export default async function OpportunityPage({ params, searchParams }: { params
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold">{o.title}</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-ink">{o.title}</h1>
             <ScorePill score={o.fitScore} />
             <TrackBadge track={o.track} />
           </div>
           <p className="mt-1 text-sm text-slate-600">
             {o.company ? (
-              <Link href={`/companies/${o.company.id}`} className="font-medium text-sky-700 hover:underline">
+              <Link href={`/companies/${o.company.id}`} className="font-medium text-brand-700 hover:underline">
                 {o.company.name}
               </Link>
             ) : (
@@ -67,7 +67,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
             {o.url && (
               <>
                 {" · "}
-                <a href={o.url} target="_blank" className="text-sky-700 hover:underline">
+                <a href={o.url} target="_blank" className="text-brand-700 hover:underline">
                   original post ↗
                 </a>
               </>
@@ -130,7 +130,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
               title={DOC_LABEL[d.kind]}
               actions={
                 d.pdfPath ? (
-                  <a href={`/api/files/${d.pdfPath}`} target="_blank" className="text-sm text-sky-700 hover:underline">
+                  <a href={`/api/files/${d.pdfPath}`} target="_blank" className="text-sm text-brand-700 hover:underline">
                     Open PDF ↗
                   </a>
                 ) : null
@@ -143,7 +143,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
                 </div>
               ) : d.kind === "PROPOSAL" ? (
                 <div className="space-y-2 text-sm">
-                  {d.subject && <pre className="whitespace-pre-wrap rounded bg-rose-50 p-3 text-xs text-slate-700">{d.subject}</pre>}
+                  {d.subject && <pre className="whitespace-pre-wrap rounded bg-brand-50 p-3 text-xs text-slate-700">{d.subject}</pre>}
                   <pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded bg-slate-50 p-3 text-xs">{d.content}</pre>
                 </div>
               ) : (
@@ -165,7 +165,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
                       )}
                       {d.gmailDraftId && <span className="text-xs text-emerald-700">Draft in Gmail ✓</span>}
                       {!gmail && (
-                        <Link href="/settings" className="text-xs text-sky-700 hover:underline">
+                        <Link href="/settings" className="text-xs text-brand-700 hover:underline">
                           Connect Gmail to send drafts there
                         </Link>
                       )}
@@ -226,7 +226,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
                 <TrackBadge track={o.company.recommendation} both={o.company.recommendBoth} />
               </p>
               <p className="mt-2 text-sm text-slate-600">{o.company.recommendReason}</p>
-              <Link href={`/companies/${o.company.id}`} className="mt-2 block text-sm text-sky-700 hover:underline">
+              <Link href={`/companies/${o.company.id}`} className="mt-2 block text-sm text-brand-700 hover:underline">
                 Research / edit company →
               </Link>
             </Card>

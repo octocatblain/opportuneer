@@ -7,7 +7,7 @@ export default async function AddJob({ searchParams }: { searchParams: Promise<{
   return (
     <div className="mx-auto max-w-3xl space-y-4">
       <Flash error={sp.error} />
-      <h1 className="text-2xl font-bold">Add a job</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-ink">Add a job</h1>
       <p className="text-sm text-slate-600">
         For LinkedIn, BrighterMonday, Fuzu or a company careers page: paste the full job text (LinkedIn blocks automated reading, so pasting is the safe way).
         For other public pages you can paste just the URL. The AI pulls out the title, company, pay and location, then scores the job.

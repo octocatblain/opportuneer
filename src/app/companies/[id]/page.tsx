@@ -24,11 +24,11 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
     <div className="space-y-4">
       <Flash ok={sp.ok} error={sp.error} />
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-bold">{c.name}</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-ink">{c.name}</h1>
         <ScorePill score={c.score} />
         <TrackBadge track={c.recommendation} both={c.recommendBoth} />
         {c.website && (
-          <a href={c.website.startsWith("http") ? c.website : `https://${c.website}`} target="_blank" className="text-sm text-sky-700 hover:underline">
+          <a href={c.website.startsWith("http") ? c.website : `https://${c.website}`} target="_blank" className="text-sm text-brand-700 hover:underline">
             {c.website}
           </a>
         )}
@@ -107,7 +107,7 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
             <Area label="Notes" name="notes" value={c.notes} />
             <SubmitButton className={btn}>Save and re-score</SubmitButton>
           </form>
-          <Link href="/companies" className="mt-3 block text-sm text-sky-700 hover:underline">
+          <Link href="/companies" className="mt-3 block text-sm text-brand-700 hover:underline">
             ← All companies
           </Link>
         </Card>

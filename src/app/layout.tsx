@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { logoutAction } from "@/app/auth-actions";
+import { LogoMark, MotionProvider } from "@/components/motion";
+import { Nav } from "@/components/nav";
 import { getUser } from "@/lib/auth";
 import "./globals.css";
 
@@ -22,30 +24,28 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const user = await getUser();
   return (
     <html lang="en">
-      <body className="min-h-screen bg-slate-50 text-slate-900 antialiased">
-        <header className="border-b border-slate-200 bg-white">
+      <body className="min-h-screen bg-slate-50 text-ink antialiased">
+        <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur">
           <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
-            <Link href="/" className="text-lg font-bold tracking-tight">
-              <span className="text-rose-700">Oppor</span>tuneer
+            <Link href="/" className="flex items-center gap-2 text-lg font-bold tracking-tight">
+              <LogoMark className="h-5 w-5 text-brand-700" />
+              <span>
+                <span className="text-brand-700">Oppor</span>tuneer
+              </span>
             </Link>
-            {user && (
-              <nav className="flex flex-wrap gap-1 text-sm">
-                {nav.map((n) => (
-                  <Link key={n.href} href={n.href} className="rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-100 hover:text-slate-900">
-                    {n.label}
-                  </Link>
-                ))}
-              </nav>
-            )}
+            {user && <Nav items={nav} />}
             {user && (
               <form action={logoutAction} className="ml-auto flex items-center gap-3 text-sm text-slate-600">
                 <span>{user.name || user.email}</span>
-                <button className="rounded-md border border-slate-300 px-3 py-1.5 hover:bg-slate-100">Sign out</button>
+                <button className="rounded-md border border-slate-300 px-3 py-1.5 transition-colors hover:border-brand-200 hover:bg-brand-50">Sign out</button>
               </form>
             )}
           </div>
+          <div className="brand-bar" />
         </header>
-        <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>
+        <MotionProvider>
+          <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>
+        </MotionProvider>
       </body>
     </html>
   );

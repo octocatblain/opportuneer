@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { scanAction } from "@/app/actions";
+import { CountUp, Stagger, StaggerItem } from "@/components/motion";
 import { SubmitButton } from "@/components/submit-button";
 import { btn, Card, Flash, OppRow, ScorePill, TrackBadge } from "@/components/ui";
 import { db, getSetting } from "@/lib/db";
@@ -38,7 +39,7 @@ export default async function Today({ searchParams }: { searchParams: Promise<{ 
       <Flash ok={sp.ok} error={sp.error} />
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Today</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-ink">Today</h1>
           <p className="text-sm text-slate-500">
             {lastScan ? `Last scan ${new Date(lastScan.at).toLocaleString("en-GB")}` : "No scan yet. Run one to fill your shortlist."}
           </p>
@@ -50,7 +51,7 @@ export default async function Today({ searchParams }: { searchParams: Promise<{ 
         </form>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+      <Stagger className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         {[
           ["Found", count("FOUND") + count("SHORTLISTED")],
           ["Drafted", count("DRAFTED")],
@@ -58,24 +59,24 @@ export default async function Today({ searchParams }: { searchParams: Promise<{ 
           ["Replied / meetings", count("REPLIED") + count("INTERVIEW")],
           ["Won", count("WON")],
         ].map(([l, n]) => (
-          <div key={l} className="rounded-lg border border-slate-200 bg-white p-3">
-            <div className="text-2xl font-bold tabular-nums">{n}</div>
+          <StaggerItem key={l} className="rounded-lg border border-slate-200 border-t-2 border-t-brand-600 bg-white p-3">
+            <CountUp value={Number(n)} className="block text-2xl font-bold tabular-nums" />
             <div className="text-xs text-slate-500">{l}</div>
-          </div>
+          </StaggerItem>
         ))}
-      </div>
+      </Stagger>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <Card title="Shortlist: best new jobs this week" actions={<Link href="/jobs" className="text-sm text-sky-700 hover:underline">All jobs →</Link>}>
+          <Card title="Shortlist: best new jobs this week" actions={<Link href="/jobs" className="text-sm text-brand-700 hover:underline">All jobs →</Link>}>
             {shortlist.length === 0 ? (
               <p className="text-sm text-slate-500">Nothing new. Scan the boards, or paste a job on “Add job”.</p>
             ) : (
-              <div className="divide-y divide-slate-100">
+              <Stagger className="divide-y divide-slate-100">
                 {shortlist.map((o) => (
                   <OppRow key={o.id} o={o} />
                 ))}
-              </div>
+              </Stagger>
             )}
           </Card>
         </div>
@@ -84,21 +85,21 @@ export default async function Today({ searchParams }: { searchParams: Promise<{ 
             {followUps.length === 0 ? (
               <p className="text-sm text-slate-500">None due.</p>
             ) : (
-              <div className="divide-y divide-slate-100">
+              <Stagger className="divide-y divide-slate-100">
                 {followUps.map((o) => (
                   <OppRow key={o.id} o={o} />
                 ))}
-              </div>
+              </Stagger>
             )}
           </Card>
-          <Card title="Companies worth pitching" actions={<Link href="/companies" className="text-sm text-sky-700 hover:underline">All →</Link>}>
+          <Card title="Companies worth pitching" actions={<Link href="/companies" className="text-sm text-brand-700 hover:underline">All →</Link>}>
             {prospects.length === 0 ? (
               <p className="text-sm text-slate-500">Add and research companies to get pitch suggestions.</p>
             ) : (
               <ul className="space-y-2">
                 {prospects.map((c) => (
                   <li key={c.id}>
-                    <Link href={`/companies/${c.id}`} className="flex items-center gap-2 rounded px-1 py-1 hover:bg-slate-50">
+                    <Link href={`/companies/${c.id}`} className="flex items-center gap-2 rounded px-1 py-1 transition-colors hover:bg-brand-50">
                       <ScorePill score={c.score} />
                       <span className="flex-1 truncate text-sm font-medium">{c.name}</span>
                       <TrackBadge track={c.recommendation} both={c.recommendBoth} />

@@ -14,7 +14,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
 
   return (
     <div className="mx-auto max-w-sm space-y-4 pt-10">
-      <h1 className="text-2xl font-bold">Sign in</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-ink">Sign in</h1>
       <Flash error={sp.error} />
       {google && (
         <a href={`/api/auth/google/start${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="block rounded-md border border-slate-300 bg-white px-4 py-2 text-center text-sm font-medium hover:bg-slate-50">
@@ -39,7 +39,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
       )}
       <p className="text-center text-sm text-slate-600">
         New here?{" "}
-        <Link href={`/register${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="text-rose-700 underline">
+        <Link href={`/register${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="text-brand-700 underline">
           Create an account
         </Link>
       </p>

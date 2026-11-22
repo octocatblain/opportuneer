@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { addCompanyAction } from "@/app/actions";
 import { SubmitButton } from "@/components/submit-button";
-import { btn, Card, Flash, input, ScorePill, TrackBadge } from "@/components/ui";
+import { btn, Card, Flash, input, ScorePill, TrackBadge, tab } from "@/components/ui";
 import { loadConfig } from "@/lib/config";
 import { db } from "@/lib/db";
 
@@ -21,7 +21,7 @@ export default async function Companies({ searchParams }: { searchParams: Promis
   return (
     <div className="space-y-4">
       <Flash error={sp.error} />
-      <h1 className="text-2xl font-bold">Companies</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-ink">Companies</h1>
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-3 lg:col-span-2">
           <div className="flex flex-wrap gap-1 text-sm">
@@ -30,7 +30,7 @@ export default async function Companies({ searchParams }: { searchParams: Promis
               ["pitch", "Worth pitching"],
               ["researched", "Researched"],
             ].map(([f, l]) => (
-              <Link key={l} href={f ? `/companies?filter=${f}` : "/companies"} className={`rounded-md px-3 py-1.5 ${sp.filter === f ? "bg-slate-900 text-white" : "border border-slate-300 bg-white"}`}>
+              <Link key={l} href={f ? `/companies?filter=${f}` : "/companies"} className={tab(sp.filter === f)}>
                 {l}
               </Link>
             ))}

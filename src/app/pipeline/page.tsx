@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { Stagger, StaggerItem } from "@/components/motion";
 import { setStageAction } from "@/app/actions";
-import { Flash, ScorePill, STAGE_LABEL, TrackBadge } from "@/components/ui";
+import { Flash, ScorePill, STAGE_LABEL, TrackBadge, tab } from "@/components/ui";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +21,7 @@ export default async function Pipeline({ searchParams }: { searchParams: Promise
     <div>
       <Flash ok={sp.ok} error={sp.error} />
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">Pipeline</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-ink">Pipeline</h1>
         <div className="flex gap-1 text-sm">
           {[
             [undefined, "All"],
@@ -30,7 +31,7 @@ export default async function Pipeline({ searchParams }: { searchParams: Promise
             <Link
               key={l}
               href={t ? `/pipeline?track=${t}` : "/pipeline"}
-              className={`rounded-md px-3 py-1.5 ${track === t ? "bg-slate-900 text-white" : "border border-slate-300 bg-white"}`}
+              className={tab(track === t)}
             >
               {l}
             </Link>
@@ -38,12 +39,12 @@ export default async function Pipeline({ searchParams }: { searchParams: Promise
         </div>
       </div>
       <p className="mb-4 text-sm text-slate-500">New jobs start in “Found” (see Today / Jobs). Shortlist the ones you want, and they appear here.</p>
-      <div className="grid gap-3 overflow-x-auto pb-4 md:grid-cols-3 xl:grid-cols-6">
+      <Stagger className="grid gap-3 overflow-x-auto pb-4 md:grid-cols-3 xl:grid-cols-6">
         {BOARD.map((stage) => {
           const items = opps.filter((o) => o.stage === stage);
           return (
-            <div key={stage} className="min-w-56 rounded-lg bg-slate-100 p-2">
-              <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <StaggerItem key={stage} className="min-w-56 rounded-lg bg-slate-100 p-2">
+              <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-brand-700">
                 {STAGE_LABEL[stage]} · {items.length}
               </h2>
               <div className="space-y-2">
@@ -78,10 +79,10 @@ export default async function Pipeline({ searchParams }: { searchParams: Promise
                   );
                 })}
               </div>
-            </div>
+            </StaggerItem>
           );
         })}
-      </div>
+      </Stagger>
     </div>
   );
 }

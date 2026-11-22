@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Card, OppRow, STAGE_LABEL } from "@/components/ui";
+import { Card, OppRow, STAGE_LABEL, tab } from "@/components/ui";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +23,7 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<{ v
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">Jobs</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-ink">Jobs</h1>
         <form className="flex gap-2" action="/jobs">
           <input type="hidden" name="view" value={view} />
           <input name="q" defaultValue={sp.q} placeholder="Search title or company" className="rounded-md border border-slate-300 px-3 py-1.5 text-sm" />
@@ -35,7 +35,7 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<{ v
           ["all", "All"],
           ["archived", "Auto-archived (pay, location or unclear post)"],
         ].map(([v, l]) => (
-          <Link key={v} href={`/jobs?view=${v}`} className={`rounded-md px-3 py-1.5 ${view === v ? "bg-slate-900 text-white" : "border border-slate-300 bg-white"}`}>
+          <Link key={v} href={`/jobs?view=${v}`} className={tab(view === v)}>
             {l}
           </Link>
         ))}

@@ -26,7 +26,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
   return (
     <div className="space-y-6">
       <Flash ok={sp.ok} error={sp.error} />
-      <h1 className="text-2xl font-bold">Settings</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-ink">Settings</h1>
       <div className="grid gap-6 lg:grid-cols-2">
         <Card title="Gmail (drafts only)">
           {gmail ? (

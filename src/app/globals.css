@@ -1,5 +1,35 @@
 @import "tailwindcss";
 
+/* Opportuneer brand tokens. Change the palette here and every page follows. */
+@theme {
+  --color-brand-50: #fff1f2;
+  --color-brand-100: #ffe4e6;
+  --color-brand-200: #fecdd3;
+  --color-brand-500: #e11d48;
+  --color-brand-600: #be123c;
+  --color-brand-700: #9f1239;
+  --color-brand-800: #881337;
+  --color-ink: #0f172a;
+  --font-sans: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  --ease-brand: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 body {
-  font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+}
+
+::selection {
+  background: var(--color-brand-200);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 2px;
+}
+
+/* Brand-coloured top accent under the header */
+.brand-bar {
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-brand-800), var(--color-brand-500), var(--color-brand-200));
 }

@@ -16,7 +16,7 @@ export default async function Register({ searchParams }: { searchParams: Promise
 
   return (
     <div className="mx-auto max-w-sm space-y-4 pt-10">
-      <h1 className="text-2xl font-bold">Create an account</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-ink">Create an account</h1>
       <p className="text-sm text-slate-600">
         {first ? "No accounts yet: the first one you create becomes the owner." : "Only emails on the allowed list (Settings → auth) can register."}
       </p>
@@ -52,7 +52,7 @@ export default async function Register({ searchParams }: { searchParams: Promise
       )}
       <p className="text-center text-sm text-slate-600">
         Already registered?{" "}
-        <Link href="/login" className="text-rose-700 underline">
+        <Link href="/login" className="text-brand-700 underline">
           Sign in
         </Link>
       </p>
