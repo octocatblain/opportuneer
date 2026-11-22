@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { loginAction } from "@/app/auth-actions";
+import { GoogleIcon } from "@/components/brand-icons";
 import { SubmitButton } from "@/components/submit-button";
 import { LogoMark } from "@/components/motion";
 import { btn, Flash, input } from "@/components/ui";
@@ -19,10 +20,14 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
   return (
     <div className="mx-auto max-w-sm space-y-4 pt-10">
       <LogoMark className="mx-auto h-14 w-14" />
-      <h1 className="text-center text-2xl font-bold tracking-tight text-ink">Sign in</h1>
+      <h1 className="text-center text-3xl font-semibold tracking-tight text-ink">
+        Welcome <em className="serif-accent">back</em>
+      </h1>
+      <p className="text-center text-sm text-ink-4">Sign in to your private workspace. Your jobs, companies and drafts are visible only to you.</p>
       <Flash error={sp.error} />
       {google && (
-        <a href={`/api/auth/google/start${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="block rounded-md border border-slate-300 bg-white px-4 py-2 text-center text-sm font-medium hover:bg-slate-50">
+        <a href={`/api/auth/google/start${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="flex items-center justify-center gap-3 rounded-full border border-ink/15 bg-white px-4 py-2.5 text-sm font-semibold transition-colors hover:border-ink">
+          <GoogleIcon size={20} />
           Continue with Google
         </a>
       )}
@@ -43,9 +48,14 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
         </form>
       )}
       <p className="text-center text-sm text-slate-600">
-        New here?{" "}
-        <Link href={`/register${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="text-brand-700 underline">
-          Create an account
+        Invited to join?{" "}
+        <Link href={`/register${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="link">
+          Create your account
+        </Link>
+      </p>
+      <p className="text-center text-xs text-ink-4">
+        <Link href="/" className="link">
+          ← Back to home
         </Link>
       </p>
     </div>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SourceLabel } from "@/components/brand-icons";
 import { Reveal } from "@/components/motion";
 import type { ScoreLine } from "@/lib/scoring";
 
@@ -125,7 +126,7 @@ export function Card({
   index,
   tone = "light",
 }: {
-  title?: string;
+  title?: React.ReactNode;
   children: React.ReactNode;
   actions?: React.ReactNode;
   index?: number;
@@ -181,7 +182,7 @@ export function OppRow({
         <div className="truncate font-medium group-hover:text-signal-dark">{o.title}</div>
         <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-4">
           <span className="truncate">
-            {o.company?.name ?? "—"} · {location} · {o.source}
+            {o.company?.name ?? "—"} · {location} · <SourceLabel source={o.source} />
           </span>
           {o.verified && <Chip tone="mint">verified employer</Chip>}
           {fb?.belowTarget && <Chip tone="cream">below pay target</Chip>}
@@ -221,3 +222,57 @@ export const btnSignal =
   "inline-flex items-center justify-center gap-2 rounded-full bg-signal px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-signal-dark focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-signal/30 disabled:opacity-60";
 export const btnGhost =
   "inline-flex items-center justify-center gap-2 rounded-full border border-ink/15 bg-white px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:border-ink hover:bg-ink hover:text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-signal/30 disabled:opacity-60";
+
+export const PAGE_SIZE = 25;
+
+/** Read ?page= safely (1-based). */
+export const pageParam = (v: string | undefined) => Math.max(1, Math.floor(Number(v)) || 1);
+
+/** Prev / numbered / next pager. `hrefFor` builds the link for a page number. Renders nothing for a single page. */
+export function Pagination({ page, total, pageSize = PAGE_SIZE, hrefFor }: { page: number; total: number; pageSize?: number; hrefFor: (page: number) => string }) {
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  if (pages <= 1) return null;
+  const cur = Math.min(page, pages);
+  const nums = [...new Set([1, 2, cur - 1, cur, cur + 1, pages - 1, pages])].filter((n) => n >= 1 && n <= pages).sort((a, b) => a - b);
+  const item = "rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors";
+  return (
+    <nav aria-label="Pagination" className="flex flex-wrap items-center justify-between gap-3 pt-2">
+      <span className="text-xs text-ink-4">
+        Showing {(cur - 1) * pageSize + 1}–{Math.min(cur * pageSize, total)} of {total}
+      </span>
+      <div className="inline-flex flex-wrap items-center gap-1 rounded-full bg-white p-1 shadow-sm">
+        {cur > 1 ? (
+          <Link href={hrefFor(cur - 1)} rel="prev" className={`${item} text-ink-4 hover:bg-canvas hover:text-ink`}>
+            ← Prev
+          </Link>
+        ) : (
+          <span className={`${item} text-mist`}>← Prev</span>
+        )}
+        {nums.map((n, i) => (
+          <span key={n} className="inline-flex items-center">
+            {i > 0 && n - nums[i - 1] > 1 && <span className="px-1 text-mist">…</span>}
+            <Link href={hrefFor(n)} aria-current={n === cur ? "page" : undefined} className={`${item} ${n === cur ? "bg-ink text-white" : "text-ink-4 hover:bg-canvas hover:text-ink"}`}>
+              {n}
+            </Link>
+          </span>
+        ))}
+        {cur < pages ? (
+          <Link href={hrefFor(cur + 1)} rel="next" className={`${item} text-ink-4 hover:bg-canvas hover:text-ink`}>
+            Next →
+          </Link>
+        ) : (
+          <span className={`${item} text-mist`}>Next →</span>
+        )}
+      </div>
+    </nav>
+  );
+}
+
+/** Shown to the superuser when viewing another user's record: everything is read-only. */
+export function ReadOnlyNotice({ owner }: { owner: string }) {
+  return (
+    <div role="status" className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+      Admin view: this belongs to <b>{owner}</b>. You can read it but not change it.
+    </div>
+  );
+}

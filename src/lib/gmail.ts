@@ -7,6 +7,9 @@ import { STORAGE_DIR } from "@/lib/pdf";
 /** Drafts only: this scope can create drafts and send, but cannot read your inbox. We never call send. */
 const SCOPES = ["https://www.googleapis.com/auth/gmail.compose", "openid", "email"];
 
+/** Each user connects their own Gmail; tokens are stored per user. */
+const key = (userId: string) => `gmail:${userId}`;
+
 type Tokens = { access_token: string; refresh_token?: string; expires_at: number; email?: string };
 
 function cfg() {
@@ -47,7 +50,7 @@ async function tokenRequest(body: Record<string, string>) {
   return json as { access_token: string; refresh_token?: string; expires_in: number; id_token?: string };
 }
 
-export async function exchangeCode(code: string) {
+export async function exchangeCode(userId: string, code: string) {
   const { clientId, clientSecret, redirectUri } = cfg();
   const t = await tokenRequest({ code, client_id: clientId, client_secret: clientSecret, redirect_uri: redirectUri, grant_type: "authorization_code" });
   let email: string | undefined;
@@ -56,26 +59,26 @@ export async function exchangeCode(code: string) {
     email = payload.email;
   }
   const tokens: Tokens = { access_token: t.access_token, refresh_token: t.refresh_token, expires_at: Date.now() + t.expires_in * 1000, email };
-  await setSetting("gmail", tokens);
+  await setSetting(key(userId), tokens);
   return tokens;
 }
 
-export async function gmailAccount(): Promise<string | null> {
-  const t = await getSetting<Tokens | null>("gmail", null);
+export async function gmailAccount(userId: string): Promise<string | null> {
+  const t = await getSetting<Tokens | null>(key(userId), null);
   return t?.refresh_token ? (t.email ?? "connected") : null;
 }
 
-export async function disconnectGmail() {
-  await setSetting("gmail", null);
+export async function disconnectGmail(userId: string) {
+  await setSetting(key(userId), null);
 }
 
-async function accessToken(): Promise<string> {
-  const t = await getSetting<Tokens | null>("gmail", null);
+async function accessToken(userId: string): Promise<string> {
+  const t = await getSetting<Tokens | null>(key(userId), null);
   if (!t?.refresh_token) throw new Error("Gmail is not connected. Open Settings → Connect Gmail.");
   if (t.expires_at - 60_000 > Date.now()) return t.access_token;
   const { clientId, clientSecret } = cfg();
   const r = await tokenRequest({ refresh_token: t.refresh_token, client_id: clientId, client_secret: clientSecret, grant_type: "refresh_token" });
-  await setSetting("gmail", { ...t, access_token: r.access_token, expires_at: Date.now() + r.expires_in * 1000 });
+  await setSetting(key(userId), { ...t, access_token: r.access_token, expires_at: Date.now() + r.expires_in * 1000 });
   return r.access_token;
 }
 
@@ -83,7 +86,7 @@ const b64 = (s: string | Buffer) => Buffer.from(s).toString("base64");
 const encodeHeader = (s: string) => (/^[\x20-\x7e]*$/.test(s) ? s : `=?UTF-8?B?${b64(s)}?=`);
 
 /** Creates a Gmail draft (never sends). Attachments are paths relative to /storage. */
-export async function createDraft(opts: { to?: string | null; subject: string; body: string; attachments?: string[] }) {
+export async function createDraft(userId: string, opts: { to?: string | null; subject: string; body: string; attachments?: string[] }) {
   const boundary = `opp_${Date.now().toString(36)}`;
   const parts: string[] = [
     ...(opts.to ? [`To: ${opts.to}`] : []),
@@ -114,7 +117,7 @@ export async function createDraft(opts: { to?: string | null; subject: string; b
 
   const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/drafts", {
     method: "POST",
-    headers: { Authorization: `Bearer ${await accessToken()}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${await accessToken(userId)}`, "Content-Type": "application/json" },
     body: JSON.stringify({ message: { raw } }),
   });
   const json = await res.json();

@@ -3,7 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { researchCompanyAction, startPitchAction, updateCompanyAction } from "@/app/actions";
 import { SubmitButton } from "@/components/submit-button";
-import { Breakdown, btn, btnGhost, Card, Flash, input, OppRow, ScorePill, TrackBadge } from "@/components/ui";
+import { Breakdown, btn, btnGhost, Card, Flash, input, OppRow, ReadOnlyNotice, ScorePill, TrackBadge } from "@/components/ui";
+import { canView, getUser, requireUser } from "@/lib/auth";
 import { loadConfig } from "@/lib/config";
 import { db } from "@/lib/db";
 import type { ScoreLine } from "@/lib/scoring";
@@ -12,23 +13,27 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
-  const c = await db.company.findUnique({ where: { id }, select: { name: true } });
-  return { title: c?.name ?? "Not found" };
+  const viewer = await getUser();
+  const c = viewer ? await db.company.findUnique({ where: { id }, select: { name: true, userId: true } }) : null;
+  return { title: c && viewer && canView(viewer, c.userId) ? c.name : "Not found" };
 }
 
 export default async function CompanyPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; error?: string }> }) {
+  const viewer = await requireUser();
   const { industries } = await loadConfig();
   const { id } = await params;
   const sp = await searchParams;
   const c = await db.company.findUnique({
     where: { id },
-    include: { opportunities: { orderBy: { createdAt: "desc" }, include: { company: { select: { name: true } } } } },
+    include: { user: { select: { email: true } }, opportunities: { orderBy: { createdAt: "desc" }, include: { company: { select: { name: true } } } } },
   });
-  if (!c) notFound();
+  if (!c || !canView(viewer, c.userId)) notFound();
+  const readOnly = c.userId !== viewer.id;
   const sb = c.scoreBreakdown as { lines: ScoreLine[]; canAffordFloor: boolean } | null;
 
   return (
-    <div className="space-y-4">
+    <fieldset disabled={readOnly} className="min-w-0 space-y-4 border-0 p-0">
+      {readOnly && <ReadOnlyNotice owner={c.user.email} />}
       <Flash ok={sp.ok} error={sp.error} />
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="page-title tracking-tight text-ink">{c.name}</h1>
@@ -119,7 +124,7 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
           </Link>
         </Card>
       </div>
-    </div>
+    </fieldset>
   );
 }
 

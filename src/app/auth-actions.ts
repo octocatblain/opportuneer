@@ -2,17 +2,19 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { cfg, loadConfig } from "@/lib/config";
+import { cfg, loadConfig, saveConfigSection } from "@/lib/config";
 import { db } from "@/lib/db";
 import {
   clientInfo,
   currentSession,
   endSession,
   hashPassword,
-  mayJoin,
   normalizeEmail,
   passwordProblem,
+  registerMember,
+  requireSuper,
   requireUser,
+  seatFree,
   startSession,
   throttled,
   validEmail,
@@ -55,21 +57,11 @@ export async function registerAction(form: FormData) {
   const problem = passwordProblem(password);
   if (problem) fail("/register", next, problem);
   if (password !== String(form.get("confirm") ?? "")) fail("/register", next, "Passwords don't match.");
-  if (!(await mayJoin(email))) fail("/register", next, "This email isn't on the allowed list. Ask the owner to add it in Settings → auth.");
   const existing = await db.user.findUnique({ where: { email } });
   if (existing) fail("/register", next, "An account with this email already exists. Sign in instead.");
-  const first = (await db.user.count()) === 0;
-  const user = await db.user.create({ data: { email, name, passwordHash: await hashPassword(password) } });
-  if (first) {
-    // The owner is always on the allowed list.
-    const auth = cfg().auth;
-    if (!auth.allowedEmails.map(normalizeEmail).includes(email)) {
-      const updated = { ...auth, allowedEmails: [...auth.allowedEmails, email] };
-      await db.setting.upsert({ where: { key: "config:auth" }, create: { key: "config:auth", value: updated }, update: { value: updated } });
-      await loadConfig(true);
-    }
-  }
-  await startSession(user.id, "password");
+  const made = await registerMember({ email, name, passwordHash: await hashPassword(password) });
+  if ("error" in made) fail("/register", next, made.error);
+  await startSession((made as { user: { id: string } }).user.id, "password");
   redirect(next);
 }
 
@@ -105,4 +97,16 @@ export async function changePasswordAction(form: FormData) {
   // Changing the password signs out every other device.
   await db.session.deleteMany({ where: { userId: cur.user.id, id: { not: cur.sessionId } } });
   redirect(`/settings?ok=${encodeURIComponent("Password updated; other devices were signed out.")}`);
+}
+
+/** Admin: set the one email that may register for the regular-user seat (superuser's own email always stays listed). */
+export async function inviteUserAction(form: FormData) {
+  const admin = await requireSuper();
+  await loadConfig();
+  const email = normalizeEmail(text(form, "email"));
+  if (!validEmail(email)) redirect(`/admin?error=${encodeURIComponent("Enter a valid email address.")}`);
+  if (!(await seatFree())) redirect(`/admin?error=${encodeURIComponent("The user seat is already taken.")}`);
+  const auth = { ...cfg().auth, allowedEmails: [normalizeEmail(admin.email), email] };
+  await saveConfigSection("auth", JSON.stringify(auth));
+  redirect(`/admin?ok=${encodeURIComponent(`${email} can now create the user account.`)}`);
 }

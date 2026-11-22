@@ -4,6 +4,8 @@ import { scanAction } from "@/app/actions";
 import { Stagger } from "@/components/motion";
 import { SubmitButton } from "@/components/submit-button";
 import { btnSignal, Card, Empty, Flash, OppRow, PageHeader, ScorePill, TrackBadge } from "@/components/ui";
+import { Landing } from "@/components/landing";
+import { getUser } from "@/lib/auth";
 import { db, getSetting } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -12,28 +14,35 @@ type Scan = { at: string; counts: Record<string, { fetched: number; matched: num
 
 export const metadata: Metadata = { title: "Today" };
 
-export default async function Today({ searchParams }: { searchParams: Promise<{ ok?: string; error?: string }> }) {
+/** "/" is the public landing page for visitors and the Today dashboard once signed in. */
+export default async function Home({ searchParams }: { searchParams: Promise<{ ok?: string; error?: string }> }) {
+  const user = await getUser();
+  if (!user) return <Landing />;
+  return <Today userId={user.id} searchParams={searchParams} />;
+}
+
+async function Today({ userId, searchParams }: { userId: string; searchParams: Promise<{ ok?: string; error?: string }> }) {
   const sp = await searchParams;
   const weekAgo = new Date(Date.now() - 7 * 86400_000);
   const [shortlist, followUps, prospects, counts, lastScan] = await Promise.all([
     db.opportunity.findMany({
-      where: { track: "JOB", stage: { in: ["FOUND", "SHORTLISTED"] }, createdAt: { gte: weekAgo } },
+      where: { userId, track: "JOB", stage: { in: ["FOUND", "SHORTLISTED"] }, createdAt: { gte: weekAgo } },
       orderBy: [{ fitScore: "desc" }, { createdAt: "desc" }],
       take: 10,
       include: { company: { select: { name: true } } },
     }),
     db.opportunity.findMany({
-      where: { stage: "SENT", followUpAt: { lte: new Date() } },
+      where: { userId, stage: "SENT", followUpAt: { lte: new Date() } },
       orderBy: { followUpAt: "asc" },
       include: { company: { select: { name: true } } },
     }),
     db.company.findMany({
-      where: { OR: [{ recommendation: "PITCH" }, { recommendBoth: true }], opportunities: { none: { track: "PITCH" } } },
+      where: { userId, OR: [{ recommendation: "PITCH" }, { recommendBoth: true }], opportunities: { none: { track: "PITCH" } } },
       orderBy: { score: "desc" },
       take: 8,
     }),
-    db.opportunity.groupBy({ by: ["stage"], _count: true }),
-    getSetting<Scan>("lastScan", null),
+    db.opportunity.groupBy({ by: ["stage"], where: { userId }, _count: true }),
+    getSetting<Scan>(`lastScan:${userId}`, null),
   ]);
   const count = (s: string) => counts.find((c) => c.stage === s)?._count ?? 0;
 

@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { cfg, loadConfig } from "@/lib/config";
 import { db } from "@/lib/db";
-import { mayJoin, normalizeEmail, startSession } from "@/lib/auth";
+import { normalizeEmail, registerMember, startSession } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
   await loadConfig();
@@ -44,14 +44,9 @@ export async function GET(req: NextRequest) {
   const email = normalizeEmail(claims.email);
   let user = (await db.user.findUnique({ where: { googleId: claims.sub } })) ?? (await db.user.findUnique({ where: { email } }));
   if (!user) {
-    if (!(await mayJoin(email))) return bounce(`${email} isn't on the allowed list. Ask the owner to add it in Settings → auth.`);
-    const first = (await db.user.count()) === 0;
-    user = await db.user.create({ data: { email, name: claims.name ?? null, googleId: claims.sub } });
-    if (first && !cfg().auth.allowedEmails.map(normalizeEmail).includes(email)) {
-      const updated = { ...cfg().auth, allowedEmails: [...cfg().auth.allowedEmails, email] };
-      await db.setting.upsert({ where: { key: "config:auth" }, create: { key: "config:auth", value: updated }, update: { value: updated } });
-      await loadConfig(true);
-    }
+    const made = await registerMember({ email, name: claims.name ?? null, googleId: claims.sub });
+    if ("error" in made) return bounce(made.error);
+    user = made.user;
   } else if (!user.googleId) {
     user = await db.user.update({ where: { id: user.id }, data: { googleId: claims.sub, name: user.name ?? claims.name ?? null } });
   }

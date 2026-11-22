@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { addCompanyAction } from "@/app/actions";
 import { SubmitButton } from "@/components/submit-button";
-import { btnSignal, Card, Empty, Flash, input, PageHeader, ScorePill, Segmented, TrackBadge } from "@/components/ui";
+import { btnSignal, Card, Empty, Flash, input, PAGE_SIZE, PageHeader, pageParam, Pagination, ScorePill, Segmented, TrackBadge } from "@/components/ui";
+import { requireUser } from "@/lib/auth";
 import { loadConfig } from "@/lib/config";
 import { db } from "@/lib/db";
 
@@ -13,22 +14,27 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
   return { title: filter === "pitch" ? "Companies worth pitching" : filter === "researched" ? "Researched companies" : "Companies" };
 }
 
-export default async function Companies({ searchParams }: { searchParams: Promise<{ error?: string; filter?: string }> }) {
+export default async function Companies({ searchParams }: { searchParams: Promise<{ error?: string; filter?: string; page?: string }> }) {
+  const user = await requireUser();
   const { industries } = await loadConfig();
   const sp = await searchParams;
-  const where =
+  const filter =
     sp.filter === "pitch"
       ? { OR: [{ recommendation: "PITCH" as const }, { recommendBoth: true }] }
       : sp.filter === "researched"
         ? { research: { not: null } }
         : {};
-  const companies = await db.company.findMany({ where, orderBy: [{ score: "desc" }, { name: "asc" }], take: 300, include: { _count: { select: { opportunities: true } } } });
+  const where = { userId: user.id, ...filter };
+  const total = await db.company.count({ where });
+  const page = Math.min(pageParam(sp.page), Math.max(1, Math.ceil(total / PAGE_SIZE)));
+  const hrefFor = (n: number) => `/companies${sp.filter || n > 1 ? "?" : ""}${[sp.filter ? `filter=${sp.filter}` : "", n > 1 ? `page=${n}` : ""].filter(Boolean).join("&")}`;
+  const companies = await db.company.findMany({ where, orderBy: [{ score: "desc" }, { name: "asc" }], skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE, include: { _count: { select: { opportunities: true } } } });
 
   return (
     <div className="space-y-6">
       <Flash error={sp.error} />
       <PageHeader
-        eyebrow={`${companies.length} compan${companies.length === 1 ? "y" : "ies"}`}
+        eyebrow={`${total} compan${total === 1 ? "y" : "ies"}`}
         title={
           <>
             Prospects with <em>budget</em>.
@@ -67,6 +73,7 @@ export default async function Companies({ searchParams }: { searchParams: Promis
               </div>
             )}
           </Card>
+          <Pagination page={page} total={total} hrefFor={hrefFor} />
         </div>
         <div className="self-start lg:sticky lg:top-24">
         <Card tone="dark" index={1} title="Add a prospect">

@@ -24,6 +24,11 @@ enum Stage {
   ARCHIVED
 }
 
+enum Role {
+  SUPERUSER // seeded owner: sees and manages every user's content
+  USER // sees only their own content
+}
+
 enum DocKind {
   CV
   COVER_LETTER
@@ -35,6 +40,8 @@ enum DocKind {
 
 model Company {
   id                String        @id @default(cuid())
+  userId            String
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   name              String
   website           String?
   industry          String? // key from config/industries
@@ -58,11 +65,14 @@ model Company {
   updatedAt         DateTime      @updatedAt
   opportunities     Opportunity[]
 
-  @@unique([name])
+  @@unique([userId, name])
+  @@index([userId])
 }
 
 model Opportunity {
   id            String     @id @default(cuid())
+  userId        String
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   track         Track
   title         String // job title, or pitch headline
   companyId     String?
@@ -90,7 +100,8 @@ model Opportunity {
   documents     Document[]
   activities    Activity[]
 
-  @@unique([source, sourceId])
+  @@unique([userId, source, sourceId])
+  @@index([userId])
   @@index([stage])
   @@index([fitScore])
 }
@@ -129,9 +140,13 @@ model User {
   name         String?
   passwordHash String? // scrypt; null for Google-only accounts
   googleId     String?   @unique
+  role         Role      @default(USER)
+  seat         Int?      @unique // 1 for the single regular-user seat, null for the superuser: the unique index caps regular users at one
   createdAt    DateTime  @default(now())
   lastLoginAt  DateTime?
   sessions     Session[]
+  companies    Company[]
+  opportunities Opportunity[]
 }
 
 model Session {

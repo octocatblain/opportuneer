@@ -1,8 +1,10 @@
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
+import { requireUser } from "@/lib/auth";
 import { exchangeCode } from "@/lib/gmail";
 
 export async function GET(req: NextRequest) {
+  const user = await requireUser();
   const url = req.nextUrl;
   const jar = await cookies();
   const expected = jar.get("gmail_oauth_state")?.value;
@@ -17,7 +19,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(back);
   }
   try {
-    const t = await exchangeCode(url.searchParams.get("code") ?? "");
+    const t = await exchangeCode(user.id, url.searchParams.get("code") ?? "");
     if (!t.refresh_token) back.searchParams.set("error", "Google did not return a refresh token. Remove Opportuneer at myaccount.google.com/permissions and connect again.");
     else back.searchParams.set("ok", `Gmail connected${t.email ? ` as ${t.email}` : ""}`);
   } catch (e) {

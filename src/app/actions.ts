@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { Stage } from "@prisma/client";
+import { requireSuper, requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { disconnectGmail } from "@/lib/gmail";
 import { resetConfigSection, saveConfigSection } from "@/lib/config";
@@ -34,9 +35,10 @@ const int = (f: FormData, k: string) => {
 };
 
 export async function scanAction() {
+  const user = await requireUser();
   let summary = "";
   await attempt("/", async () => {
-    const r = await svc.runScan();
+    const r = await svc.runScan(user.id);
     const added = Object.values(r.counts).reduce((a, c) => a + c.added, 0);
     summary = `Scan done: ${added} new matching job(s).${r.errors.length ? ` Some sources failed: ${r.errors.join("; ")}` : ""}`;
   });
@@ -44,33 +46,37 @@ export async function scanAction() {
 }
 
 export async function importJobAction(form: FormData) {
+  const user = await requireUser();
   let id = "";
   await attempt("/add", async () => {
-    const opp = await svc.importJob({ text: str(form, "text") ?? undefined, url: str(form, "url") ?? undefined });
+    const opp = await svc.importJob(user.id, { text: str(form, "text") ?? undefined, url: str(form, "url") ?? undefined });
     id = opp.id;
   });
   redirect(`/opportunities/${id}`);
 }
 
 export async function addCompanyAction(form: FormData) {
+  const user = await requireUser();
   let id = "";
   await attempt("/companies", async () => {
     const name = str(form, "name");
     if (!name) throw new Error("Company name is required.");
-    const c = await svc.upsertCompany(name, {
+    const c = await svc.upsertCompany(user.id, name, {
       website: str(form, "website"),
       notes: str(form, "notes"),
       industry: detectIndustry(name, str(form, "notes")),
     });
-    await svc.rescoreCompany(c.id);
+    await svc.rescoreCompany(user.id, c.id);
     id = c.id;
   });
   redirect(`/companies/${id}`);
 }
 
 export async function updateCompanyAction(form: FormData) {
+  const user = await requireUser();
   const id = str(form, "id")!;
   await attempt(`/companies/${id}`, async () => {
+    await db.company.findFirstOrThrow({ where: { id, userId: user.id }, select: { id: true } });
     await db.company.update({
       where: { id },
       data: {
@@ -88,62 +94,70 @@ export async function updateCompanyAction(form: FormData) {
         notes: str(form, "notes"),
       },
     });
-    await svc.rescoreCompany(id);
-    const jobs = await db.opportunity.findMany({ where: { companyId: id, track: "JOB" }, select: { id: true } });
-    for (const j of jobs) await svc.rescoreJob(j.id);
+    await svc.rescoreCompany(user.id, id);
+    const jobs = await db.opportunity.findMany({ where: { userId: user.id, companyId: id, track: "JOB" }, select: { id: true } });
+    for (const j of jobs) await svc.rescoreJob(user.id, j.id);
   }, "Saved and re-scored");
 }
 
 export async function researchCompanyAction(form: FormData) {
+  const user = await requireUser();
   const id = str(form, "id")!;
-  await attempt(`/companies/${id}`, () => svc.researchCompanyById(id, str(form, "extra") ?? ""), "Research updated");
+  await attempt(`/companies/${id}`, () => svc.researchCompanyById(user.id, id, str(form, "extra") ?? ""), "Research updated");
 }
 
 export async function startPitchAction(form: FormData) {
+  const user = await requireUser();
   const id = str(form, "id")!;
   let oppId = "";
   await attempt(`/companies/${id}`, async () => {
-    oppId = (await svc.startPitch(id)).id;
+    oppId = (await svc.startPitch(user.id, id)).id;
   });
   redirect(`/opportunities/${oppId}`);
 }
 
 export async function setStageAction(form: FormData) {
+  const user = await requireUser();
   const id = str(form, "id")!;
   const back = str(form, "back") ?? `/opportunities/${id}`;
-  await attempt(back, () => svc.setStage(id, str(form, "stage") as Stage));
+  await attempt(back, () => svc.setStage(user.id, id, str(form, "stage") as Stage));
 }
 
 export async function generateAction(form: FormData) {
+  const user = await requireUser();
   const id = str(form, "id")!;
   const what = str(form, "what");
   await attempt(
     `/opportunities/${id}`,
-    () => (what === "pitch" ? svc.generatePitch(id) : what === "followup" ? svc.generateFollowUp(id) : svc.generateApplication(id)),
+    () => (what === "pitch" ? svc.generatePitch(user.id, id) : what === "followup" ? svc.generateFollowUp(user.id, id) : svc.generateApplication(user.id, id)),
     "Drafts ready below",
   );
 }
 
 export async function saveDocAction(form: FormData) {
+  const user = await requireUser();
   const id = str(form, "oppId")!;
-  await attempt(`/opportunities/${id}`, () => svc.updateDocument(str(form, "docId")!, str(form, "subject"), str(form, "content") ?? ""), "Saved");
+  await attempt(`/opportunities/${id}`, () => svc.updateDocument(user.id, str(form, "docId")!, str(form, "subject"), str(form, "content") ?? ""), "Saved");
 }
 
 export async function gmailDraftAction(form: FormData) {
+  const user = await requireUser();
   const id = str(form, "oppId")!;
   await attempt(
     `/opportunities/${id}`,
     async () => {
-      await svc.updateDocument(str(form, "docId")!, str(form, "subject"), str(form, "content") ?? "");
-      await svc.gmailDraft(str(form, "docId")!, str(form, "to"));
+      await svc.updateDocument(user.id, str(form, "docId")!, str(form, "subject"), str(form, "content") ?? "");
+      await svc.gmailDraft(user.id, str(form, "docId")!, str(form, "to"));
     },
     "Draft created in Gmail. Review and send it there, then mark this as Sent.",
   );
 }
 
 export async function updateOpportunityAction(form: FormData) {
+  const user = await requireUser();
   const id = str(form, "id")!;
   await attempt(`/opportunities/${id}`, async () => {
+    await db.opportunity.findFirstOrThrow({ where: { id, userId: user.id }, select: { id: true } });
     await db.opportunity.update({
       where: { id },
       data: {
@@ -158,28 +172,32 @@ export async function updateOpportunityAction(form: FormData) {
       },
     });
     const o = await db.opportunity.findUniqueOrThrow({ where: { id } });
-    if (o.track === "JOB") await svc.rescoreJob(id);
+    if (o.track === "JOB") await svc.rescoreJob(user.id, id);
   }, "Saved");
 }
 
 export async function deleteOpportunityAction(form: FormData) {
+  const user = await requireUser();
   const id = str(form, "id")!;
-  await db.opportunity.delete({ where: { id } });
+  await db.opportunity.deleteMany({ where: { id, userId: user.id } });
   revalidatePath("/", "layout");
   redirect("/pipeline");
 }
 
 export async function disconnectGmailAction() {
-  await disconnectGmail();
+  const user = await requireUser();
+  await disconnectGmail(user.id);
   revalidatePath("/settings");
 }
 
 export async function saveConfigAction(form: FormData) {
+  await requireSuper();
   const section = str(form, "section") ?? "";
-  await attempt("/settings", () => saveConfigSection(section, String(form.get("json") ?? "")), `Saved "${section}"`);
+  await attempt("/admin/config", () => saveConfigSection(section, String(form.get("json") ?? "")), `Saved "${section}"`);
 }
 
 export async function resetConfigAction(form: FormData) {
+  await requireSuper();
   const section = str(form, "section") ?? "";
-  await attempt("/settings", () => resetConfigSection(section), `Reset "${section}" to defaults`);
+  await attempt("/admin/config", () => resetConfigSection(section), `Reset "${section}" to defaults`);
 }

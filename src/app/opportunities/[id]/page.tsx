@@ -9,8 +9,10 @@ import {
   setStageAction,
   updateOpportunityAction,
 } from "@/app/actions";
+import { SourceLabel } from "@/components/brand-icons";
 import { SubmitButton } from "@/components/submit-button";
-import { Breakdown, btn, btnGhost, Card, Flash, input, ScorePill, STAGE_LABEL, STAGES, TrackBadge } from "@/components/ui";
+import { Breakdown, btn, btnGhost, Card, Flash, input, ReadOnlyNotice, ScorePill, STAGE_LABEL, STAGES, TrackBadge } from "@/components/ui";
+import { canView, getUser, requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { gmailAccount } from "@/lib/gmail";
 import { shouldMentionCompany, type JobFit } from "@/lib/scoring";
@@ -28,20 +30,23 @@ const DOC_LABEL: Record<string, string> = {
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
-  const o = await db.opportunity.findUnique({ where: { id }, select: { title: true, company: { select: { name: true } } } });
-  if (!o) return { title: "Not found" };
+  const viewer = await getUser();
+  const o = viewer ? await db.opportunity.findUnique({ where: { id }, select: { title: true, userId: true, company: { select: { name: true } } } }) : null;
+  if (!o || !viewer || !canView(viewer, o.userId)) return { title: "Not found" };
   return { title: o.company?.name ? `${o.title} at ${o.company.name}` : o.title };
 }
 
 export default async function OpportunityPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; error?: string }> }) {
+  const viewer = await requireUser();
   const { id } = await params;
   const sp = await searchParams;
   const o = await db.opportunity.findUnique({
     where: { id },
-    include: { company: true, documents: { orderBy: { createdAt: "desc" } }, activities: { orderBy: { createdAt: "desc" }, take: 30 } },
+    include: { user: { select: { email: true } }, company: true, documents: { orderBy: { createdAt: "desc" } }, activities: { orderBy: { createdAt: "desc" }, take: 30 } },
   });
-  if (!o) notFound();
-  const gmail = await gmailAccount();
+  if (!o || !canView(viewer, o.userId)) notFound();
+  const readOnly = o.userId !== viewer.id;
+  const gmail = await gmailAccount(viewer.id);
   const fit = o.fitBreakdown as JobFit | null;
   const isJob = o.track === "JOB";
   const mention = isJob && shouldMentionCompany(o.title, o.employment, o.description);
@@ -50,7 +55,8 @@ export default async function OpportunityPage({ params, searchParams }: { params
   const emailKinds = ["EMAIL", "PITCH_EMAIL", "FOLLOW_UP"];
 
   return (
-    <div className="space-y-4">
+    <fieldset disabled={readOnly} className="min-w-0 space-y-4 border-0 p-0">
+      {readOnly && <ReadOnlyNotice owner={o.user.email} />}
       <Flash ok={sp.ok} error={sp.error} />
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -71,7 +77,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
             {o.remote && " · Remote"}
             {o.employment && ` · ${o.employment}`}
             {o.salaryMax || o.salaryMin ? ` · ${o.currency ?? ""} ${(o.salaryMin ?? o.salaryMax)?.toLocaleString()}${o.salaryMax && o.salaryMin ? `–${o.salaryMax.toLocaleString()}` : ""}${o.salaryPeriod ? `/${o.salaryPeriod}` : ""}` : ""}
-            {" · "}source: {o.source}
+            {" · "}source: <SourceLabel source={o.source} />
             {o.url && (
               <>
                 {" · "}
@@ -284,6 +290,6 @@ export default async function OpportunityPage({ params, searchParams }: { params
           </form>
         </div>
       </div>
-    </div>
+    </fieldset>
   );
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { importJobAction } from "@/app/actions";
+import { Brand } from "@/components/brand-icons";
 import { SubmitButton } from "@/components/submit-button";
 import { btnSignal, Card, Flash, input, PageHeader } from "@/components/ui";
 
@@ -21,6 +22,13 @@ export default async function AddJob({ searchParams }: { searchParams: Promise<{
       <p className="-mt-4 text-sm text-ink-4">
         For LinkedIn, BrighterMonday, Fuzu or a company careers page: paste the full job text (LinkedIn blocks automated reading, so pasting is the safe way).
         For other public pages you can paste just the URL. The AI pulls out the title, company, pay and location, then scores the job.
+      </p>
+      <p className="-mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-4">
+        Works with posts from:
+        <Brand name="LinkedIn" />
+        <Brand name="BrighterMonday" />
+        <Brand name="Fuzu" />
+        <Brand name="MyJobMag" />
       </p>
       <Card>
         <form action={importJobAction} className="space-y-4">

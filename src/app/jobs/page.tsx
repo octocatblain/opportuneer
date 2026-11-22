@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
-import { Card, Chip, Empty, input, OppRow, PageHeader, Segmented, STAGE_LABEL } from "@/components/ui";
+import type { Prisma } from "@prisma/client";
+import { Card, Chip, Empty, input, OppRow, PAGE_SIZE, PageHeader, pageParam, Pagination, Segmented, STAGE_LABEL } from "@/components/ui";
+import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -10,26 +12,33 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
   return { title: view === "all" ? "All jobs" : view === "archived" ? "Archived jobs" : "New jobs" };
 }
 
-export default async function Jobs({ searchParams }: { searchParams: Promise<{ view?: string; q?: string }> }) {
+export default async function Jobs({ searchParams }: { searchParams: Promise<{ view?: string; q?: string; page?: string }> }) {
+  const user = await requireUser();
   const sp = await searchParams;
   const view = sp.view ?? "new";
   const stageFilter =
     view === "archived" ? { stage: "ARCHIVED" as const } : view === "all" ? {} : { stage: { in: ["FOUND" as const, "SHORTLISTED" as const] } };
-  const jobs = await db.opportunity.findMany({
-    where: {
-      track: "JOB",
+  const where: Prisma.OpportunityWhereInput = {
+      userId: user.id,
+      track: "JOB" as const,
       ...stageFilter,
       ...(sp.q ? { OR: [{ title: { contains: sp.q, mode: "insensitive" } }, { company: { name: { contains: sp.q, mode: "insensitive" } } }] } : {}),
-    },
+  };
+  const total = await db.opportunity.count({ where });
+  const page = Math.min(pageParam(sp.page), Math.max(1, Math.ceil(total / PAGE_SIZE)));
+  const jobs = await db.opportunity.findMany({
+    where,
     orderBy: [{ fitScore: "desc" }, { createdAt: "desc" }],
-    take: 200,
+    skip: (page - 1) * PAGE_SIZE,
+    take: PAGE_SIZE,
     include: { company: { select: { name: true } } },
   });
+  const hrefFor = (n: number) => `/jobs?view=${view}${sp.q ? `&q=${encodeURIComponent(sp.q)}` : ""}${n > 1 ? `&page=${n}` : ""}`;
 
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow={`${jobs.length} job${jobs.length === 1 ? "" : "s"}`}
+        eyebrow={`${total} job${total === 1 ? "" : "s"}`}
         title={
           <>
             Roles <em>worth</em> your time.
@@ -47,7 +56,7 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<{ v
           ["new", "New & shortlisted"],
           ["all", "All"],
           ["archived", "Auto-archived (pay, location or unclear post)"],
-        ].map(([v, l]) => ({ href: `/jobs?view=${v}`, label: l, active: view === v }))}
+        ].map(([v, l]) => ({ href: `/jobs?view=${v}${sp.q ? `&q=${encodeURIComponent(sp.q)}` : ""}`, label: l, active: view === v }))}
       />
       <Card>
         {jobs.length === 0 ? (
@@ -67,6 +76,7 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<{ v
           </div>
         )}
       </Card>
+      <Pagination page={page} total={total} hrefFor={hrefFor} />
     </div>
   );
 }

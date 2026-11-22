@@ -1,14 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, userForToken } from "@/lib/auth";
 
-// Every request except the sign-in pages and the Google sign-in routes needs a valid session.
+// Signed-out visitors can only reach the public landing page ("/"), the sign-in pages, the Google sign-in
+// routes and the app icons. Everything else needs a valid session.
 // Runs on the Node.js runtime so it can check the session in the database.
 export const config = {
   runtime: "nodejs",
   matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|ico|css|js)$).*)"],
 };
 
-const PUBLIC = ["/login", "/register", "/api/auth/google/start", "/api/auth/google/callback"];
+const PUBLIC = ["/", "/manifest.webmanifest", "/apple-icon", "/login", "/register", "/api/auth/google/start", "/api/auth/google/callback"];
 
 export async function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;

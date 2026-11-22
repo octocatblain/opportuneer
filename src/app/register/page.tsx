@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { registerAction } from "@/app/auth-actions";
+import { GoogleIcon } from "@/components/brand-icons";
 import { SubmitButton } from "@/components/submit-button";
 import { LogoMark } from "@/components/motion";
 import { btn, Flash, input } from "@/components/ui";
 import { loadConfig } from "@/lib/config";
-import { db } from "@/lib/db";
+import { seatFree } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -14,20 +15,23 @@ export const metadata: Metadata = { title: "Create account" };
 export default async function Register({ searchParams }: { searchParams: Promise<{ error?: string; next?: string }> }) {
   const sp = await searchParams;
   const { auth } = await loadConfig();
-  const first = (await db.user.count()) === 0;
+  const open = await seatFree();
   const google = auth.allowGoogle && Boolean(process.env.GOOGLE_CLIENT_ID);
   const next = sp.next ?? "";
 
   return (
     <div className="mx-auto max-w-sm space-y-4 pt-10">
       <LogoMark className="mx-auto h-14 w-14" />
-      <h1 className="text-center text-2xl font-bold tracking-tight text-ink">Create an account</h1>
+      <h1 className="text-center text-3xl font-semibold tracking-tight text-ink">
+        Join by <em className="serif-accent">invitation</em>
+      </h1>
       <p className="text-sm text-slate-600">
-        {first ? "No accounts yet: the first one you create becomes the owner." : "Only emails on the allowed list (Settings → auth) can register."}
+        {open ? "Opportuneer has one seat for an invited user. Use the email address the owner invited." : "The invited-user seat is already taken, so new accounts cannot be created."}
       </p>
       <Flash error={sp.error} />
       {google && (
-        <a href={`/api/auth/google/start${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="block rounded-md border border-slate-300 bg-white px-4 py-2 text-center text-sm font-medium hover:bg-slate-50">
+        <a href={`/api/auth/google/start${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="flex items-center justify-center gap-3 rounded-full border border-ink/15 bg-white px-4 py-2.5 text-sm font-semibold transition-colors hover:border-ink">
+          <GoogleIcon size={20} />
           Sign up with Google
         </a>
       )}
@@ -57,8 +61,13 @@ export default async function Register({ searchParams }: { searchParams: Promise
       )}
       <p className="text-center text-sm text-slate-600">
         Already registered?{" "}
-        <Link href="/login" className="text-brand-700 underline">
+        <Link href="/login" className="link">
           Sign in
+        </Link>
+      </p>
+      <p className="text-center text-xs text-ink-4">
+        <Link href="/" className="link">
+          ← Back to home
         </Link>
       </p>
     </div>

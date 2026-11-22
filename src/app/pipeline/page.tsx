@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { setStageAction } from "@/app/actions";
 import { Flash, PageHeader, ScorePill, Segmented, STAGE_LABEL, TrackBadge } from "@/components/ui";
+import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -14,10 +15,11 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
 }
 
 export default async function Pipeline({ searchParams }: { searchParams: Promise<{ track?: string; ok?: string; error?: string }> }) {
+  const user = await requireUser();
   const sp = await searchParams;
   const track = sp.track === "JOB" || sp.track === "PITCH" ? sp.track : undefined;
   const opps = await db.opportunity.findMany({
-    where: { stage: { in: [...BOARD] }, ...(track ? { track } : {}) },
+    where: { userId: user.id, stage: { in: [...BOARD] }, ...(track ? { track } : {}) },
     orderBy: [{ updatedAt: "desc" }],
     include: { company: { select: { name: true } } },
   });

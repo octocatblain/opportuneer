@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
-import { disconnectGmailAction, resetConfigAction, saveConfigAction } from "@/app/actions";
+import { disconnectGmailAction } from "@/app/actions";
 import { changePasswordAction, logoutAction, revokeOtherSessionsAction, revokeSessionAction } from "@/app/auth-actions";
-import { currentSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { Brand } from "@/components/brand-icons";
+import { currentSession, isSuper } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { btn, btnGhost, Card, Flash } from "@/components/ui";
-import { CONFIG_SECTIONS, loadConfig } from "@/lib/config";
-import { aiStatus } from "@/lib/ai";
+import { loadConfig } from "@/lib/config";
 import { getSetting } from "@/lib/db";
 import { gmailAccount, gmailConfigured } from "@/lib/gmail";
-import { foundingOfferActive } from "@/lib/services";
 
 export const dynamic = "force-dynamic";
 
@@ -19,19 +20,24 @@ export const metadata: Metadata = { title: "Settings" };
 export default async function Settings({ searchParams }: { searchParams: Promise<{ ok?: string; error?: string }> }) {
   const sp = await searchParams;
   const me = await currentSession();
-  const sessions = me ? await db.session.findMany({ where: { userId: me.user.id }, orderBy: { lastSeenAt: "desc" } }) : [];
+  if (!me) redirect("/login");
+  const sessions = await db.session.findMany({ where: { userId: me.user.id }, orderBy: { lastSeenAt: "desc" } });
   const full = await loadConfig();
-  const { company, packages, payFloors, profile, titleFamilies, industries, locations } = full;
-  const KES_PER_USD = full.fx.kesPerUsd;
-  const ai = aiStatus();
-  const [gmail, scan, offer] = await Promise.all([gmailAccount(), getSetting<Scan>("lastScan", null), foundingOfferActive()]);
+  const [gmail, scan] = await Promise.all([gmailAccount(me.user.id), getSetting<Scan>(`lastScan:${me.user.id}`, null)]);
 
   return (
     <div className="space-y-6">
       <Flash ok={sp.ok} error={sp.error} />
-      <h1 className="page-title tracking-tight text-ink">Settings</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="page-title tracking-tight text-ink">Settings</h1>
+        {isSuper(me.user) && (
+          <Link href="/admin" className={btnGhost}>
+            Admin area →
+          </Link>
+        )}
+      </div>
       <div className="grid items-start gap-6 lg:grid-cols-2">
-        <Card index={1} title="Gmail (drafts only)">
+        <Card index={1} title={<Brand name="Gmail" label="Gmail (drafts only)" size={20} />}>
           {gmail ? (
             <div className="space-y-3 text-sm">
               <p>
@@ -43,7 +49,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
             </div>
           ) : gmailConfigured() ? (
             <div className="space-y-3 text-sm">
-              <p>Google credentials found. Connect {profile.email} to start creating drafts.</p>
+              <p>Google credentials found. Connect your Gmail account to start creating drafts.</p>
               <a href="/api/gmail/connect" className={btn}>
                 Connect Gmail
               </a>
@@ -52,7 +58,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
             <ol className="list-decimal space-y-1 pl-5 text-sm">
               <li>Go to console.cloud.google.com and create a project called “Opportuneer”.</li>
               <li>APIs &amp; Services → Library → enable the <b>Gmail API</b>.</li>
-              <li>OAuth consent screen → External, Testing mode → add {profile.email} as a test user.</li>
+              <li>OAuth consent screen → External, Testing mode → add your Gmail address as a test user.</li>
               <li>
                 Credentials → Create OAuth client ID → Web application. Authorised redirect URI: <code className="rounded-md bg-canvas px-1.5">http://localhost:3000/api/auth/callback/google</code>
               </li>
@@ -61,62 +67,6 @@ export default async function Settings({ searchParams }: { searchParams: Promise
               </li>
             </ol>
           )}
-        </Card>
-
-        <Card index={2} title="AI providers">
-          <ul className="space-y-1 text-sm">
-            <li>
-              Claude:{" "}
-              {ai.claude
-                ? `ready (${ai.claudeModel}${ai.claudePremiumModel ? `; ${ai.claudePremiumModel} for CVs, letters and pitches` : ""})`
-                : "no ANTHROPIC_API_KEY"}
-            </li>
-            <li>OpenAI: {ai.openai ? `ready (${ai.openaiModel})` : "no OPENAI_API_KEY"}</li>
-            <li>Gemini: {ai.gemini ? `ready (${ai.geminiModel})` : "no GEMINI_API_KEY"}</li>
-            <li>
-              Paid calls today (Claude + OpenAI): <b>{ai.paidCallsToday}</b> of {ai.paidCallLimit}
-            </li>
-            <li>
-              Order tried: <b>{ai.order.join(" → ")}</b>
-              {ai.order[0] === "mock" && <span className="text-amber-700"> (add a key to .env to get real drafts)</span>}
-            </li>
-          </ul>
-          <p className="mt-2 text-xs text-ink-4">Order and models are stored in the database (section “ai” below). API keys stay in .env.</p>
-          {ai.gemini && (
-            <p className="mt-2 text-xs text-amber-700">
-              Gemini&apos;s free tier may let Google use prompts (including your CV details) to improve its products. Keep it last in AI_PROVIDERS once you
-              have a paid key, or remove it from the list.
-            </p>
-          )}
-        </Card>
-
-        <Card index={3} title="Job search targets">
-          <ul className="space-y-1 text-sm">
-            <li>Titles: {titleFamilies.map((t) => t.label).join(" · ")}</li>
-            <li>Industries: {industries.map((i) => i.label).join(" · ")}</li>
-            <li>
-              Pay floor: local ${payFloors.localMonthlyUsd.toLocaleString()}/mo (≈ KES {(payFloors.localMonthlyUsd * KES_PER_USD).toLocaleString()}), remote $
-              {payFloors.remoteMonthlyUsd.toLocaleString()}/mo. Rate: KES {KES_PER_USD}/USD.
-            </li>
-            <li>Locations: Kenya ({locations.accepted.slice(0, 5).join(", ")}…), remote, abroad only with visa sponsorship. East Africa excluded.</li>
-            <li>Notice period: {profile.noticePeriod}</li>
-          </ul>
-          <p className="mt-2 text-xs text-ink-4">Stored in the database; edit the sections below. src/config/profile.ts only supplies the first-run defaults.</p>
-        </Card>
-
-        <Card index={4} title="Red Star Standard offer">
-          <ul className="space-y-1 text-sm">
-            {packages.map((p) => (
-              <li key={p.key}>
-                {p.name}: {p.priceKes ? `KES ${p.priceKes.toLocaleString()}` : "price on request"}
-                {p.monthlyKes && p.kind !== "retainer" ? ` + ${p.monthlyKes.toLocaleString()}/mo` : p.kind === "retainer" && p.priceKes ? "/mo" : ""} {p.qualifies ? "" : <span className="text-xs text-mist">(entry offer)</span>}
-              </li>
-            ))}
-          </ul>
-          <p className="mt-2 text-sm">
-            Client floor: KES {company.clientFloorKes.toLocaleString()} (Strategy Sprint) or a retainer. Founding-client offer:{" "}
-            <b>{offer ? "active" : "off (5 founding clients won)"}</b>.
-          </p>
         </Card>
 
         <Card title="Account & sessions">
@@ -192,28 +142,6 @@ export default async function Settings({ searchParams }: { searchParams: Promise
         </Card>
       </div>
 
-      <Card title="Edit configuration (stored in the database)">
-        <p className="mb-3 text-xs text-slate-500">
-          Every parameter the app uses lives in the database, one JSON section each. Changes apply within a few seconds. “Reset” restores the defaults from src/config/profile.ts / .env.
-        </p>
-        <div className="space-y-2">
-          {CONFIG_SECTIONS.map((section) => (
-            <details key={section} className="rounded border border-slate-200 p-2">
-              <summary className="cursor-pointer text-sm font-medium">{section}</summary>
-              <form action={saveConfigAction} className="mt-2 space-y-2">
-                <input type="hidden" name="section" value={section} />
-                <textarea name="json" defaultValue={JSON.stringify((full as Record<string, unknown>)[section], null, 2)} rows={14} spellCheck={false} className="w-full rounded border border-slate-300 p-2 font-mono text-xs" />
-                <div className="flex gap-2">
-                  <button className={btn}>Save</button>
-                  <button formAction={resetConfigAction} className={btnGhost}>
-                    Reset to defaults
-                  </button>
-                </div>
-              </form>
-            </details>
-          ))}
-        </div>
-      </Card>
     </div>
   );
 }

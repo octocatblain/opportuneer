@@ -13,7 +13,7 @@ const nav = [
 ];
 
 /** Floating pill navigation: dark brand pill, frosted link pill, and a signal "Add job" pill. */
-export function NavLinks() {
+export function NavLinks({ admin = false }: { admin?: boolean }) {
   const path = usePathname();
   const active = (href: string) => (href === "/" ? path === "/" : path.startsWith(href));
   return (
@@ -23,7 +23,7 @@ export function NavLinks() {
         Opportuneer
       </Link>
       <nav aria-label="Main" className="flex flex-wrap items-center gap-1 rounded-full border border-white/70 bg-white/70 p-1 text-sm shadow-lg shadow-ink/5 backdrop-blur-md">
-        {nav.map((n) => (
+        {(admin ? [...nav, { href: "/admin", label: "Admin" }] : nav).map((n) => (
           <Link
             key={n.href}
             href={n.href}

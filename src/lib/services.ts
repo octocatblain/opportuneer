@@ -42,20 +42,20 @@ export async function log(opportunityId: string, type: string, message: string) 
 
 // ---------------- Companies ----------------
 
-export async function upsertCompany(name: string, data: Partial<Prisma.CompanyCreateInput> = {}) {
+export async function upsertCompany(userId: string, name: string, data: Partial<Prisma.CompanyCreateInput> = {}) {
   await loadConfig();
   const clean = name.trim() || "Unknown";
   return db.company.upsert({
-    where: { name: clean },
-    create: { name: clean, ...data },
+    where: { userId_name: { userId, name: clean } },
+    create: { name: clean, ...data, user: { connect: { id: userId } } },
     update: Object.fromEntries(Object.entries(data).filter(([, v]) => v !== null && v !== undefined && v !== "")),
   });
 }
 
-export async function rescoreCompany(id: string) {
+export async function rescoreCompany(userId: string, id: string) {
   await loadConfig();
-  const c = await db.company.findUniqueOrThrow({
-    where: { id },
+  const c = await db.company.findFirstOrThrow({
+    where: { id, userId },
     include: { opportunities: { where: { track: "JOB", stage: { notIn: ["LOST", "ARCHIVED"] } }, orderBy: { fitScore: "desc" }, take: 1 } },
   });
   const cs = scoreCompany(c);
@@ -73,10 +73,10 @@ export async function rescoreCompany(id: string) {
   });
 }
 
-export async function researchCompanyById(id: string, extraText = "") {
+export async function researchCompanyById(userId: string, id: string, extraText = "") {
   await loadConfig();
   requireAI();
-  const c = await db.company.findUniqueOrThrow({ where: { id } });
+  const c = await db.company.findFirstOrThrow({ where: { id, userId } });
   let text = `${c.notes ?? ""}\n${extraText}`;
   if (c.website) {
     const base = c.website.startsWith("http") ? c.website : `https://${c.website}`;
@@ -107,7 +107,7 @@ export async function researchCompanyById(id: string, extraText = "") {
       research: data.research,
     },
   });
-  await rescoreCompany(id);
+  await rescoreCompany(userId, id);
 }
 
 // ---------------- Jobs ----------------
@@ -116,17 +116,17 @@ function fitJson(fit: JobFit) {
   return fit as unknown as Prisma.InputJsonValue;
 }
 
-export async function saveJob(raw: RawJob, contact?: { name?: string | null; email?: string | null; website?: string | null }) {
+export async function saveJob(userId: string, raw: RawJob, contact?: { name?: string | null; email?: string | null; website?: string | null }) {
   await loadConfig();
-  const existing = await db.opportunity.findUnique({ where: { source_sourceId: { source: raw.source, sourceId: raw.sourceId } } });
+  const existing = await db.opportunity.findUnique({ where: { userId_source_sourceId: { userId, source: raw.source, sourceId: raw.sourceId } } });
   if (existing) return { opp: existing, created: false };
   // Same role from another board?
   const dup = await db.opportunity.findFirst({
-    where: { track: "JOB", title: { equals: raw.title, mode: "insensitive" }, company: { name: { equals: raw.companyName, mode: "insensitive" } } },
+    where: { userId, track: "JOB", title: { equals: raw.title, mode: "insensitive" }, company: { name: { equals: raw.companyName, mode: "insensitive" } } },
   });
   if (dup) return { opp: dup, created: false };
 
-  const company = await upsertCompany(raw.companyName, {
+  const company = await upsertCompany(userId, raw.companyName, {
     website: contact?.website ?? undefined,
     contactName: contact?.name ?? undefined,
     contactEmail: contact?.email ?? undefined,
@@ -148,6 +148,7 @@ export async function saveJob(raw: RawJob, contact?: { name?: string | null; ema
 
   const opp = await db.opportunity.create({
     data: {
+      userId,
       track: "JOB",
       title: raw.title,
       companyId: company.id,
@@ -170,13 +171,13 @@ export async function saveJob(raw: RawJob, contact?: { name?: string | null; ema
     },
   });
   await log(opp.id, "found", `Found on ${raw.source}. Fit ${fit.score}/100${fit.excluded ? ` (auto-archived: ${fit.excludeReason})` : ""}`);
-  await rescoreCompany(company.id);
+  await rescoreCompany(userId, company.id);
   return { opp, created: true };
 }
 
-export async function rescoreJob(id: string) {
+export async function rescoreJob(userId: string, id: string) {
   await loadConfig();
-  const o = await db.opportunity.findUniqueOrThrow({ where: { id }, include: { company: true } });
+  const o = await db.opportunity.findFirstOrThrow({ where: { id, userId }, include: { company: true } });
   const fit = scoreJob({
     title: o.title,
     description: o.description,
@@ -193,17 +194,17 @@ export async function rescoreJob(id: string) {
   await db.opportunity.update({ where: { id }, data: { fitScore: fit.score, fitBreakdown: fitJson(fit) } });
 }
 
-export async function runScan() {
-  if ((await scanStatus()).running) throw new Error("A scan is already running. Wait for it to finish.");
-  await setScanRunning(true);
+export async function runScan(userId: string) {
+  if ((await scanStatus(userId)).running) throw new Error("A scan is already running. Wait for it to finish.");
+  await setScanRunning(userId, true);
   try {
-    return await doScan();
+    return await doScan(userId);
   } finally {
-    await setScanRunning(false);
+    await setScanRunning(userId, false);
   }
 }
 
-async function doScan() {
+async function doScan(userId: string) {
   await loadConfig();
   const counts: Record<string, { fetched: number; matched: number; added: number }> = {};
   const errors: string[] = [];
@@ -215,7 +216,7 @@ async function doScan() {
       for (const j of jobs) {
         if (!matchTitleFamily(j.title)) continue;
         counts[name].matched++;
-        const { created } = await saveJob(j);
+        const { created } = await saveJob(userId, j);
         if (created) counts[name].added++;
       }
     } catch (e) {
@@ -223,12 +224,12 @@ async function doScan() {
     }
   }
   const result = { at: new Date().toISOString(), counts, errors };
-  await setSetting("lastScan", result);
+  await setSetting(`lastScan:${userId}`, result);
   return result;
 }
 
 /** Paste a job description or a URL (LinkedIn: paste the text, not the link). */
-export async function importJob(input: { text?: string; url?: string; source?: string }) {
+export async function importJob(userId: string, input: { text?: string; url?: string; source?: string }) {
   await loadConfig();
   requireAI();
   let raw = input.text?.trim() ?? "";
@@ -237,6 +238,7 @@ export async function importJob(input: { text?: string; url?: string; source?: s
   const { data, mock } = await extractJob(raw);
   if (mock) throw new Error("No AI key configured: add GEMINI_API_KEY, ANTHROPIC_API_KEY or OPENAI_API_KEY to .env.");
   const { opp } = await saveJob(
+    userId,
     {
       source: input.source || (input.url?.includes("linkedin") ? "linkedin-paste" : "manual"),
       sourceId: input.url || `manual-${Date.now()}`,
@@ -257,9 +259,9 @@ export async function importJob(input: { text?: string; url?: string; source?: s
 
 // ---------------- Stages ----------------
 
-export async function setStage(id: string, stage: Opportunity["stage"]) {
+export async function setStage(userId: string, id: string, stage: Opportunity["stage"]) {
   await loadConfig();
-  const o = await db.opportunity.findUniqueOrThrow({ where: { id } });
+  const o = await db.opportunity.findFirstOrThrow({ where: { id, userId } });
   const data: Prisma.OpportunityUpdateInput = { stage };
   if (stage === "SENT") {
     data.sentAt = new Date();
@@ -285,10 +287,10 @@ async function archiveCopy(rel: string, name: string) {
   }
 }
 
-export async function generateApplication(id: string) {
+export async function generateApplication(userId: string, id: string) {
   await loadConfig();
   requireAI();
-  const o = await db.opportunity.findUniqueOrThrow({ where: { id }, include: { company: true } });
+  const o = await db.opportunity.findFirstOrThrow({ where: { id, userId }, include: { company: true } });
   const companyName = o.company?.name ?? "the company";
   const mention = shouldMentionCompany(o.title, o.employment, o.description);
   const cv = await loadCvParts();
@@ -320,31 +322,31 @@ export async function generateApplication(id: string) {
   await log(id, "generated", `Tailored CV, cover letter and email drafted (${tailored.provider}). Red Star Standard ${mention ? "mentioned" : "not mentioned"}.`);
 }
 
-export async function foundingOfferActive() {
+export async function foundingOfferActive(userId: string) {
   await loadConfig();
-  const won = await db.opportunity.count({ where: { track: "PITCH", stage: "WON" } });
+  const won = await db.opportunity.count({ where: { userId, track: "PITCH", stage: "WON" } });
   return won < cfg().company.foundingOffer.maxFoundingClients;
 }
 
-export async function startPitch(companyId: string) {
+export async function startPitch(userId: string, companyId: string) {
   await loadConfig();
-  const c = await db.company.findUniqueOrThrow({ where: { id: companyId } });
-  const existing = await db.opportunity.findFirst({ where: { companyId, track: "PITCH", stage: { notIn: ["LOST", "ARCHIVED"] } } });
+  const c = await db.company.findFirstOrThrow({ where: { id: companyId, userId } });
+  const existing = await db.opportunity.findFirst({ where: { userId, companyId, track: "PITCH", stage: { notIn: ["LOST", "ARCHIVED"] } } });
   if (existing) return existing;
   const opp = await db.opportunity.create({
-    data: { track: "PITCH", title: `${cfg().company.name} pitch: ${c.name}`, companyId, source: "research", sourceId: `pitch-${companyId}-${Date.now()}`, fitScore: c.score, stage: "SHORTLISTED" },
+    data: { userId, track: "PITCH", title: `${cfg().company.name} pitch: ${c.name}`, companyId, source: "research", sourceId: `pitch-${companyId}-${Date.now()}`, fitScore: c.score, stage: "SHORTLISTED" },
   });
   await log(opp.id, "created", "Pitch opportunity created");
   return opp;
 }
 
-export async function generatePitch(id: string) {
+export async function generatePitch(userId: string, id: string) {
   await loadConfig();
   requireAI();
-  const o = await db.opportunity.findUniqueOrThrow({ where: { id }, include: { company: true } });
+  const o = await db.opportunity.findFirstOrThrow({ where: { id, userId }, include: { company: true } });
   const c = o.company as Company;
   if (!c?.research) throw new Error("Research the company first (Companies → Research), so the pitch is specific.");
-  const offer = await foundingOfferActive();
+  const offer = await foundingOfferActive(userId);
   const pitch = await writePitch({ companyName: c.name, research: c.research, contactName: c.contactName, contactRole: c.contactRole, includeFoundingOffer: offer });
   await saveDoc(id, "PITCH_EMAIL", pitch.data.body, { subject: pitch.data.subject, provider: pitch.provider });
 
@@ -371,10 +373,10 @@ export async function generatePitch(id: string) {
   await log(id, "generated", `Pitch email and proposal drafted (${pitch.provider}); angle: ${pitch.data.chosenAngle}; packages: ${[...pitch.data.packageKeys, ...pitch.data.otherServices].join(", ")}${offer ? "; founding offer included" : ""}`);
 }
 
-export async function generateFollowUp(id: string) {
+export async function generateFollowUp(userId: string, id: string) {
   await loadConfig();
   requireAI();
-  const o = await db.opportunity.findUniqueOrThrow({ where: { id }, include: { company: true, documents: { orderBy: { createdAt: "desc" } } } });
+  const o = await db.opportunity.findFirstOrThrow({ where: { id, userId }, include: { company: true, documents: { orderBy: { createdAt: "desc" } } } });
   const prev = o.documents.find((d) => d.kind === "EMAIL" || d.kind === "PITCH_EMAIL");
   if (!prev) throw new Error("No earlier email to follow up on.");
   const days = o.sentAt ? Math.max(1, Math.round((Date.now() - o.sentAt.getTime()) / 86400_000)) : 5;
@@ -383,15 +385,16 @@ export async function generateFollowUp(id: string) {
   await log(id, "generated", "Follow-up drafted");
 }
 
-export async function updateDocument(docId: string, subject: string | null, content: string) {
+export async function updateDocument(userId: string, docId: string, subject: string | null, content: string) {
   await loadConfig();
+  await db.document.findFirstOrThrow({ where: { id: docId, opportunity: { userId } }, select: { id: true } });
   await db.document.update({ where: { id: docId }, data: { subject, content } });
 }
 
 /** Put an email document into Gmail as a draft, attaching the latest PDFs for this opportunity. */
-export async function gmailDraft(docId: string, to: string | null) {
+export async function gmailDraft(userId: string, docId: string, to: string | null) {
   await loadConfig();
-  const doc = await db.document.findUniqueOrThrow({ where: { id: docId }, include: { opportunity: { include: { documents: { orderBy: { createdAt: "desc" } }, company: true } } } });
+  const doc = await db.document.findFirstOrThrow({ where: { id: docId, opportunity: { userId } }, include: { opportunity: { include: { documents: { orderBy: { createdAt: "desc" } }, company: true } } } });
   const o = doc.opportunity;
   const attachments: string[] = [];
   if (doc.kind === "EMAIL") {
@@ -404,7 +407,7 @@ export async function gmailDraft(docId: string, to: string | null) {
     const d = o.documents.find((x) => x.kind === "PROPOSAL" && x.pdfPath);
     if (d?.pdfPath) attachments.push(d.pdfPath);
   }
-  const draftId = await createDraft({ to, subject: doc.subject ?? o.title, body: doc.content, attachments });
+  const draftId = await createDraft(userId, { to, subject: doc.subject ?? o.title, body: doc.content, attachments });
   await db.document.update({ where: { id: docId }, data: { gmailDraftId: draftId } });
   if (to && o.companyId && !o.company?.contactEmail) await db.company.update({ where: { id: o.companyId }, data: { contactEmail: to } });
   await log(o.id, "gmail", `Gmail draft created${to ? ` to ${to}` : ""} with ${attachments.length} attachment(s). Review and send it in Gmail, then mark this as Sent.`);
