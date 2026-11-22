@@ -164,3 +164,46 @@ model Session {
   @@index([userId])
   @@index([expiresAt])
 }
+
+enum WaitlistTrack {
+  SEEKER
+  PITCH
+  BOTH
+}
+
+enum WaitlistStatus {
+  WAITING
+  INVITED
+  ACTIVE
+  DECLINED
+}
+
+/// PILOT: one of the 30 pilot places (first 10 = cohort A, next 20 = cohort B), assigned automatically at signup.
+/// PUBLIC: waitlist for the public launch, unlimited, invited in batches later.
+enum WaitlistPhase {
+  PILOT
+  PUBLIC
+}
+
+model WaitlistEntry {
+  id               String         @id @default(cuid())
+  seq              Int            @unique @default(autoincrement()) // join order
+  email            String         @unique // stored lowercase
+  name             String?
+  trackInterest    WaitlistTrack
+  roleType         String? // job_seeker | freelancer_agency | recruiter_coach | other
+  occupation       String? // optional, job seekers
+  industry         String? // optional, key from config industries (pitch track)
+  country          String?
+  source           String? // ?src= tag from the link or post
+  consentMarketing Boolean        @default(false)
+  consentAt        DateTime
+  phase            WaitlistPhase
+  cohort           String? // "A" | "B" for pilot entries, null for public
+  status           WaitlistStatus @default(WAITING)
+  invitedAt        DateTime?
+  createdAt        DateTime       @default(now())
+
+  @@index([phase, cohort])
+  @@index([status])
+}

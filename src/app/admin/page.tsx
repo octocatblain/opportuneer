@@ -35,9 +35,14 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
         }
         sub="You also use the app as a normal user (Today, Pipeline, Jobs, Companies hold only your own content). This area is only for managing access and reading other accounts."
         actions={
-          <Link href="/admin/config" className={btn}>
-            App configuration →
-          </Link>
+          <>
+            <Link href="/admin/waitlist" className={btn}>
+              Waitlist →
+            </Link>
+            <Link href="/admin/config" className={btn}>
+              App configuration →
+            </Link>
+          </>
         }
       />
 

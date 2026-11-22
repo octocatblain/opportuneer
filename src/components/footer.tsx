@@ -14,8 +14,9 @@ export function Footer({ signedIn, admin }: { signedIn: boolean; admin?: boolean
         ...(admin ? [["/admin", "Admin"]] : []),
       ]
     : [
+        ["/waitlist", "Join the waitlist"],
         ["/login", "Sign in"],
-        ["/register", "Create account"],
+        ["/register", "I have an invitation"],
       ];
   return (
     <footer className="mt-8 bg-ink text-white">

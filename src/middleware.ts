@@ -9,7 +9,7 @@ export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|ico|css|js)$).*)"],
 };
 
-const PUBLIC = ["/", "/manifest.webmanifest", "/apple-icon", "/login", "/register", "/api/auth/google/start", "/api/auth/google/callback"];
+const PUBLIC = ["/", "/manifest.webmanifest", "/apple-icon", "/login", "/register", "/waitlist", "/api/auth/google/start", "/api/auth/google/callback"];
 
 export async function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;

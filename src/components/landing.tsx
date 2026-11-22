@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Brand } from "@/components/brand-icons";
 import { Reveal } from "@/components/motion";
 import { btn, btnGhost, btnSignal } from "@/components/ui";
+import { waitlistCounts } from "@/lib/waitlist";
 
 const FEATURES: [string, string, string][] = [
   ["01", "Scans the boards for you", "Kenyan job boards and remote boards that hire in Africa are checked every day. Only roles that match your target titles survive."],
@@ -13,14 +14,15 @@ const FEATURES: [string, string, string][] = [
 ];
 
 const STEPS: [string, string][] = [
-  ["Sign in", "Access is by invitation: one owner account and one invited user."],
+  ["Join the waitlist", "Access is by invitation. Pilot places go out in join order, then the public launch in batches."],
   ["Scan or paste", "Run a scan, or paste a post from LinkedIn, BrighterMonday or Fuzu."],
   ["Review the fit", "See the score, the reasons and the company research."],
   ["Send from Gmail", "Review the drafts in Gmail and send them yourself."],
 ];
 
 /** Public home page shown before sign-in. Describes the app only; no account data. */
-export function Landing() {
+export async function Landing() {
+  const counts = await waitlistCounts();
   return (
     <div className="space-y-20">
       <section className="grid items-center gap-10 pt-4 lg:grid-cols-5">
@@ -33,14 +35,16 @@ export function Landing() {
             Opportuneer finds and scores jobs, researches companies, and drafts tailored applications and pitches, then leaves every send to you.
           </p>
           <div className="flex flex-wrap gap-3">
-            <Link href="/login" className={btnSignal}>
-              <span aria-hidden>→</span> Sign in
+            <Link href="/waitlist" className={btnSignal}>
+              <span aria-hidden>→</span> {counts.full ? "Join the public-launch waitlist" : "Join the waitlist"}
             </Link>
-            <Link href="/register" className={btnGhost}>
-              I have an invitation
+            <Link href="/login" className={btnGhost}>
+              Sign in
             </Link>
           </div>
-          <p className="text-xs text-ink-4">Signed-out visitors can see this page only. Everything else is behind sign-in.</p>
+          <p className="text-xs text-ink-4">
+            {counts.full ? "All 30 pilot places are taken. The public-launch waitlist is open." : `The pilot opens 30 November with 30 places. ${counts.left} left.`} Signed-out visitors can see public pages only.
+          </p>
         </div>
         <div className="relative lg:col-span-2">
           <div aria-hidden className="absolute inset-x-6 -top-3 h-10 rounded-[28px] bg-ink-3" />
@@ -121,8 +125,11 @@ export function Landing() {
           </li>
         </ul>
         <div className="mt-6 flex flex-wrap items-center gap-3">
-          <Link href="/login" className={btn}>
-            Sign in to continue
+          <Link href="/waitlist" className={btn}>
+            Join the waitlist
+          </Link>
+          <Link href="/login" className="link text-sm font-medium">
+            Sign in
           </Link>
         </div>
       </section>
