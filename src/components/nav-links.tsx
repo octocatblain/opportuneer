@@ -36,7 +36,7 @@ function Icon({ name, className = "h-[18px] w-[18px]" }: { name: string; classNa
 type Item = { href: string; label: string; icon: string; exact?: boolean };
 
 /**
- * The signed-in app frame: a rounded sidebar (brand, role switcher for the superuser, section links, the
+ * The signed-in app frame: a flat full-height sidebar (brand, role switcher for the superuser, section links, the
  * account card), a top bar with search, and the page content. Admin and client areas share the frame
  * but show their own links.
  */
@@ -77,23 +77,23 @@ export function AppShell({ children, admin = false, ownSpace = "duo", name, emai
   const roles = [{ href: "/admin", label: "Admin", on: inAdmin }, ...SPACES.map((s) => ({ href: clientBase(s), label: s === "duo" ? "Duo" : SPACE_LABEL[s], on: !inAdmin && space === s }))];
 
   return (
-    <div className="flex min-h-screen gap-3 p-3">
-      <aside data-app-shell className="sticky top-3 hidden h-[calc(100vh-1.5rem)] w-64 shrink-0 flex-col overflow-y-auto rounded-[28px] bg-white p-4 shadow-[var(--shadow-card)] lg:flex">
-        <Link href={adminMode ? "/admin" : base} className="mb-5 inline-flex items-center gap-2 self-start rounded-xl bg-ink py-1.5 pl-1.5 pr-3 text-sm font-semibold text-white">
-          <BrandMark size={28} className="rounded-md" />
-          <Wordmark />
+    <div className="flex min-h-screen">
+      <aside data-app-shell className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col overflow-y-auto border-r border-rule bg-white p-4 lg:flex">
+        <Link href={adminMode ? "/admin" : base} className="mb-5 inline-flex items-center gap-2 self-start py-1.5 text-sm font-semibold text-ink">
+          <BrandMark size={32} tile={false} />
+          <Wordmark tone="light" />
         </Link>
 
         {admin && (
           <div className="mb-5">
             <div className="mb-2 px-2 text-xs font-medium uppercase tracking-wide text-mist">Switch role</div>
-            <div role="group" aria-label="Switch role" className="grid grid-cols-2 gap-1 rounded-2xl bg-paper p-1 text-xs">
+            <div role="group" aria-label="Switch role" className="grid grid-cols-2 gap-1 rounded-md bg-paper p-1 text-xs">
               {roles.map((r) => (
                 <Link
                   key={r.href}
                   href={r.href}
                   aria-current={r.on ? "page" : undefined}
-                  className={`rounded-xl px-2 py-2 text-center font-medium transition-colors ${r.on ? "bg-ink text-white" : "text-muted hover:bg-white hover:text-ink"}`}
+                  className={`rounded px-2 py-2 text-center font-medium transition-colors ${r.on ? "bg-ink text-white" : "text-muted hover:bg-white hover:text-ink"}`}
                 >
                   {r.label}
                 </Link>
@@ -108,8 +108,8 @@ export function AppShell({ children, admin = false, ownSpace = "duo", name, emai
               key={i.href}
               href={i.href}
               aria-current={on(i) ? "page" : undefined}
-              className={`relative flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium transition-colors ${
-                on(i) ? "bg-paper text-ink before:absolute before:-left-4 before:top-2 before:h-6 before:w-1 before:rounded-r before:bg-ink" : "text-ink-4 hover:bg-paper hover:text-ink"
+              className={`relative flex items-center gap-3 rounded-md px-3 py-2.5 font-medium transition-colors ${
+                on(i) ? "bg-paper text-ink before:absolute before:-left-4 before:top-2 before:h-6 before:w-1 before:bg-ink" : "text-ink-4 hover:bg-paper hover:text-ink"
               }`}
             >
               <Icon name={i.icon} />
@@ -124,7 +124,7 @@ export function AppShell({ children, admin = false, ownSpace = "duo", name, emai
               <Icon name="add" className="h-4 w-4" /> Add job
             </Link>
           )}
-          <div className="flex items-center gap-3 rounded-2xl bg-paper p-2.5">
+          <div className="flex items-center gap-3 border-t border-rule pt-4">
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-signal-dark text-sm font-semibold text-white">{initials}</span>
             <div className="min-w-0 flex-1 leading-tight">
               <div className="truncate text-sm font-medium">{name || email}</div>
@@ -132,7 +132,7 @@ export function AppShell({ children, admin = false, ownSpace = "duo", name, emai
             </div>
             <form action={logoutAction}>
               <input type="hidden" name="area" value={admin ? "admin" : "client"} />
-              <button type="submit" title="Sign out" aria-label="Sign out" className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-white hover:text-ink">
+              <button type="submit" title="Sign out" aria-label="Sign out" className="grid h-8 w-8 place-items-center rounded text-muted hover:bg-paper hover:text-ink">
                 <Icon name="out" />
               </button>
             </form>
@@ -141,11 +141,11 @@ export function AppShell({ children, admin = false, ownSpace = "duo", name, emai
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header data-app-shell className="mb-4 flex flex-wrap items-center gap-3 rounded-[20px] bg-white p-2.5 shadow-[var(--shadow-card)]">
+        <header data-app-shell className="sticky top-0 z-30 flex flex-wrap items-center gap-3 border-b border-rule bg-white px-4 py-3 lg:px-8">
           {/* Small screens: brand and the same links as the sidebar, scrollable. */}
-          <Link href={adminMode ? "/admin" : base} className="inline-flex items-center gap-2 rounded-xl bg-ink py-1.5 pl-1.5 pr-3 text-sm font-semibold text-white lg:hidden">
-            <BrandMark size={24} className="rounded-md" />
-            <Wordmark />
+          <Link href={adminMode ? "/admin" : base} className="inline-flex items-center gap-2 py-1.5 text-sm font-semibold text-ink lg:hidden">
+            <BrandMark size={26} tile={false} />
+            <Wordmark tone="light" />
           </Link>
           {showJobs && !adminMode ? (
             <form action={`${base}/jobs`} role="search" className="relative hidden min-w-0 max-w-md flex-1 sm:block">
@@ -177,7 +177,7 @@ export function AppShell({ children, admin = false, ownSpace = "duo", name, emai
             )}
           </nav>
         </header>
-        <main data-app-shell className="w-full flex-1 pb-10">
+        <main data-app-shell className="w-full flex-1 px-4 pb-10 pt-6 lg:px-8">
           {children}
         </main>
       </div>
