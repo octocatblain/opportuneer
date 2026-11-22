@@ -84,19 +84,12 @@ export function CountUp({ value, className }: { value: number; className?: strin
   );
 }
 
-/** Small animated brand mark: the star pulses in once, then idles. */
+/** Brand mark (same artwork as src/app/icon.svg): white star on a brand-red tile. Spins in once. */
 export function LogoMark({ className }: { className?: string }) {
   return (
-    <motion.svg
-      viewBox="0 0 24 24"
-      className={className}
-      aria-hidden="true"
-      initial={{ rotate: -90, scale: 0.4, opacity: 0 }}
-      animate={{ rotate: 0, scale: 1, opacity: 1 }}
-      whileHover={{ rotate: 72 }}
-      transition={{ type: "spring", stiffness: 180, damping: 14 }}
-    >
-      <path fill="currentColor" d="M12 2l2.9 6.6 7.1.7-5.4 4.8 1.6 7L12 17.4 5.8 21.1l1.6-7L2 9.3l7.1-.7z" />
+    <motion.svg viewBox="0 0 32 32" className={className} aria-hidden="true" initial={{ rotate: -90, scale: 0.4, opacity: 0 }} animate={{ rotate: 0, scale: 1, opacity: 1 }} whileHover={{ rotate: 12, scale: 1.08 }} transition={{ type: "spring", stiffness: 180, damping: 14 }}>
+      <rect width="32" height="32" rx="7" fill="#9f1239" />
+      <path fill="#fff" transform="translate(5 5) scale(.9167)" d="M12 2l2.9 6.6 7.1.7-5.4 4.8 1.6 7L12 17.4 5.8 21.1l1.6-7L2 9.3l7.1-.7z" />
     </motion.svg>
   );
 }
