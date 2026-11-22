@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Reveal, StaggerItem } from "@/components/motion";
 import type { ScoreLine } from "@/lib/scoring";
 
 export const STAGES = ["FOUND", "SHORTLISTED", "DRAFTED", "SENT", "REPLIED", "INTERVIEW", "WON", "LOST", "ARCHIVED"] as const;
@@ -31,10 +32,10 @@ export function TrackBadge({ track, both }: { track: "JOB" | "PITCH" | null; bot
   if (!track) return <span className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600">Hold</span>;
   return (
     <span className="inline-flex gap-1">
-      <span className={`rounded px-2 py-0.5 text-xs font-medium ${track === "JOB" ? "bg-sky-100 text-sky-800" : "bg-rose-100 text-rose-800"}`}>
+      <span className={`rounded px-2 py-0.5 text-xs font-medium ${track === "JOB" ? "bg-slate-200 text-slate-800" : "bg-brand-100 text-brand-800"}`}>
         {track === "JOB" ? "Apply" : "Pitch RSS"}
       </span>
-      {both && <span className="rounded bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-800">+ Pitch RSS</span>}
+      {both && <span className="rounded bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-800">+ Pitch RSS</span>}
     </span>
   );
 }
@@ -65,15 +66,17 @@ export function Breakdown({ lines }: { lines: ScoreLine[] }) {
 
 export function Card({ title, children, actions }: { title?: string; children: React.ReactNode; actions?: React.ReactNode }) {
   return (
+    <Reveal>
     <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
       {(title || actions) && (
         <div className="mb-3 flex items-center justify-between gap-2">
-          {title && <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">{title}</h2>}
+          {title && <h2 className="text-sm font-semibold uppercase tracking-wide text-brand-700">{title}</h2>}
           {actions}
         </div>
       )}
       {children}
     </section>
+    </Reveal>
   );
 }
 
@@ -85,7 +88,8 @@ export function OppRow({
   const fb = o.fitBreakdown as { belowTarget?: boolean } | null;
   const location = o.remote ? `Remote${o.location ? ` (${o.location})` : ""}` : (o.location ?? "");
   return (
-    <Link href={`/opportunities/${o.id}`} className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-slate-50">
+    <StaggerItem>
+    <Link href={`/opportunities/${o.id}`} className="flex items-center gap-3 rounded-md px-2 py-2 transition-colors hover:bg-brand-50">
       <ScorePill score={o.fitScore} />
       <div className="min-w-0 flex-1">
         <div className="truncate font-medium">{o.title}</div>
@@ -97,9 +101,13 @@ export function OppRow({
       </div>
       <TrackBadge track={o.track} />
     </Link>
+    </StaggerItem>
   );
 }
 
-export const input = "w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-600 focus:outline-none focus:ring-1 focus:ring-sky-600";
-export const btn = "inline-flex items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-60";
+export const input = "w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600";
+export const btn = "inline-flex items-center justify-center rounded-md bg-brand-700 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-800 active:scale-[0.98] disabled:opacity-60";
 export const btnGhost = "inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-60";
+
+/** Brand pill used for filter tabs (active / inactive). */
+export const tab = (on: boolean) => `rounded-md px-3 py-1.5 transition-colors ${on ? "bg-brand-700 text-white" : "border border-slate-300 bg-white hover:border-brand-200 hover:bg-brand-50"}`;
