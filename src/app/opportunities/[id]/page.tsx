@@ -287,7 +287,9 @@ export default async function OpportunityPage({ params, searchParams }: { params
           </Card>
           <form action={deleteOpportunityAction}>
             <input type="hidden" name="id" value={o.id} />
-            <button className="text-xs text-error hover:underline">Delete this opportunity</button>
+            <SubmitButton className="text-xs text-error hover:underline" pending="Deleting…" confirm="Delete this opportunity? This cannot be undone.">
+              Delete this opportunity
+            </SubmitButton>
           </form>
         </div>
       </div>

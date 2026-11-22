@@ -3,7 +3,7 @@ import Link from "next/link";
 import { addCompanyAction } from "@/app/actions";
 import { SubmitButton } from "@/components/submit-button";
 import { btnSignal, Card, Empty, Flash, input, PAGE_SIZE, PageHeader, pageParam, Pagination, ScorePill, Segmented, TrackBadge } from "@/components/ui";
-import { requireUser } from "@/lib/auth";
+import { requireTrack } from "@/lib/auth";
 import { loadConfig } from "@/lib/config";
 import { db } from "@/lib/db";
 
@@ -15,7 +15,7 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
 }
 
 export default async function Companies({ searchParams }: { searchParams: Promise<{ error?: string; filter?: string; page?: string }> }) {
-  const user = await requireUser();
+  const user = await requireTrack("PITCH");
   const { industries } = await loadConfig();
   const sp = await searchParams;
   const filter =

@@ -39,66 +39,66 @@ enum DocKind {
 }
 
 model Company {
-  id                String        @id @default(cuid())
-  userId            String
-  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name              String
-  website           String?
-  industry          String? // key from config/industries
-  location          String?
-  employees         Int? // estimated headcount
-  revenueNote       String? // free-text revenue/budget signal
-  aiMaturity        Int? // 1 = no tech/AI at all ... 5 = mature AI team
-  growthSignals     String? // expansion, funding, tenders, hiring
-  recurringNeeds    String? // ongoing work: maintenance, automation, support
-  contactName       String?
-  contactEmail      String?
-  contactRole       String?
-  notes             String?
-  research          String? // AI-written research summary
-  score             Int? // 0-100 company fit
-  scoreBreakdown    Json?
-  recommendation    Track? // primary route the app suggests
-  recommendBoth     Boolean       @default(false)
-  recommendReason   String?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  opportunities     Opportunity[]
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  website         String?
+  industry        String? // key from config/industries
+  location        String?
+  employees       Int? // estimated headcount
+  revenueNote     String? // free-text revenue/budget signal
+  aiMaturity      Int? // 1 = no tech/AI at all ... 5 = mature AI team
+  growthSignals   String? // expansion, funding, tenders, hiring
+  recurringNeeds  String? // ongoing work: maintenance, automation, support
+  contactName     String?
+  contactEmail    String?
+  contactRole     String?
+  notes           String?
+  research        String? // AI-written research summary
+  score           Int? // 0-100 company fit
+  scoreBreakdown  Json?
+  recommendation  Track? // primary route the app suggests
+  recommendBoth   Boolean       @default(false)
+  recommendReason String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  opportunities   Opportunity[]
 
   @@unique([userId, name])
   @@index([userId])
 }
 
 model Opportunity {
-  id            String     @id @default(cuid())
-  userId        String
-  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  track         Track
-  title         String // job title, or pitch headline
-  companyId     String?
-  company       Company?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  source        String // remotive, arbeitnow, manual, linkedin-paste, research...
-  sourceId      String? // id at the source, for de-duplication
-  url           String?
-  description   String?
-  location      String?
-  remote        Boolean    @default(false)
-  verified      Boolean    @default(false) // job board marked the employer/post as verified
-  employment    String? // full-time, contract, part-time
-  salaryMin     Int?
-  salaryMax     Int?
-  currency      String? // KES, USD, EUR...
-  salaryPeriod  String? // month, year
-  fitScore      Int? // 0-100
-  fitBreakdown  Json?
-  stage         Stage      @default(FOUND)
-  followUpAt    DateTime?
-  sentAt        DateTime?
-  postedAt      DateTime?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  documents     Document[]
-  activities    Activity[]
+  id           String     @id @default(cuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  track        Track
+  title        String // job title, or pitch headline
+  companyId    String?
+  company      Company?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  source       String // remotive, arbeitnow, manual, linkedin-paste, research...
+  sourceId     String? // id at the source, for de-duplication
+  url          String?
+  description  String?
+  location     String?
+  remote       Boolean    @default(false)
+  verified     Boolean    @default(false) // job board marked the employer/post as verified
+  employment   String? // full-time, contract, part-time
+  salaryMin    Int?
+  salaryMax    Int?
+  currency     String? // KES, USD, EUR...
+  salaryPeriod String? // month, year
+  fitScore     Int? // 0-100
+  fitBreakdown Json?
+  stage        Stage      @default(FOUND)
+  followUpAt   DateTime?
+  sentAt       DateTime?
+  postedAt     DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  documents    Document[]
+  activities   Activity[]
 
   @@unique([userId, source, sourceId])
   @@index([userId])
@@ -135,18 +135,94 @@ model Setting {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique // stored lowercase
-  name         String?
-  passwordHash String? // scrypt; null for Google-only accounts
-  googleId     String?   @unique
-  role         Role      @default(USER)
-  seat         Int?      @unique // 1 for the single regular-user seat, null for the superuser: the unique index caps regular users at one
-  createdAt    DateTime  @default(now())
-  lastLoginAt  DateTime?
-  sessions     Session[]
-  companies    Company[]
+  id            String           @id @default(cuid())
+  email         String           @unique // stored lowercase
+  name          String?
+  passwordHash  String? // scrypt; null for Google-only accounts
+  googleId      String?          @unique
+  role          Role             @default(USER)
+  trackAccess   TrackAccess      @default(BOTH) // which tracks this account may use; gates screens and caps
+  cohort        String? // "A" | "B" for pilot users, copied from the waitlist entry when the invite is accepted
+  freeUntil     DateTime? // free access ends here (copied from the waitlist entry)
+  foundingUntil DateTime? // founding-member pricing ends here (copied from the waitlist entry)
+  createdAt     DateTime         @default(now())
+  lastLoginAt   DateTime?
+  sessions      Session[]
+  companies     Company[]
   opportunities Opportunity[]
+  invitesSent   Invite[]         @relation("InvitedBy")
+  invite        Invite?          @relation("AcceptedBy")
+  credits       CreditLedger[]
+  feedback      Feedback[]
+  events        AnalyticsEvent[]
+}
+
+/// Which tracks an account may use. Opportunity.track stays JOB | PITCH: a single item is one or the other.
+enum TrackAccess {
+  JOB
+  PITCH
+  BOTH
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+}
+
+model Invite {
+  id              String         @id @default(cuid())
+  email           String // stored lowercase
+  trackAccess     TrackAccess    @default(BOTH)
+  status          InviteStatus   @default(PENDING)
+  waitlistEntryId String?        @unique
+  waitlistEntry   WaitlistEntry? @relation(fields: [waitlistEntryId], references: [id], onDelete: SetNull)
+  invitedById     String
+  invitedBy       User           @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
+  acceptedById    String?        @unique
+  acceptedBy      User?          @relation("AcceptedBy", fields: [acceptedById], references: [id], onDelete: SetNull)
+  createdAt       DateTime       @default(now())
+  acceptedAt      DateTime?
+
+  @@index([email, status])
+}
+
+/// One row per credit-consuming action; balance = sum(credits).
+model CreditLedger {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action          String // e.g. cv_generated, pitch_written, research, grant, purchase
+  credits         Int // negative = spent, positive = granted
+  costEstimateKes Decimal  @default(0) @db.Decimal(12, 2) // estimated provider cost of the action
+  createdAt       DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model Feedback {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String   @default("general") // general | bug | idea
+  rating    Int? // 1-5
+  message   String
+  page      String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model AnalyticsEvent {
+  id         String   @id @default(cuid())
+  userId     String? // null for anonymous (signed-out) events
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  name       String
+  properties Json?
+  createdAt  DateTime @default(now())
+
+  @@index([name, createdAt])
+  @@index([userId, createdAt])
 }
 
 model Session {
@@ -202,7 +278,10 @@ model WaitlistEntry {
   cohort           String? // "A" | "B" for pilot entries, null for public
   status           WaitlistStatus @default(WAITING)
   invitedAt        DateTime?
+  freeUntil        DateTime? // copied to User when the invite is accepted
+  foundingUntil    DateTime? // copied to User when the invite is accepted
   createdAt        DateTime       @default(now())
+  invite           Invite?
 
   @@index([phase, cohort])
   @@index([status])

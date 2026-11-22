@@ -21,7 +21,7 @@ async function main() {
   }
   const passwordHash = password ? await hashPassword(password) : undefined;
   const user = existing
-    ? await db.user.update({ where: { id: existing.id }, data: { role: "SUPERUSER", seat: null, ...(passwordHash ? { passwordHash } : {}) } })
+    ? await db.user.update({ where: { id: existing.id }, data: { role: "SUPERUSER", ...(passwordHash ? { passwordHash } : {}) } })
     : await db.user.create({ data: { email, name: profile.name, role: "SUPERUSER", passwordHash } });
 
   // Only one superuser: demote nobody automatically, but warn.

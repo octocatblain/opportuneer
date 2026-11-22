@@ -1,6 +1,8 @@
 import path from "node:path";
 import fs from "node:fs/promises";
-import { Prisma, type Opportunity, type Company } from "@prisma/client";
+import { Prisma, type Opportunity, type Company, type Track } from "@prisma/client";
+import { allowsTrack } from "@/lib/tracks";
+import { withCredits } from "@/lib/credits";
 import { cfg, loadConfig } from "@/lib/config";
 import { db, setSetting } from "@/lib/db";
 import { scanStatus, setScanRunning } from "@/lib/scan-status";
@@ -34,6 +36,12 @@ const slug = (s: string) =>
     .slice(0, 50);
 
 const FOLLOW_UP_DAYS = { JOB: 6, PITCH: 4 } as const;
+
+/** Server-side gate: the account must be allowed to use this track. */
+export async function assertTrack(userId: string, track: Track) {
+  const u = await db.user.findUniqueOrThrow({ where: { id: userId }, select: { trackAccess: true } });
+  if (!allowsTrack(u.trackAccess, track)) throw new Error(`Your account doesn't include the ${track === "JOB" ? "job search" : "pitching"} track.`);
+}
 
 export async function log(opportunityId: string, type: string, message: string) {
   await loadConfig();
@@ -73,7 +81,11 @@ export async function rescoreCompany(userId: string, id: string) {
   });
 }
 
-export async function researchCompanyById(userId: string, id: string, extraText = "") {
+export function researchCompanyById(userId: string, id: string, extraText = "") {
+  return withCredits(userId, "research", () => researchCompanyByIdRun(userId, id, extraText));
+}
+
+async function researchCompanyByIdRun(userId: string, id: string, extraText = "") {
   await loadConfig();
   requireAI();
   const c = await db.company.findFirstOrThrow({ where: { id, userId } });
@@ -117,6 +129,7 @@ function fitJson(fit: JobFit) {
 }
 
 export async function saveJob(userId: string, raw: RawJob, contact?: { name?: string | null; email?: string | null; website?: string | null }) {
+  await assertTrack(userId, "JOB");
   await loadConfig();
   const existing = await db.opportunity.findUnique({ where: { userId_source_sourceId: { userId, source: raw.source, sourceId: raw.sourceId } } });
   if (existing) return { opp: existing, created: false };
@@ -195,6 +208,7 @@ export async function rescoreJob(userId: string, id: string) {
 }
 
 export async function runScan(userId: string) {
+  await assertTrack(userId, "JOB");
   if ((await scanStatus(userId)).running) throw new Error("A scan is already running. Wait for it to finish.");
   await setScanRunning(userId, true);
   try {
@@ -229,7 +243,12 @@ async function doScan(userId: string) {
 }
 
 /** Paste a job description or a URL (LinkedIn: paste the text, not the link). */
-export async function importJob(userId: string, input: { text?: string; url?: string; source?: string }) {
+export function importJob(userId: string, input: { text?: string; url?: string; source?: string }) {
+  return withCredits(userId, "import", () => importJobRun(userId, input));
+}
+
+async function importJobRun(userId: string, input: { text?: string; url?: string; source?: string }) {
+  await assertTrack(userId, "JOB");
   await loadConfig();
   requireAI();
   let raw = input.text?.trim() ?? "";
@@ -287,7 +306,12 @@ async function archiveCopy(rel: string, name: string) {
   }
 }
 
-export async function generateApplication(userId: string, id: string) {
+export function generateApplication(userId: string, id: string) {
+  return withCredits(userId, "application", () => generateApplicationRun(userId, id));
+}
+
+async function generateApplicationRun(userId: string, id: string) {
+  await assertTrack(userId, "JOB");
   await loadConfig();
   requireAI();
   const o = await db.opportunity.findFirstOrThrow({ where: { id, userId }, include: { company: true } });
@@ -329,6 +353,7 @@ export async function foundingOfferActive(userId: string) {
 }
 
 export async function startPitch(userId: string, companyId: string) {
+  await assertTrack(userId, "PITCH");
   await loadConfig();
   const c = await db.company.findFirstOrThrow({ where: { id: companyId, userId } });
   const existing = await db.opportunity.findFirst({ where: { userId, companyId, track: "PITCH", stage: { notIn: ["LOST", "ARCHIVED"] } } });
@@ -340,7 +365,12 @@ export async function startPitch(userId: string, companyId: string) {
   return opp;
 }
 
-export async function generatePitch(userId: string, id: string) {
+export function generatePitch(userId: string, id: string) {
+  return withCredits(userId, "pitch", () => generatePitchRun(userId, id));
+}
+
+async function generatePitchRun(userId: string, id: string) {
+  await assertTrack(userId, "PITCH");
   await loadConfig();
   requireAI();
   const o = await db.opportunity.findFirstOrThrow({ where: { id, userId }, include: { company: true } });
@@ -373,7 +403,11 @@ export async function generatePitch(userId: string, id: string) {
   await log(id, "generated", `Pitch email and proposal drafted (${pitch.provider}); angle: ${pitch.data.chosenAngle}; packages: ${[...pitch.data.packageKeys, ...pitch.data.otherServices].join(", ")}${offer ? "; founding offer included" : ""}`);
 }
 
-export async function generateFollowUp(userId: string, id: string) {
+export function generateFollowUp(userId: string, id: string) {
+  return withCredits(userId, "followup", () => generateFollowUpRun(userId, id));
+}
+
+async function generateFollowUpRun(userId: string, id: string) {
   await loadConfig();
   requireAI();
   const o = await db.opportunity.findFirstOrThrow({ where: { id, userId }, include: { company: true, documents: { orderBy: { createdAt: "desc" } } } });

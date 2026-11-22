@@ -25,7 +25,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       <body className="flex min-h-screen flex-col bg-paper text-ink antialiased">
         <header data-app-shell className="sticky top-0 z-40 border-b border-rule bg-white">
           <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2">
-            {user ? <NavLinks admin={isSuper(user)} /> : <PublicNav />}
+            {user ? <NavLinks admin={isSuper(user)} access={user.trackAccess} /> : <PublicNav />}
           </div>
         </header>
         <MotionProvider>

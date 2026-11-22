@@ -6,7 +6,6 @@ import { SubmitButton } from "@/components/submit-button";
 import { LogoMark } from "@/components/motion";
 import { btn, Flash, input } from "@/components/ui";
 import { loadConfig } from "@/lib/config";
-import { seatFree } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +14,6 @@ export const metadata: Metadata = { title: "Create account" };
 export default async function Register({ searchParams }: { searchParams: Promise<{ error?: string; next?: string }> }) {
   const sp = await searchParams;
   const { auth } = await loadConfig();
-  const open = await seatFree();
   const google = auth.allowGoogle && Boolean(process.env.GOOGLE_CLIENT_ID);
   const next = sp.next ?? "";
 
@@ -26,7 +24,7 @@ export default async function Register({ searchParams }: { searchParams: Promise
         Join by invitation
       </h1>
       <p className="text-sm text-muted">
-        {open ? "Opportuneer has one seat for an invited user. Use the email address the owner invited." : "The invited-user seat is already taken, so new accounts cannot be created."}
+        Use the email address you were invited with.
       </p>
       <Flash error={sp.error} />
       {google && (

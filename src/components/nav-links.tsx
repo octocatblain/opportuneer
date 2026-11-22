@@ -5,16 +5,16 @@ import { usePathname } from "next/navigation";
 import { BrandMark, Wordmark } from "@/components/brand-mark";
 import { btnSignal } from "@/components/ui";
 
-const nav = [
+const nav: { href: string; label: string; track?: "JOB" | "PITCH" }[] = [
   { href: "/", label: "Today" },
   { href: "/pipeline", label: "Pipeline" },
-  { href: "/jobs", label: "Jobs" },
-  { href: "/companies", label: "Companies" },
+  { href: "/jobs", label: "Jobs", track: "JOB" },
+  { href: "/companies", label: "Companies", track: "PITCH" },
   { href: "/settings", label: "Settings" },
 ];
 
 /** Top bar: the brand block, tabs with the current one marked, and the one primary action. */
-export function NavLinks({ admin = false }: { admin?: boolean }) {
+export function NavLinks({ admin = false, access = "BOTH" }: { admin?: boolean; access?: "JOB" | "PITCH" | "BOTH" }) {
   const path = usePathname();
   const active = (href: string) => (href === "/" ? path === "/" : path.startsWith(href));
   return (
@@ -24,7 +24,7 @@ export function NavLinks({ admin = false }: { admin?: boolean }) {
         <Wordmark />
       </Link>
       <nav aria-label="Main" className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto text-sm">
-        {(admin ? [...nav, { href: "/admin", label: "Admin" }] : nav).map((n) => (
+        {(admin ? [...nav, { href: "/admin", label: "Admin" }] : nav).filter((n) => !n.track || access === "BOTH" || access === n.track).map((n) => (
           <Link
             key={n.href}
             href={n.href}
@@ -39,9 +39,9 @@ export function NavLinks({ admin = false }: { admin?: boolean }) {
           </Link>
         ))}
       </nav>
-      <Link href="/add" aria-current={active("/add") ? "page" : undefined} className={btnSignal}>
+      {access !== "PITCH" && <Link href="/add" aria-current={active("/add") ? "page" : undefined} className={btnSignal}>
         Add job
-      </Link>
+      </Link>}
     </>
   );
 }

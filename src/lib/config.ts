@@ -44,6 +44,14 @@ export type AppConfig = {
   ai: { providers: string; claudeModel: string; openaiModel: string; geminiModel: string };
   gmail: { account: string };
   auth: { allowedEmails: string[]; sessionDays: number; allowPassword: boolean; allowGoogle: boolean };
+  /** Usage limits for regular users (the superuser is never limited). Costs are in credits; costKes is our estimated provider cost per action. */
+  credits: {
+    enabled: boolean;
+    signupGrant: number; // credits given when an invite is accepted
+    costs: Record<string, number>;
+    costKes: Record<string, number>;
+    monthlyCaps: { JOB: number; PITCH: number }; // max charged actions per calendar month, per track (0 = unlimited)
+  };
 };
 
 /** Seed defaults. Non-secret env values seed the ai/gmail sections; API keys stay in .env. */
@@ -70,6 +78,13 @@ export function defaultConfig(): AppConfig {
     gmail: { account: process.env.GMAIL_ACCOUNT || profile.email },
     // Who may sign in. The very first account ever created is always allowed and becomes the owner.
     auth: { allowedEmails: [profile.email], sessionDays: 30, allowPassword: true, allowGoogle: true },
+    credits: {
+      enabled: true,
+      signupGrant: 50,
+      costs: { application: 5, import: 1, pitch: 6, research: 2, followup: 1 },
+      costKes: { application: 25, import: 5, pitch: 30, research: 10, followup: 5 },
+      monthlyCaps: { JOB: 60, PITCH: 40 },
+    },
   });
 }
 

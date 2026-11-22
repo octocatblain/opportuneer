@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import type { Prisma } from "@prisma/client";
 import { Card, Chip, Empty, input, OppRow, PAGE_SIZE, PageHeader, pageParam, Pagination, Segmented, STAGE_LABEL } from "@/components/ui";
-import { requireUser } from "@/lib/auth";
+import { requireTrack } from "@/lib/auth";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +13,7 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
 }
 
 export default async function Jobs({ searchParams }: { searchParams: Promise<{ view?: string; q?: string; page?: string }> }) {
-  const user = await requireUser();
+  const user = await requireTrack("JOB");
   const sp = await searchParams;
   const view = sp.view ?? "new";
   const stageFilter =

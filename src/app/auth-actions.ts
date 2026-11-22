@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { cfg, loadConfig, saveConfigSection } from "@/lib/config";
 import { db } from "@/lib/db";
+import { accessFromWaitlist } from "@/lib/tracks";
 import {
   clientInfo,
   currentSession,
@@ -14,7 +15,6 @@ import {
   registerMember,
   requireSuper,
   requireUser,
-  seatFree,
   startSession,
   throttled,
   validEmail,
@@ -99,14 +99,16 @@ export async function changePasswordAction(form: FormData) {
   redirect(`/settings?ok=${encodeURIComponent("Password updated; other devices were signed out.")}`);
 }
 
-/** Admin: set the one email that may register for the regular-user seat (superuser's own email always stays listed). */
+/** Admin: invite an email to create an account (any number of users). Optionally tied to a waitlist entry so cohort and free/founding dates carry over. */
 export async function inviteUserAction(form: FormData) {
   const admin = await requireSuper();
-  await loadConfig();
   const email = normalizeEmail(text(form, "email"));
   if (!validEmail(email)) redirect(`/admin?error=${encodeURIComponent("Enter a valid email address.")}`);
-  if (!(await seatFree())) redirect(`/admin?error=${encodeURIComponent("The user seat is already taken.")}`);
-  const auth = { ...cfg().auth, allowedEmails: [normalizeEmail(admin.email), email] };
-  await saveConfigSection("auth", JSON.stringify(auth));
-  redirect(`/admin?ok=${encodeURIComponent(`${email} can now create the user account.`)}`);
+  const access = text(form, "trackAccess");
+  if (await db.user.findUnique({ where: { email }, select: { id: true } })) redirect(`/admin?error=${encodeURIComponent("That email already has an account.")}`);
+  if (await db.invite.findFirst({ where: { email, status: "PENDING" }, select: { id: true } })) redirect(`/admin?error=${encodeURIComponent("That email already has a pending invite.")}`);
+  const entry = await db.waitlistEntry.findUnique({ where: { email }, select: { id: true, trackInterest: true } });
+  await db.invite.create({ data: { email, trackAccess: access === "JOB" || access === "PITCH" || access === "BOTH" ? access : entry ? accessFromWaitlist(entry.trackInterest) : "BOTH", invitedById: admin.id, waitlistEntryId: entry?.id ?? null } });
+  if (entry) await db.waitlistEntry.update({ where: { id: entry.id }, data: { status: "INVITED", invitedAt: new Date() } });
+  redirect(`/admin?ok=${encodeURIComponent(`${email} can now create an account.`)}`);
 }

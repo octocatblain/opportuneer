@@ -57,7 +57,7 @@ export default async function AdminWaitlist({ searchParams }: { searchParams: Pr
                 <Chip>{e.status.toLowerCase()}</Chip>
                 <form action={deleteWaitlistEntryAction}>
                   <input type="hidden" name="id" value={e.id} />
-                  <SubmitButton className="link text-sm font-medium" pending="Deleting…">
+                  <SubmitButton className="link text-sm font-medium" pending="Deleting…" confirm="Delete this waitlist entry? This cannot be undone.">
                     Delete
                   </SubmitButton>
                 </form>

@@ -3,24 +3,21 @@ import Link from "next/link";
 import { inviteUserAction } from "@/app/auth-actions";
 import { SubmitButton } from "@/components/submit-button";
 import { btn, Card, Chip, Flash, input, PageHeader } from "@/components/ui";
-import { requireSuper, seatFree } from "@/lib/auth";
-import { cfg, loadConfig } from "@/lib/config";
+import { requireSuper } from "@/lib/auth";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Admin" };
 
-/** Admin home (superuser only): the accounts, the single invitation seat, and a way into each user's content. */
+/** Admin home (superuser only): the accounts, invitations, and a way into each user's content. */
 export default async function Admin({ searchParams }: { searchParams: Promise<{ ok?: string; error?: string }> }) {
   const me = await requireSuper();
   const sp = await searchParams;
-  await loadConfig();
-  const [users, open, counts] = await Promise.all([
+  const [users, pending, counts] = await Promise.all([
     db.user.findMany({ orderBy: [{ role: "asc" }, { createdAt: "asc" }], include: { _count: { select: { companies: true, opportunities: true, sessions: true } } } }),
-    seatFree(),
+    db.invite.findMany({ where: { status: "PENDING" }, orderBy: { createdAt: "desc" } }),
     db.opportunity.groupBy({ by: ["userId", "stage"], _count: true }),
   ]);
-  const invited = cfg().auth.allowedEmails.filter((e) => e.toLowerCase() !== me.email.toLowerCase());
   const sentBy = (id: string) => counts.filter((c) => c.userId === id && ["SENT", "REPLIED", "INTERVIEW", "WON"].includes(c.stage)).reduce((n, c) => n + c._count, 0);
 
   return (
@@ -71,19 +68,20 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
           </Card>
         </div>
 
-        <Card tone="dark" title="User seat">
-          {open ? (
-            <form action={inviteUserAction} className="space-y-3">
-              <p className="text-sm text-ink-3">One seat is free. Only the invited email can create the account.</p>
-              {invited.length > 0 && <p className="text-xs text-muted">Currently invited: {invited.join(", ")}</p>}
-              <input name="email" type="email" required placeholder="Email to invite" className={input} />
-              <SubmitButton className={btn} pending="Saving…">
-                Invite this email
-              </SubmitButton>
-            </form>
-          ) : (
-            <p className="text-sm text-ink-3">The user seat is taken. The app allows the superuser and exactly one other account.</p>
-          )}
+        <Card tone="dark" title="Invite a user">
+          <form action={inviteUserAction} className="space-y-3">
+            <p className="text-sm text-ink-3">Only an invited email can create an account. There is no limit on users.</p>
+            {pending.length > 0 && <p className="text-xs text-muted">Pending: {pending.map((i) => `${i.email} (${i.trackAccess})`).join(", ")}</p>}
+            <input name="email" type="email" required placeholder="Email to invite" className={input} />
+            <select name="trackAccess" defaultValue="BOTH" className={input} aria-label="Tracks">
+              <option value="BOTH">Both tracks</option>
+              <option value="JOB">Job search only</option>
+              <option value="PITCH">Pitching only</option>
+            </select>
+            <SubmitButton className={btn} pending="Saving…">
+              Invite this email
+            </SubmitButton>
+          </form>
         </Card>
       </div>
     </div>

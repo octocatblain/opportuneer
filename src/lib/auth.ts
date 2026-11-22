@@ -7,9 +7,11 @@
 import { createHash, randomBytes } from "node:crypto";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { Prisma, type User } from "@prisma/client";
+import { Prisma, type Track, type User } from "@prisma/client";
 import { cfg, loadConfig } from "@/lib/config";
 import { db } from "@/lib/db";
+import { logEvent } from "@/lib/analytics";
+import { allowsTrack } from "@/lib/tracks";
 
 import { normalizeEmail } from "@/lib/auth-crypto";
 export { hashPassword, normalizeEmail, passwordProblem, validEmail, verifyPassword } from "@/lib/auth-crypto";
@@ -49,6 +51,7 @@ export async function startSession(userId: string, method: "password" | "google"
   const info = await clientInfo();
   await db.session.create({ data: { tokenHash: hashToken(token), userId, method, ...info, expiresAt: new Date(Date.now() + days * DAY) } });
   await db.user.update({ where: { id: userId }, data: { lastLoginAt: new Date() } });
+  void logEvent("login", userId, { method });
   (await cookies()).set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
@@ -112,26 +115,55 @@ export async function endSession() {
 }
 
 // ---------- who may sign in ----------
-export const SIGNUP_CLOSED = "Sign-up is by invitation only. This email hasn't been invited, or the invited seat is already taken.";
+export const SIGNUP_CLOSED = "Sign-up is by invitation only. This email hasn't been invited.";
+
+/** Admin and track gating: send users without access to a track back home. */
+export async function requireTrack(track: Track): Promise<User> {
+  const u = await requireUser();
+  if (!allowsTrack(u.trackAccess, track)) redirect("/");
+  return u;
+}
 
 /**
- * Create the single regular-user account. It must be invited (allowedEmails) and the one seat must be
- * free; the unique "seat" column makes the seat limit race-proof.
+ * Create a regular-user account for an invited email. A pending Invite (or the legacy allowedEmails list)
+ * is required. Accepting an invite copies track access, cohort, free_until and founding_until from the
+ * linked waitlist entry onto the new user. Any number of users may be invited.
  */
 export async function registerMember(data: { email: string; name?: string | null; passwordHash?: string | null; googleId?: string | null }): Promise<{ user: User } | { error: string }> {
   await loadConfig();
   const email = normalizeEmail(data.email);
-  if (!cfg().auth.allowedEmails.map(normalizeEmail).includes(email)) return { error: SIGNUP_CLOSED };
+  const invite = await db.invite.findFirst({ where: { email, status: "PENDING" }, orderBy: { createdAt: "asc" }, include: { waitlistEntry: true } });
+  if (!invite && !cfg().auth.allowedEmails.map(normalizeEmail).includes(email)) return { error: SIGNUP_CLOSED };
   try {
-    const user = await db.user.create({ data: { email, name: data.name ?? null, passwordHash: data.passwordHash ?? null, googleId: data.googleId ?? null, role: "USER", seat: 1 } });
+    const user = await db.$transaction(async (tx) => {
+      const w = invite?.waitlistEntry;
+      const created = await tx.user.create({
+        data: {
+          email,
+          name: data.name ?? null,
+          passwordHash: data.passwordHash ?? null,
+          googleId: data.googleId ?? null,
+          role: "USER",
+          trackAccess: invite?.trackAccess ?? "BOTH",
+          cohort: w?.cohort ?? null,
+          freeUntil: w?.freeUntil ?? null,
+          foundingUntil: w?.foundingUntil ?? null,
+        },
+      });
+      if (invite) {
+        // Claim the invite; if another sign-up claimed it first, abort.
+        const claimed = await tx.invite.updateMany({ where: { id: invite.id, status: "PENDING" }, data: { status: "ACCEPTED", acceptedById: created.id, acceptedAt: new Date() } });
+        if (claimed.count !== 1) throw new Prisma.PrismaClientKnownRequestError("invite already used", { code: "P2002", clientVersion: Prisma.prismaVersion.client });
+        if (invite.waitlistEntryId) await tx.waitlistEntry.update({ where: { id: invite.waitlistEntryId }, data: { status: "ACTIVE" } });
+      }
+      const grant = cfg().credits.signupGrant;
+      if (grant > 0) await tx.creditLedger.create({ data: { userId: created.id, action: "signup_grant", credits: grant } });
+      return created;
+    });
+    void logEvent("signup", user.id, { track: user.trackAccess });
     return { user };
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return { error: SIGNUP_CLOSED };
     throw e;
   }
-}
-
-/** Is the single regular-user seat still free? */
-export async function seatFree() {
-  return (await db.user.count({ where: { role: "USER" } })) === 0;
 }
