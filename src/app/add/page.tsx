@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import { importJobAction } from "@/app/actions";
 import { SubmitButton } from "@/components/submit-button";
 import { btn, Card, Flash, input } from "@/components/ui";
+
+export const metadata: Metadata = { title: "Add job" };
 
 export default async function AddJob({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const sp = await searchParams;

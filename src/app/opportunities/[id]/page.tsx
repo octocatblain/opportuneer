@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -24,6 +25,13 @@ const DOC_LABEL: Record<string, string> = {
   PROPOSAL: "Proposal",
   FOLLOW_UP: "Follow-up email",
 };
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const o = await db.opportunity.findUnique({ where: { id }, select: { title: true, company: { select: { name: true } } } });
+  if (!o) return { title: "Not found" };
+  return { title: o.company?.name ? `${o.title} at ${o.company.name}` : o.title };
+}
 
 export default async function OpportunityPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; error?: string }> }) {
   const { id } = await params;

@@ -1,8 +1,15 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Card, OppRow, STAGE_LABEL, tab } from "@/components/ui";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ searchParams }: { searchParams: Promise<{ view?: string; q?: string }> }): Promise<Metadata> {
+  const { view, q } = await searchParams;
+  if (q) return { title: `Jobs matching "${q}"` };
+  return { title: view === "all" ? "All jobs" : view === "archived" ? "Archived jobs" : "New jobs" };
+}
 
 export default async function Jobs({ searchParams }: { searchParams: Promise<{ view?: string; q?: string }> }) {
   const sp = await searchParams;

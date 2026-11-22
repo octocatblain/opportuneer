@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { addCompanyAction } from "@/app/actions";
 import { SubmitButton } from "@/components/submit-button";
@@ -6,6 +7,11 @@ import { loadConfig } from "@/lib/config";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ searchParams }: { searchParams: Promise<{ filter?: string }> }): Promise<Metadata> {
+  const { filter } = await searchParams;
+  return { title: filter === "pitch" ? "Companies worth pitching" : filter === "researched" ? "Researched companies" : "Companies" };
+}
 
 export default async function Companies({ searchParams }: { searchParams: Promise<{ error?: string; filter?: string }> }) {
   const { industries } = await loadConfig();

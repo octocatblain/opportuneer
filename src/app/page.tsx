@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { scanAction } from "@/app/actions";
 import { CountUp, Stagger, StaggerItem } from "@/components/motion";
@@ -8,6 +9,8 @@ import { db, getSetting } from "@/lib/db";
 export const dynamic = "force-dynamic";
 
 type Scan = { at: string; counts: Record<string, { fetched: number; matched: number; added: number }>; errors: string[] } | null;
+
+export const metadata: Metadata = { title: "Today" };
 
 export default async function Today({ searchParams }: { searchParams: Promise<{ ok?: string; error?: string }> }) {
   const sp = await searchParams;

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { disconnectGmailAction, resetConfigAction, saveConfigAction } from "@/app/actions";
 import { changePasswordAction, logoutAction, revokeOtherSessionsAction, revokeSessionAction } from "@/app/auth-actions";
 import { currentSession } from "@/lib/auth";
@@ -12,6 +13,8 @@ import { foundingOfferActive } from "@/lib/services";
 export const dynamic = "force-dynamic";
 
 type Scan = { at: string; counts: Record<string, { fetched: number; matched: number; added: number }>; errors: string[] } | null;
+
+export const metadata: Metadata = { title: "Settings" };
 
 export default async function Settings({ searchParams }: { searchParams: Promise<{ ok?: string; error?: string }> }) {
   const sp = await searchParams;

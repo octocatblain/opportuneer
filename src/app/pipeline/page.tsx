@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Stagger, StaggerItem } from "@/components/motion";
 import { setStageAction } from "@/app/actions";
@@ -7,6 +8,11 @@ import { db } from "@/lib/db";
 export const dynamic = "force-dynamic";
 
 const BOARD = ["SHORTLISTED", "DRAFTED", "SENT", "REPLIED", "INTERVIEW", "WON"] as const;
+
+export async function generateMetadata({ searchParams }: { searchParams: Promise<{ track?: string }> }): Promise<Metadata> {
+  const { track } = await searchParams;
+  return { title: track === "JOB" ? "Pipeline: jobs" : track === "PITCH" ? "Pipeline: pitches" : "Pipeline" };
+}
 
 export default async function Pipeline({ searchParams }: { searchParams: Promise<{ track?: string; ok?: string; error?: string }> }) {
   const sp = await searchParams;

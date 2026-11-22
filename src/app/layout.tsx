@@ -7,7 +7,7 @@ import { getUser } from "@/lib/auth";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Opportuneer",
+  title: { default: "Opportuneer", template: "%s · Opportuneer" },
   description: "Strategic job search and Red Star Standard client pipeline",
 };
 
@@ -28,7 +28,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur">
           <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
             <Link href="/" className="flex items-center gap-2 text-lg font-bold tracking-tight">
-              <LogoMark className="h-5 w-5 text-brand-700" />
+              <LogoMark className="h-7 w-7" />
               <span>
                 <span className="text-brand-700">Oppor</span>tuneer
               </span>

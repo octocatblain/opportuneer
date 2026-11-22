@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { researchCompanyAction, startPitchAction, updateCompanyAction } from "@/app/actions";
@@ -8,6 +9,12 @@ import { db } from "@/lib/db";
 import type { ScoreLine } from "@/lib/scoring";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const c = await db.company.findUnique({ where: { id }, select: { name: true } });
+  return { title: c?.name ?? "Not found" };
+}
 
 export default async function CompanyPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; error?: string }> }) {
   const { industries } = await loadConfig();

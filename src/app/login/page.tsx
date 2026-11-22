@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { loginAction } from "@/app/auth-actions";
 import { SubmitButton } from "@/components/submit-button";
@@ -5,6 +6,8 @@ import { btn, Flash, input } from "@/components/ui";
 import { loadConfig } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "Sign in" };
 
 export default async function Login({ searchParams }: { searchParams: Promise<{ error?: string; next?: string }> }) {
   const sp = await searchParams;

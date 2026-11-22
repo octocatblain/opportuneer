@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { registerAction } from "@/app/auth-actions";
 import { SubmitButton } from "@/components/submit-button";
@@ -6,6 +7,8 @@ import { loadConfig } from "@/lib/config";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "Create account" };
 
 export default async function Register({ searchParams }: { searchParams: Promise<{ error?: string; next?: string }> }) {
   const sp = await searchParams;
