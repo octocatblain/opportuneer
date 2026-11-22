@@ -6,7 +6,10 @@ import Link from "next/link";
 import { Brand } from "@/components/brand-icons";
 import { currentSession, isSuper } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { btn, btnGhost, Card, Flash } from "@/components/ui";
+import { btn, btnGhost, Card, Flash, input } from "@/components/ui";
+import { SubmitButton } from "@/components/submit-button";
+import { submitFeedbackAction } from "@/app/feedback-actions";
+import { creditBalance } from "@/lib/credits";
 import { loadConfig } from "@/lib/config";
 import { getSetting } from "@/lib/db";
 import { gmailAccount, gmailConfigured } from "@/lib/gmail";
@@ -23,6 +26,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
   if (!me) redirect("/login");
   const sessions = await db.session.findMany({ where: { userId: me.user.id }, orderBy: { lastSeenAt: "desc" } });
   const full = await loadConfig();
+  const credits = isSuper(me.user) ? null : await creditBalance(me.user.id);
   const [gmail, scan] = await Promise.all([gmailAccount(me.user.id), getSetting<Scan>(`lastScan:${me.user.id}`, null)]);
 
   return (
@@ -37,6 +41,22 @@ export default async function Settings({ searchParams }: { searchParams: Promise
         )}
       </div>
       <div className="grid items-start gap-6 lg:grid-cols-2">
+        <Card title="Usage and feedback">
+          <p className="text-sm">
+            {credits === null ? "Owner account: no credit limits." : <>Credits left: <b>{credits}</b>. Tracks: <b>{me.user.trackAccess.toLowerCase()}</b>.</>}
+          </p>
+          <form action={submitFeedbackAction} className="mt-3 space-y-2">
+            <select name="kind" className={input} aria-label="Type" defaultValue="general">
+              <option value="general">General feedback</option>
+              <option value="bug">Something is broken</option>
+              <option value="idea">Idea</option>
+            </select>
+            <textarea name="message" required minLength={3} maxLength={4000} rows={3} placeholder="What should be better?" className={input} />
+            <SubmitButton className={btn} pending="Sending…">
+              Send feedback
+            </SubmitButton>
+          </form>
+        </Card>
         <Card index={1} title={<Brand name="Gmail" label="Gmail (drafts only)" size={20} />}>
           {gmail ? (
             <div className="space-y-3 text-sm">

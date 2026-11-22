@@ -31,6 +31,15 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
             <Link href="/admin/waitlist" className={btn}>
               Waitlist
             </Link>
+            <Link href="/admin/credits" className={btn}>
+              Credits
+            </Link>
+            <Link href="/admin/feedback" className={btn}>
+              Feedback
+            </Link>
+            <Link href="/admin/analytics" className={btn}>
+              Analytics
+            </Link>
             <Link href="/admin/config" className={btn}>
               App configuration
             </Link>
