@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { scanAction } from "@/app/actions";
-import { CountUp, Stagger, StaggerItem } from "@/components/motion";
+import { Stagger } from "@/components/motion";
 import { SubmitButton } from "@/components/submit-button";
-import { btn, Card, Flash, OppRow, ScorePill, TrackBadge } from "@/components/ui";
+import { btnSignal, Card, Empty, Flash, OppRow, PageHeader, ScorePill, TrackBadge } from "@/components/ui";
 import { db, getSetting } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -37,45 +37,64 @@ export default async function Today({ searchParams }: { searchParams: Promise<{ 
   ]);
   const count = (s: string) => counts.find((c) => c.stage === s)?._count ?? 0;
 
-  return (
-    <div className="space-y-6">
-      <Flash ok={sp.ok} error={sp.error} />
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-ink">Today</h1>
-          <p className="text-sm text-slate-500">
-            {lastScan ? `Last scan ${new Date(lastScan.at).toLocaleString("en-GB")}` : "No scan yet. Run one to fill your shortlist."}
-          </p>
-        </div>
-        <form action={scanAction}>
-          <SubmitButton className={btn} pending="Scanning job boards… (1–2 min)">
-            Scan job boards now
-          </SubmitButton>
-        </form>
-      </div>
+  const stats: [string, number, string][] = [
+    ["Found", count("FOUND") + count("SHORTLISTED"), "bg-ink text-white"],
+    ["Drafted", count("DRAFTED"), "bg-ink-2 text-white"],
+    ["Sent", count("SENT"), "bg-ink-3 text-white"],
+    ["Replied / meetings", count("REPLIED") + count("INTERVIEW"), "bg-ink-4 text-white"],
+    ["Won", count("WON"), "bg-signal text-white"],
+  ];
+  const today = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
 
-      <Stagger className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-        {[
-          ["Found", count("FOUND") + count("SHORTLISTED")],
-          ["Drafted", count("DRAFTED")],
-          ["Sent", count("SENT")],
-          ["Replied / meetings", count("REPLIED") + count("INTERVIEW")],
-          ["Won", count("WON")],
-        ].map(([l, n]) => (
-          <StaggerItem key={l} className="rounded-lg border border-slate-200 border-t-2 border-t-brand-600 bg-white p-3">
-            <CountUp value={Number(n)} className="block text-2xl font-bold tabular-nums" />
-            <div className="text-xs text-slate-500">{l}</div>
-          </StaggerItem>
+  return (
+    <div className="space-y-8">
+      <Flash ok={sp.ok} error={sp.error} />
+      <PageHeader
+        eyebrow={today}
+        title={
+          <>
+            Opportunities that <em>actually</em> fit.
+          </>
+        }
+        sub={lastScan ? `Last scan ${new Date(lastScan.at).toLocaleString("en-GB")}` : "No scan yet. Run one to fill your shortlist."}
+        actions={
+          <form action={scanAction} data-scan-form>
+            <SubmitButton className={btnSignal} pending="Scanning job boards… (1–2 min)">
+              <span aria-hidden>→</span> Scan job boards now
+            </SubmitButton>
+          </form>
+        }
+      />
+
+      {/* Stacked dark stat cards, each tucked slightly under the next. */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5 sm:gap-0">
+        {stats.map(([label, n, tone], i) => (
+          <div
+            key={label}
+            className={`${tone} relative flex min-h-36 last:col-span-2 sm:last:col-span-1 flex-col justify-between rounded-[28px] p-5 sm:-ml-4 sm:first:ml-0 sm:pl-9 sm:first:pl-5`}
+            style={{ zIndex: i + 1 }}
+          >
+            <div className="text-xs font-medium uppercase tracking-[0.14em] text-white/60">{label}</div>
+            <div className="font-display text-6xl leading-none tabular-nums">{n}</div>
+          </div>
         ))}
-      </Stagger>
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <Card title="Shortlist: best new jobs this week" actions={<Link href="/jobs" className="text-sm text-brand-700 hover:underline">All jobs →</Link>}>
+          <Card
+            index={1}
+            title="Shortlist: best new jobs this week"
+            actions={
+              <Link href="/jobs" className="link text-sm font-medium">
+                All jobs →
+              </Link>
+            }
+          >
             {shortlist.length === 0 ? (
-              <p className="text-sm text-slate-500">Nothing new. Scan the boards, or paste a job on “Add job”.</p>
+              <Empty>Nothing new. Scan the boards, or paste a job on “Add job”.</Empty>
             ) : (
-              <Stagger className="divide-y divide-slate-100">
+              <Stagger className="divide-y divide-ink/5">
                 {shortlist.map((o) => (
                   <OppRow key={o.id} o={o} />
                 ))}
@@ -84,25 +103,33 @@ export default async function Today({ searchParams }: { searchParams: Promise<{ 
           </Card>
         </div>
         <div className="space-y-6">
-          <Card title="Follow-ups due">
+          <Card index={2} title="Follow-ups due">
             {followUps.length === 0 ? (
-              <p className="text-sm text-slate-500">None due.</p>
+              <Empty>None due.</Empty>
             ) : (
-              <Stagger className="divide-y divide-slate-100">
+              <Stagger className="divide-y divide-ink/5">
                 {followUps.map((o) => (
                   <OppRow key={o.id} o={o} />
                 ))}
               </Stagger>
             )}
           </Card>
-          <Card title="Companies worth pitching" actions={<Link href="/companies" className="text-sm text-brand-700 hover:underline">All →</Link>}>
+          <Card
+            index={3}
+            title="Companies worth pitching"
+            actions={
+              <Link href="/companies" className="link text-sm font-medium">
+                All →
+              </Link>
+            }
+          >
             {prospects.length === 0 ? (
-              <p className="text-sm text-slate-500">Add and research companies to get pitch suggestions.</p>
+              <Empty>Add and research companies to get pitch suggestions.</Empty>
             ) : (
-              <ul className="space-y-2">
+              <ul className="space-y-1">
                 {prospects.map((c) => (
                   <li key={c.id}>
-                    <Link href={`/companies/${c.id}`} className="flex items-center gap-2 rounded px-1 py-1 transition-colors hover:bg-brand-50">
+                    <Link href={`/companies/${c.id}`} className="-mx-2 flex items-center gap-3 rounded-2xl px-2 py-2 transition-colors hover:bg-canvas">
                       <ScorePill score={c.score} />
                       <span className="flex-1 truncate text-sm font-medium">{c.name}</span>
                       <TrackBadge track={c.recommendation} both={c.recommendBoth} />

@@ -23,16 +23,20 @@ Blain's strategic job search and Red Star Standard client pipeline. It runs loca
 1. Fill in `.env` (copy it from `.env.example`): your database password, at least one AI key, and the Google client ID and secret.
    - AI keys: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` and/or `GEMINI_API_KEY`. A free Gemini key is at https://aistudio.google.com/apikey.
    - `AI_PROVIDERS` sets the order they are tried in.
+   - Claude and OpenAI keys are paid (prepaid credit): get them at https://console.anthropic.com (Settings → API Keys) and https://platform.openai.com (API keys), and set a monthly spend limit in each console.
+   - `ANTHROPIC_MODEL` defaults to Claude Sonnet. Set `ANTHROPIC_PREMIUM_MODEL` (e.g. `claude-opus-5-5`) to use a stronger model only for CVs, cover letters, pitches and proposals.
+   - `AI_DAILY_PAID_CALL_LIMIT` (default 60) caps Claude + OpenAI calls per day across the app and the daily scan; Settings shows today's count.
+   - Gemini's free tier may let Google use your prompts, including CV details, to improve its products. Keep it last in `AI_PROVIDERS` once you have a paid key.
 2. Port 3000 is also used by DossierIQ's dev server. Stop it before starting Opportuneer; otherwise `npm run dev` fails with "port in use".
 3. Run `npm install`, then `npm run db:setup`, then `npm run dev`. Open http://localhost:3000.
 4. Gmail: in Google Cloud Console → Credentials → your OAuth client, add the redirect URI `http://localhost:3000/api/auth/callback/google`. Then go to Settings → Connect Gmail.
 
 ## Daily scan (optional)
 
-Run this once in PowerShell to scan every weekday at 07:30:
+Scheduled as the Windows task "Opportuneer scan", which runs every day at 08:00. To recreate it, run this in PowerShell:
 
 ```powershell
-schtasks /Create /SC WEEKLY /D MON,TUE,WED,THU,FRI /ST 07:30 /TN "Opportuneer scan" /TR "cmd /c cd /d C:\home\apps\opportuneer && npm run scan >> storage\scan.log 2>&1"
+schtasks /Create /F /SC DAILY /ST 08:00 /TN "Opportuneer scan" /TR "cmd /c cd /d C:\home\apps\opportuneer && npm run scan >> storage\scan.log 2>&1"
 ```
 
 ## Changing targets
@@ -43,3 +47,9 @@ Edit `src/config/profile.ts` to change job titles, industries, pay floors, the e
 
 - Job boards ask for attribution: every job links back to its original post. Remotive asks for no more than 4 calls a day.
 - Generated files are saved in `storage/`. Cover letters are also copied to `C:/home/personal/cover-letters`.
+
+## Scan on startup
+
+Starting the app (`npm run dev` or `npm start`) also runs a scan in the background, unless the last scan was less than 3 hours ago (see `src/instrumentation-node.ts`). Set `SKIP_STARTUP_SCAN=1` in `.env` to turn this off.
+
+While any scan is running (from the Scan button, on startup, or the 08:00 task), the app shows a full-screen overlay and blocks other actions until it finishes. Then the page refreshes with the new jobs. A scan that hasn't finished after 30 minutes is treated as crashed, so the overlay can't stay stuck.

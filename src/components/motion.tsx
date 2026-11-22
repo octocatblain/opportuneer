@@ -2,7 +2,7 @@
 
 import { animate, MotionConfig, motion, useInView, useMotionValue, useReducedMotion, useTransform, type Variants } from "motion/react";
 import { useEffect, useRef } from "react";
-import { BRAND_COLOR, STAR_PATH } from "@/lib/brand";
+import { MarkArt } from "@/components/brand-mark";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -85,12 +85,11 @@ export function CountUp({ value, className }: { value: number; className?: strin
   );
 }
 
-/** Brand mark (same artwork as src/app/icon.svg): white star on a brand-red tile. Spins in once. */
+/** Brand mark (same artwork as src/app/icon.svg). Spins in once. */
 export function LogoMark({ className }: { className?: string }) {
   return (
-    <motion.svg viewBox="0 0 32 32" className={className} aria-hidden="true" initial={{ rotate: -90, scale: 0.4, opacity: 0 }} animate={{ rotate: 0, scale: 1, opacity: 1 }} whileHover={{ rotate: 12, scale: 1.08 }} transition={{ type: "spring", stiffness: 180, damping: 14 }}>
-      <rect width="32" height="32" rx="7" fill={BRAND_COLOR} />
-      <path fill="#fff" transform="translate(5 5) scale(.9167)" d={STAR_PATH} />
+    <motion.svg viewBox="0 0 64 64" className={className} aria-hidden="true" initial={{ rotate: -90, scale: 0.4, opacity: 0 }} animate={{ rotate: 0, scale: 1, opacity: 1 }} whileHover={{ rotate: 12, scale: 1.08 }} transition={{ type: "spring", stiffness: 180, damping: 14 }}>
+      <MarkArt />
     </motion.svg>
   );
 }
