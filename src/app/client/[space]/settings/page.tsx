@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { disconnectGmailAction } from "@/app/actions";
+import { changeEmailAction, deleteOwnAccountAction, updateProfileAction } from "@/app/profile-actions";
 import { changePasswordAction, logoutAction, revokeOtherSessionsAction, revokeSessionAction } from "@/app/auth-actions";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
@@ -90,6 +91,46 @@ export default async function Settings({ params, searchParams }: { params: Promi
                 Paste the Client ID and Secret into <code className="rounded-md bg-paper px-1.5">.env</code> as GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, then restart the app.
               </li>
             </ol>
+          )}
+        </Card>
+
+        <Card title="Profile">
+          <form action={updateProfileAction} className="space-y-2 text-sm">
+            <label className="block text-xs font-medium text-ink-3" htmlFor="profile-name">
+              Display name
+            </label>
+            <input id="profile-name" name="name" defaultValue={me.user.name ?? ""} maxLength={80} autoComplete="name" className={input} />
+            <SubmitButton className={btn} pending="Saving…">
+              Save name
+            </SubmitButton>
+          </form>
+          <form action={changeEmailAction} className="mt-4 space-y-2 border-t border-rule pt-3 text-sm">
+            <label className="block text-xs font-medium text-ink-3" htmlFor="profile-email">
+              Sign-in email
+            </label>
+            <input id="profile-email" name="email" type="email" required defaultValue={me.user.email} autoComplete="email" className={input} />
+            {me.user.passwordHash && <input name="password" type="password" required placeholder="Current password to confirm" autoComplete="current-password" className={input} />}
+            <SubmitButton className={btn} pending="Saving…">
+              Change email
+            </SubmitButton>
+          </form>
+        </Card>
+
+        <Card title="Your data">
+          <p className="text-sm text-ink-3">Download everything stored about you: profile, companies, opportunities, generated documents, credits and feedback, as one JSON file.</p>
+          <a href="/api/account/export" className={`${btnGhost} mt-3`}>
+            Download my data
+          </a>
+          {!isSuper(me.user) && (
+            <form action={deleteOwnAccountAction} className="mt-4 space-y-2 border-t border-rule pt-3 text-sm">
+              <p className="font-medium text-error">Delete account</p>
+              <p className="text-xs text-muted">This permanently removes your account, companies, opportunities and documents. It cannot be undone.</p>
+              <input name="confirm" required placeholder={`Type ${me.user.email} to confirm`} autoComplete="off" className={input} aria-label="Type your email to confirm" />
+              {me.user.passwordHash && <input name="password" type="password" required placeholder="Password" autoComplete="current-password" className={input} />}
+              <SubmitButton className={btnGhost} pending="Deleting…">
+                Delete my account
+              </SubmitButton>
+            </form>
           )}
         </Card>
 
