@@ -35,11 +35,7 @@ export default async function Companies({ searchParams }: { searchParams: Promis
       <Flash error={sp.error} />
       <PageHeader
         eyebrow={`${total} compan${total === 1 ? "y" : "ies"}`}
-        title={
-          <>
-            Prospects with <em>budget</em>.
-          </>
-        }
+        title="Companies"
       />
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-3 lg:col-span-2">
@@ -56,15 +52,18 @@ export default async function Companies({ searchParams }: { searchParams: Promis
             {companies.length === 0 ? (
               <Empty>No companies yet. Add a prospect on the right; companies from scanned jobs show up here too.</Empty>
             ) : (
-              <div className="divide-y divide-ink/5">
+              <div className="divide-y divide-rule">
                 {companies.map((c) => (
-                  <Link key={c.id} href={`/companies/${c.id}`} className="group -mx-2 flex items-center gap-3 rounded-2xl px-2 py-2.5 transition-colors hover:bg-canvas">
+                  <Link key={c.id} href={`/companies/${c.id}`} className="group -mx-3 flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-paper active:bg-paper-2">
                     <ScorePill score={c.score} />
                     <div className="min-w-0 flex-1">
-                      <div className="truncate font-medium group-hover:text-signal-dark">{c.name}</div>
-                      <div className="truncate text-xs text-ink-4">
-                        {industries.find((i) => i.key === c.industry)?.label ?? "Industry unknown"} · {c._count.opportunities} opportunit{c._count.opportunities === 1 ? "y" : "ies"}
-                        {!c.research && " · not researched"}
+                      <div className="truncate font-medium group-hover:underline">{c.name}</div>
+                      <div className="flex flex-wrap gap-x-3 text-xs text-muted">
+                        <span>{industries.find((i) => i.key === c.industry)?.label ?? "Industry unknown"}</span>
+                        <span>
+                          {c._count.opportunities} opportunit{c._count.opportunities === 1 ? "y" : "ies"}
+                        </span>
+                        {!c.research && <span>not researched</span>}
                       </div>
                     </div>
                     <TrackBadge track={c.recommendation} both={c.recommendBoth} />
@@ -76,14 +75,14 @@ export default async function Companies({ searchParams }: { searchParams: Promis
           <Pagination page={page} total={total} hrefFor={hrefFor} />
         </div>
         <div className="self-start lg:sticky lg:top-24">
-        <Card tone="dark" index={1} title="Add a prospect">
+        <Card tone="dark" title="Add a prospect">
           <form action={addCompanyAction} className="space-y-3">
             <input name="name" required placeholder="Company name" className={input} />
             <input name="website" placeholder="Website (e.g. example.co.ke)" className={input} />
             <textarea name="notes" rows={5} placeholder="What you know: where you found them, branches, staff size, pain points, contacts…" className={input} />
             <SubmitButton className={btnSignal}>Add company</SubmitButton>
           </form>
-          <p className="mt-4 text-xs leading-relaxed text-white/60">
+          <p className="mt-4 text-xs leading-relaxed text-muted">
             Places to find prospects: Kenya Association of Manufacturers members, KUSCCO SACCO lists, Kenya Healthcare Federation, KEPSA, Google Maps searches by industry and town, and companies whose job posts mention manual or Excel work.
           </p>
         </Card>

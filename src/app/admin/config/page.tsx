@@ -22,7 +22,7 @@ export default async function AdminConfig({ searchParams }: { searchParams: Prom
   return (
     <div className="space-y-6">
       <Flash ok={sp.ok} error={sp.error} />
-      <PageHeader eyebrow="Admin" title={<>App <em>configuration</em>.</>} sub="Shared by the whole app: AI providers, search targets, offers and every tunable section." />
+      <PageHeader title="App configuration" sub="Shared by the whole app: AI providers, search targets, offers and every tunable section." />
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <Card index={2} title="AI providers">
           <ul className="space-y-1 text-sm">
@@ -40,13 +40,13 @@ export default async function AdminConfig({ searchParams }: { searchParams: Prom
               Paid calls today (Claude + OpenAI): <b>{ai.paidCallsToday}</b> of {ai.paidCallLimit}
             </li>
             <li>
-              Order tried: <b>{ai.order.join(" → ")}</b>
-              {ai.order[0] === "mock" && <span className="text-amber-700"> (add a key to .env to get real drafts)</span>}
+              Order tried: <b>{ai.order.join(", then ")}</b>
+              {ai.order[0] === "mock" && <span className="text-warn-ink"> (add a key to .env to get real drafts)</span>}
             </li>
           </ul>
-          <p className="mt-2 text-xs text-ink-4">Order and models are stored in the database (section “ai” below). API keys stay in .env.</p>
+          <p className="mt-2 text-xs text-muted">Order and models are stored in the database (section “ai” below). API keys stay in .env.</p>
           {ai.gemini && (
-            <p className="mt-2 text-xs text-amber-700">
+            <p className="mt-2 text-xs text-warn-ink">
               Gemini&apos;s free tier may let Google use prompts (including your CV details) to improve its products. Keep it last in AI_PROVIDERS once you
               have a paid key, or remove it from the list.
             </p>
@@ -55,8 +55,8 @@ export default async function AdminConfig({ searchParams }: { searchParams: Prom
 
         <Card index={3} title="Job search targets">
           <ul className="space-y-1 text-sm">
-            <li>Titles: {titleFamilies.map((t) => t.label).join(" · ")}</li>
-            <li>Industries: {industries.map((i) => i.label).join(" · ")}</li>
+            <li>Titles: {titleFamilies.map((t) => t.label).join(", ")}</li>
+            <li>Industries: {industries.map((i) => i.label).join(", ")}</li>
             <li>
               Pay floor: local ${payFloors.localMonthlyUsd.toLocaleString()}/mo (≈ KES {(payFloors.localMonthlyUsd * KES_PER_USD).toLocaleString()}), remote $
               {payFloors.remoteMonthlyUsd.toLocaleString()}/mo. Rate: KES {KES_PER_USD}/USD.
@@ -64,7 +64,7 @@ export default async function AdminConfig({ searchParams }: { searchParams: Prom
             <li>Locations: Kenya ({locations.accepted.slice(0, 5).join(", ")}…), remote, abroad only with visa sponsorship. East Africa excluded.</li>
             <li>Notice period: {profile.noticePeriod}</li>
           </ul>
-          <p className="mt-2 text-xs text-ink-4">Stored in the database; edit the sections below. src/config/profile.ts only supplies the first-run defaults.</p>
+          <p className="mt-2 text-xs text-muted">Stored in the database; edit the sections below. src/config/profile.ts only supplies the first-run defaults.</p>
         </Card>
 
         <Card index={4} title="Red Star Standard offer">
@@ -85,16 +85,16 @@ export default async function AdminConfig({ searchParams }: { searchParams: Prom
       </div>
 
       <Card title="Edit configuration (stored in the database)">
-        <p className="mb-3 text-xs text-slate-500">
+        <p className="mb-3 text-xs text-muted">
           Every parameter the app uses lives in the database, one JSON section each. Changes apply within a few seconds. “Reset” restores the defaults from src/config/profile.ts / .env.
         </p>
         <div className="space-y-2">
           {CONFIG_SECTIONS.map((section) => (
-            <details key={section} className="rounded border border-slate-200 p-2">
+            <details key={section} className="rounded-lg border border-rule p-3">
               <summary className="cursor-pointer text-sm font-medium">{section}</summary>
               <form action={saveConfigAction} className="mt-2 space-y-2">
                 <input type="hidden" name="section" value={section} />
-                <textarea name="json" defaultValue={JSON.stringify((full as Record<string, unknown>)[section], null, 2)} rows={14} spellCheck={false} className="w-full rounded border border-slate-300 p-2 font-mono text-xs" />
+                <textarea name="json" defaultValue={JSON.stringify((full as Record<string, unknown>)[section], null, 2)} rows={14} spellCheck={false} className="w-full rounded-lg border border-mist bg-white p-2 font-mono text-xs" />
                 <div className="flex gap-2">
                   <button className={btn}>Save</button>
                   <button formAction={resetConfigAction} className={btnGhost}>

@@ -12,18 +12,13 @@ export default async function AddJob({ searchParams }: { searchParams: Promise<{
     <div className="mx-auto max-w-3xl space-y-6">
       <Flash error={sp.error} />
       <PageHeader
-        eyebrow="Add job"
-        title={
-          <>
-            Paste it. We&apos;ll <em>read</em> it.
-          </>
-        }
+        title="Add a job"
       />
-      <p className="-mt-4 text-sm text-ink-4">
+      <p className="-mt-4 text-sm text-muted">
         For LinkedIn, BrighterMonday, Fuzu or a company careers page: paste the full job text (LinkedIn blocks automated reading, so pasting is the safe way).
         For other public pages you can paste just the URL. The AI pulls out the title, company, pay and location, then scores the job.
       </p>
-      <p className="-mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-4">
+      <p className="-mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
         Works with posts from:
         <Brand name="LinkedIn" />
         <Brand name="BrighterMonday" />
@@ -38,10 +33,10 @@ export default async function AddJob({ searchParams }: { searchParams: Promise<{
           </label>
           <label className="block text-sm font-medium">
             Job text
-            <textarea name="text" rows={14} placeholder="Paste the whole job posting here…" className={`${input} mt-1 font-mono text-xs`} />
+            <textarea name="text" rows={14} placeholder="Paste the whole job posting here…" className={`${input} mt-1 text-sm`} />
           </label>
           <SubmitButton className={btnSignal} pending="Reading the job…">
-            <span aria-hidden>→</span> Add and score
+            Add and score
           </SubmitButton>
         </form>
       </Card>

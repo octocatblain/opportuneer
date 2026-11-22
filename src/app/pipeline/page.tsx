@@ -28,12 +28,7 @@ export default async function Pipeline({ searchParams }: { searchParams: Promise
     <div>
       <Flash ok={sp.ok} error={sp.error} />
       <PageHeader
-        eyebrow="Pipeline"
-        title={
-          <>
-            From shortlist to <em>signed</em>.
-          </>
-        }
+        title="Pipeline"
         sub="New jobs start in “Found” (see Today / Jobs). Shortlist the ones you want, and they appear here."
         actions={
           <Segmented
@@ -51,25 +46,25 @@ export default async function Pipeline({ searchParams }: { searchParams: Promise
         {BOARD.map((stage) => {
           const items = opps.filter((o) => o.stage === stage);
           return (
-            <div key={stage} className={`min-w-0 rounded-[28px] p-3 ${stage === "WON" ? "bg-signal" : "bg-ink"}`}>
-              <h2 className="mb-3 flex items-baseline justify-between px-2 pt-1 text-white">
+            <div key={stage} className={`min-w-0 rounded-xl border bg-paper-2 p-2 ${stage === "WON" ? "border-signal" : "border-paper-3"}`}>
+              <h2 className="mb-2 flex items-baseline justify-between px-2 pt-1 text-ink">
                 <span className="text-sm font-semibold">{STAGE_LABEL[stage]}</span>
-                <span className="font-display text-2xl leading-none tabular-nums text-white/70">{items.length}</span>
+                <span className="text-sm font-semibold tabular-nums text-muted">{items.length}</span>
               </h2>
               <div className="space-y-2">
-                {items.length === 0 && <p className="rounded-2xl border border-dashed border-white/15 px-3 py-4 text-center text-xs text-white/50">Empty</p>}
+                {items.length === 0 && <p className="rounded-lg border border-dashed border-paper-3 px-3 py-4 text-center text-xs text-muted">Empty</p>}
                 {items.map((o) => {
                   const due = o.stage === "SENT" && o.followUpAt && o.followUpAt <= new Date();
                   const idx = BOARD.indexOf(stage);
                   const next = BOARD[idx + 1];
                   return (
-                    <div key={o.id} className={`rounded-2xl bg-white p-3 text-sm transition-transform hover:-rotate-1 ${due ? "ring-2 ring-signal" : ""}`}>
-                      <Link href={`/opportunities/${o.id}`} className="block font-semibold leading-snug hover:text-signal-dark">
+                    <div key={o.id} className={`rounded-lg border bg-white p-3 text-sm ${due ? "border-signal" : "border-rule"}`}>
+                      <Link href={`/opportunities/${o.id}`} className="block font-semibold leading-snug hover:underline">
                         {o.title}
                       </Link>
-                      <div className="mt-0.5 text-xs text-ink-4">{o.company?.name}</div>
-                      <div className="mt-3 flex items-center justify-between gap-1">
-                        <span className="flex items-center gap-1">
+                      <div className="mt-0.5 text-xs text-muted">{o.company?.name}</div>
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                        <span className="flex flex-wrap items-center gap-1">
                           <ScorePill score={o.fitScore} />
                           <TrackBadge track={o.track} />
                         </span>
@@ -78,13 +73,13 @@ export default async function Pipeline({ searchParams }: { searchParams: Promise
                             <input type="hidden" name="id" value={o.id} />
                             <input type="hidden" name="stage" value={next} />
                             <input type="hidden" name="back" value={track ? `/pipeline?track=${track}` : "/pipeline"} />
-                            <button className="rounded-full border border-ink/15 px-2.5 py-1 text-xs font-medium transition-colors hover:border-ink hover:bg-ink hover:text-white" title={`Move to ${STAGE_LABEL[next]}`}>
-                              → {STAGE_LABEL[next].split(" ")[0]}
+                            <button className="rounded-md border border-rule px-2.5 py-1 text-xs font-medium transition-colors hover:bg-paper-2 active:bg-paper-3" title={`Move to ${STAGE_LABEL[next]}`}>
+                              Move to {STAGE_LABEL[next].split(" ")[0]}
                             </button>
                           </form>
                         )}
                       </div>
-                      {due && <div className="mt-2 text-xs font-semibold text-signal-dark">● Follow-up due</div>}
+                      {due && <div className="mt-2 text-xs font-semibold text-signal-dark">Follow-up due</div>}
                     </div>
                   );
                 })}

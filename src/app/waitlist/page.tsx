@@ -37,13 +37,12 @@ export default async function Waitlist({ searchParams }: { searchParams: Promise
   if (outcome) {
     return (
       <div className="mx-auto max-w-lg space-y-5 pt-10 text-center">
-        <span className="eyebrow">Opportuneer, built by Red Star Standard</span>
-        <h1 className="page-title tracking-tight" style={{ fontSize: "clamp(2rem, 5vw, 3rem)" }}>
+        <h1 className="page-title " style={{ fontSize: "clamp(2rem, 5vw, 3rem)" }}>
           {outcome.title}
         </h1>
-        <p className="text-base leading-relaxed text-ink-4">{outcome.body}</p>
+        <p className="text-base leading-relaxed text-muted">{outcome.body}</p>
         <Link href="/" className="link text-sm font-medium">
-          ← Back to home
+          Back to home
         </Link>
       </div>
     );
@@ -52,16 +51,15 @@ export default async function Waitlist({ searchParams }: { searchParams: Promise
   return (
     <div className="mx-auto max-w-lg space-y-6 pt-8">
       <div className="space-y-3">
-        <span className="eyebrow">Opportuneer, built by Red Star Standard</span>
-        <h1 className="page-title tracking-tight" style={{ fontSize: "clamp(2rem, 5vw, 3rem)" }}>
-          Join the <em>waitlist</em>
+        <h1 className="page-title " style={{ fontSize: "clamp(2rem, 5vw, 3rem)" }}>
+          Join the waitlist
         </h1>
         {counts.full ? (
-          <p className="text-sm leading-relaxed text-ink-4">
+          <p className="text-sm leading-relaxed text-muted">
             All {PILOT_SIZE} pilot places are taken. Join the public-launch waitlist and we&apos;ll invite people in small batches, in the order they joined.
           </p>
         ) : (
-          <p className="text-sm leading-relaxed text-ink-4">
+          <p className="text-sm leading-relaxed text-muted">
             The pilot has {PILOT_SIZE} places and opens on 30 November. <strong className="text-ink">{counts.left} left.</strong> The first {COHORT_A_SIZE} to join get free access for 3 months. The next {COHORT_B_SIZE} join as
             founding members at half price for 3 months. After that the waitlist stays open for the public launch.
           </p>
@@ -70,25 +68,25 @@ export default async function Waitlist({ searchParams }: { searchParams: Promise
 
       <Flash error={sp.error} />
 
-      <form action={joinWaitlistAction} className="relative space-y-3 rounded-[28px] bg-white p-6 shadow-sm">
+      <form action={joinWaitlistAction} className="relative space-y-3 rounded-xl border border-rule bg-white p-6">
         <input type="hidden" name="src" value={sp.src ?? ""} />
         {/* Honeypot: hidden from people, tempting to bots. */}
-        <div aria-hidden className="absolute -left-[9999px]">
+        <div aria-hidden className="absolute h-0 w-0 overflow-hidden opacity-0">
           <label>
             Website
             <input name="website" tabIndex={-1} autoComplete="off" />
           </label>
         </div>
         <label className="block text-sm">
-          <span className="text-xs font-medium text-slate-600">Name</span>
+          <span className="text-xs font-medium text-ink-3">Name</span>
           <input name="name" autoComplete="name" className={input} />
         </label>
         <label className="block text-sm">
-          <span className="text-xs font-medium text-slate-600">Email</span>
+          <span className="text-xs font-medium text-ink-3">Email</span>
           <input name="email" type="email" required autoComplete="email" className={input} />
         </label>
         <fieldset className="space-y-1 text-sm">
-          <legend className="text-xs font-medium text-slate-600">I want to use Opportuneer to</legend>
+          <legend className="text-xs font-medium text-ink-3">I want to use Opportuneer to</legend>
           {[
             ["SEEKER", "Find a job (Seeker)"],
             ["PITCH", "Win clients as a freelancer, agency or recruiter (Pitch)"],
@@ -101,7 +99,7 @@ export default async function Waitlist({ searchParams }: { searchParams: Promise
           ))}
         </fieldset>
         <label className="block text-sm">
-          <span className="text-xs font-medium text-slate-600">I am a</span>
+          <span className="text-xs font-medium text-ink-3">I am a</span>
           <select name="roleType" className={input} defaultValue="">
             <option value="">Choose (optional)</option>
             {ROLE_TYPES.map(([k, l]) => (
@@ -113,7 +111,7 @@ export default async function Waitlist({ searchParams }: { searchParams: Promise
         </label>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block text-sm">
-            <span className="text-xs font-medium text-slate-600">Your field (job seekers)</span>
+            <span className="text-xs font-medium text-ink-3">Your field (job seekers)</span>
             <select name="occupation" className={input} defaultValue="">
               <option value="">Choose (optional)</option>
               {OCCUPATIONS.map(([k, l]) => (
@@ -124,7 +122,7 @@ export default async function Waitlist({ searchParams }: { searchParams: Promise
             </select>
           </label>
           <label className="block text-sm">
-            <span className="text-xs font-medium text-slate-600">Industry you pitch to</span>
+            <span className="text-xs font-medium text-ink-3">Industry you pitch to</span>
             <select name="industry" className={input} defaultValue="">
               <option value="">Choose (optional)</option>
               {industries.map((i) => (
@@ -136,14 +134,14 @@ export default async function Waitlist({ searchParams }: { searchParams: Promise
           </label>
         </div>
         <label className="block text-sm">
-          <span className="text-xs font-medium text-slate-600">Country</span>
+          <span className="text-xs font-medium text-ink-3">Country</span>
           <input name="country" defaultValue="Kenya" autoComplete="country-name" className={input} />
         </label>
-        <label className="flex items-start gap-2 text-xs text-ink-4">
+        <label className="flex items-start gap-2 text-xs text-muted">
           <input type="checkbox" name="consent" required className="mt-0.5" />
           <span>I agree that Red Star Standard may email me about my place on the waitlist and the Opportuneer launch.</span>
         </label>
-        <label className="flex items-start gap-2 text-xs text-ink-4">
+        <label className="flex items-start gap-2 text-xs text-muted">
           <input type="checkbox" name="marketing" className="mt-0.5" />
           <span>Also send me occasional product updates (optional).</span>
         </label>
@@ -152,13 +150,13 @@ export default async function Waitlist({ searchParams }: { searchParams: Promise
         </SubmitButton>
       </form>
 
-      <p className="text-xs leading-relaxed text-ink-4">
+      <p className="text-xs leading-relaxed text-muted">
         Privacy: we store what you enter here to run the waitlist and pick the pilot mix, and nothing else. We never sell it. It is used only by Red Star Standard, and you can ask us to delete your entry at any time. Names and emails are not
         used in analytics.
       </p>
-      <p className="text-center text-xs text-ink-4">
+      <p className="text-center text-xs text-muted">
         <Link href="/" className="link">
-          ← Back to home
+          Back to home
         </Link>
       </p>
     </div>

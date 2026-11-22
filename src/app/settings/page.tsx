@@ -29,10 +29,10 @@ export default async function Settings({ searchParams }: { searchParams: Promise
     <div className="space-y-6">
       <Flash ok={sp.ok} error={sp.error} />
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="page-title tracking-tight text-ink">Settings</h1>
+        <h1 className="page-title">Settings</h1>
         {isSuper(me.user) && (
           <Link href="/admin" className={btnGhost}>
-            Admin area →
+            Admin area
           </Link>
         )}
       </div>
@@ -57,13 +57,13 @@ export default async function Settings({ searchParams }: { searchParams: Promise
           ) : (
             <ol className="list-decimal space-y-1 pl-5 text-sm">
               <li>Go to console.cloud.google.com and create a project called “Opportuneer”.</li>
-              <li>APIs &amp; Services → Library → enable the <b>Gmail API</b>.</li>
-              <li>OAuth consent screen → External, Testing mode → add your Gmail address as a test user.</li>
+              <li>In APIs &amp; Services, open Library and enable the <b>Gmail API</b>.</li>
+              <li>On the OAuth consent screen choose External and Testing mode, then add your Gmail address as a test user.</li>
               <li>
-                Credentials → Create OAuth client ID → Web application. Authorised redirect URI: <code className="rounded-md bg-canvas px-1.5">http://localhost:3000/api/auth/callback/google</code>
+                Under Credentials, create an OAuth client ID of type Web application. Authorised redirect URI: <code className="rounded-md bg-paper px-1.5">http://localhost:3000/api/auth/callback/google</code>
               </li>
               <li>
-                Paste the Client ID and Secret into <code className="rounded-md bg-canvas px-1.5">.env</code> as GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, then restart the app.
+                Paste the Client ID and Secret into <code className="rounded-md bg-paper px-1.5">.env</code> as GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, then restart the app.
               </li>
             </ol>
           )}
@@ -76,13 +76,17 @@ export default async function Settings({ searchParams }: { searchParams: Promise
           </p>
           <ul className="mt-3 space-y-2 text-xs">
             {sessions.map((s) => (
-              <li key={s.id} className="flex items-start justify-between gap-2 rounded border border-slate-200 p-2">
-                <span>
-                  <b>{s.id === me?.sessionId ? "This device" : "Other device"}</b> · {s.method}
-                  <br />
-                  {(s.userAgent ?? "unknown browser").slice(0, 70)} · {s.ip ?? "?"}
-                  <br />
-                  Last active {s.lastSeenAt.toLocaleString("en-GB")} · expires {s.expiresAt.toLocaleDateString("en-GB")}
+              <li key={s.id} className="flex items-start justify-between gap-2 rounded-lg border border-rule p-3">
+                <span className="space-y-0.5">
+                  <span className="block">
+                    <b>{s.id === me?.sessionId ? "This device" : "Other device"}</b>, {s.method}
+                  </span>
+                  <span className="block text-muted">
+                    {(s.userAgent ?? "unknown browser").slice(0, 70)}, {s.ip ?? "?"}
+                  </span>
+                  <span className="block text-muted">
+                    Last active {s.lastSeenAt.toLocaleString("en-GB")}, expires {s.expiresAt.toLocaleDateString("en-GB")}
+                  </span>
                 </span>
                 {s.id !== me?.sessionId && (
                   <form action={revokeSessionAction}>
@@ -93,7 +97,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
               </li>
             ))}
           </ul>
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             <form action={revokeOtherSessionsAction}>
               <button className={btnGhost}>Sign out other devices</button>
             </form>
@@ -101,10 +105,10 @@ export default async function Settings({ searchParams }: { searchParams: Promise
               <button className={btnGhost}>Sign out</button>
             </form>
           </div>
-          <form action={changePasswordAction} className="mt-4 space-y-2 border-t border-slate-200 pt-3 text-sm">
-            <p className="text-xs font-medium text-slate-600">{me?.user.passwordHash ? "Change password" : "Set a password (so you can also sign in with email)"}</p>
-            {me?.user.passwordHash && <input name="current" type="password" placeholder="Current password" required autoComplete="current-password" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />}
-            <input name="next" type="password" placeholder="New password (10+ chars, letters and a number)" required minLength={10} autoComplete="new-password" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+          <form action={changePasswordAction} className="mt-4 space-y-2 border-t border-rule pt-3 text-sm">
+            <p className="text-sm font-medium text-ink-3">{me?.user.passwordHash ? "Change password" : "Set a password (so you can also sign in with email)"}</p>
+            {me?.user.passwordHash && <input name="current" type="password" placeholder="Current password" required autoComplete="current-password" className="w-full rounded-lg border border-mist bg-white px-3 py-2 text-sm" />}
+            <input name="next" type="password" placeholder="New password (10+ chars, letters and a number)" required minLength={10} autoComplete="new-password" className="w-full rounded-lg border border-mist bg-white px-3 py-2 text-sm" />
             <button className={btn}>Save password</button>
           </form>
         </Card>
@@ -115,7 +119,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
               <p>{new Date(scan.at).toLocaleString("en-GB")}</p>
               <table className="mt-2 w-full text-left text-xs">
                 <thead>
-                  <tr className="text-ink-4">
+                  <tr className="text-left text-muted">
                     <th>Source</th>
                     <th>Fetched</th>
                     <th>Matching titles</th>
@@ -133,12 +137,12 @@ export default async function Settings({ searchParams }: { searchParams: Promise
                   ))}
                 </tbody>
               </table>
-              {scan.errors.length > 0 && <p className="mt-2 text-xs text-red-700">{scan.errors.join(" · ")}</p>}
+              {scan.errors.length > 0 && <p className="mt-2 text-xs text-error">{scan.errors.join(", ")}</p>}
             </div>
           ) : (
-            <p className="text-sm text-ink-4">No scan yet.</p>
+            <p className="text-sm text-muted">No scan yet.</p>
           )}
-          <p className="mt-2 text-xs text-ink-4">Sources: BrighterMonday and MyJobMag (Kenya); Remote4Africa, Himalayas, Remotive, Jobicy and Remote OK (remote, kept only when the post is open to Africa or Kenya). Each job links back to its original post.</p>
+          <p className="mt-2 text-xs text-muted">Sources: BrighterMonday and MyJobMag (Kenya); Remote4Africa, Himalayas, Remotive, Jobicy and Remote OK (remote, kept only when the post is open to Africa or Kenya). Each job links back to its original post.</p>
         </Card>
       </div>
 

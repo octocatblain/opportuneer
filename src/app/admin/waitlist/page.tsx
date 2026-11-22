@@ -21,12 +21,7 @@ export default async function AdminWaitlist({ searchParams }: { searchParams: Pr
     <div className="space-y-6">
       <Flash ok={sp.ok} error={sp.error} />
       <PageHeader
-        eyebrow="Admin"
-        title={
-          <>
-            The <em>waitlist</em>.
-          </>
-        }
+        title="Waitlist"
         sub={`Pilot: cohort A ${counts.a}/${COHORT_A_SIZE}, cohort B ${counts.b}/${COHORT_B_SIZE}. Public-launch waitlist: ${counts.public}. Places are assigned automatically in join order.`}
         actions={
           <>
@@ -34,24 +29,28 @@ export default async function AdminWaitlist({ searchParams }: { searchParams: Pr
               Export CSV
             </a>
             <Link href="/admin" className="link text-sm font-medium">
-              ← Admin
+              Back to admin
             </Link>
           </>
         }
       />
       <Card title={`Entries (${entries.length})`}>
         {entries.length === 0 ? (
-          <p className="text-sm text-ink-4">Nobody yet.</p>
+          <p className="text-sm text-muted">Nobody yet.</p>
         ) : (
-          <ul className="divide-y divide-ink/5">
+          <ul className="divide-y divide-rule">
             {entries.map((e) => (
               <li key={e.id} className="flex flex-wrap items-center gap-3 py-3">
-                <span className="w-8 text-xs tabular-nums text-ink-4">#{e.seq}</span>
+                <span className="w-8 text-xs tabular-nums text-muted">#{e.seq}</span>
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-medium">{e.name ?? e.email}</div>
-                  <div className="truncate text-xs text-ink-4">
-                    {e.email} · {e.trackInterest.toLowerCase()} · {e.roleType ?? "no role"} · {e.country ?? "no country"} · {e.source ? `src ${e.source} · ` : ""}
-                    {e.createdAt.toLocaleString("en-GB")}
+                  <div className="flex flex-wrap gap-x-4 text-xs text-muted">
+                    <span className="truncate">{e.email}</span>
+                    <span>{e.trackInterest.toLowerCase()}</span>
+                    <span>{e.roleType ?? "no role"}</span>
+                    <span>{e.country ?? "no country"}</span>
+                    {e.source && <span>src {e.source}</span>}
+                    <span>{e.createdAt.toLocaleString("en-GB")}</span>
                   </div>
                 </div>
                 <Chip tone={tone(e.cohort)}>{e.phase === "PILOT" ? `Cohort ${e.cohort}` : "Public"}</Chip>

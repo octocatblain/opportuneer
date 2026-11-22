@@ -39,11 +39,7 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<{ v
     <div className="space-y-6">
       <PageHeader
         eyebrow={`${total} job${total === 1 ? "" : "s"}`}
-        title={
-          <>
-            Roles <em>worth</em> your time.
-          </>
-        }
+        title="Jobs"
         actions={
           <form className="w-72 max-w-full" action="/jobs" role="search">
             <input type="hidden" name="view" value={view} />
@@ -62,7 +58,7 @@ export default async function Jobs({ searchParams }: { searchParams: Promise<{ v
         {jobs.length === 0 ? (
           <Empty>No jobs here yet.</Empty>
         ) : (
-          <div className="divide-y divide-ink/5">
+          <div className="divide-y divide-rule">
             {jobs.map((o) => (
               <div key={o.id} className="flex items-center gap-2">
                 <div className="flex-1">

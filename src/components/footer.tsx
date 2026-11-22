@@ -23,13 +23,13 @@ export function Footer({ signedIn, admin }: { signedIn: boolean; admin?: boolean
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 md:grid-cols-3">
         <div className="space-y-3">
           <span className="inline-flex items-center gap-2 text-sm font-semibold">
-            <BrandMark size={28} className="rounded-full" />
+            <BrandMark size={28} className="rounded-md" />
             <Wordmark />
           </span>
-          <p className="max-w-xs text-sm leading-relaxed text-white/60">A private workspace for strategic job search and client outreach. Every account sees only its own content.</p>
+          <p className="max-w-xs text-sm leading-relaxed text-white/70">A private workspace for strategic job search and client outreach. Every account sees only its own content.</p>
         </div>
         <nav aria-label="Footer" className="text-sm">
-          <div className="eyebrow mb-3 !text-white/40">{signedIn ? "Workspace" : "Access"}</div>
+          <h2 className="mb-3 text-sm font-semibold text-white">{signedIn ? "Workspace" : "Access"}</h2>
           <ul className="space-y-2">
             {links.map(([href, label]) => (
               <li key={href}>
@@ -41,7 +41,7 @@ export function Footer({ signedIn, admin }: { signedIn: boolean; admin?: boolean
           </ul>
         </nav>
         <div className="text-sm">
-          <div className="eyebrow mb-3 !text-white/40">Works with</div>
+          <h2 className="mb-3 text-sm font-semibold text-white">Works with</h2>
           <ul className="space-y-2 text-white/70">
             <li>
               <span className="inline-flex rounded-md bg-white p-0.5">
@@ -59,8 +59,8 @@ export function Footer({ signedIn, admin }: { signedIn: boolean; admin?: boolean
         </div>
       </div>
       <div className="border-t border-white/10">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-4 text-xs text-white/40">
-          <span>© {new Date().getFullYear()} Opportuneer. All rights reserved.</span>
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-4 text-xs text-white/60">
+          <span>© {new Date().getFullYear()} Opportuneer</span>
           <span>Brand names and logos belong to their owners.</span>
         </div>
       </div>

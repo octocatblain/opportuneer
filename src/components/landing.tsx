@@ -27,62 +27,58 @@ export async function Landing() {
     <div className="space-y-20">
       <section className="grid items-center gap-10 pt-4 lg:grid-cols-5">
         <div className="space-y-6 lg:col-span-3">
-          <span className="eyebrow">Private job search and outreach workspace</span>
-          <h1 className="page-title tracking-tight" style={{ fontSize: "clamp(2.5rem, 6vw, 4.75rem)" }}>
-            Opportunities that <em>actually</em> fit. Prospects that can pay.
+          <h1 className="page-title " style={{ fontSize: "clamp(2.5rem, 6vw, 4.75rem)" }}>
+            Opportunities that actually fit. Prospects that can pay.
           </h1>
-          <p className="max-w-xl text-lg leading-relaxed text-ink-4">
+          <p className="max-w-xl text-lg leading-relaxed text-muted">
             Opportuneer finds and scores jobs, researches companies, and drafts tailored applications and pitches, then leaves every send to you.
           </p>
           <div className="flex flex-wrap gap-3">
             <Link href="/waitlist" className={btnSignal}>
-              <span aria-hidden>→</span> {counts.full ? "Join the public-launch waitlist" : "Join the waitlist"}
+              {counts.full ? "Join the public-launch waitlist" : "Join the waitlist"}
             </Link>
             <Link href="/login" className={btnGhost}>
               Sign in
             </Link>
           </div>
-          <p className="text-xs text-ink-4">
+          <p className="text-xs text-muted">
             {counts.full ? "All 30 pilot places are taken. The public-launch waitlist is open." : `The pilot opens 30 November with 30 places. ${counts.left} left.`} Signed-out visitors can see public pages only.
           </p>
         </div>
         <div className="relative lg:col-span-2">
-          <div aria-hidden className="absolute inset-x-6 -top-3 h-10 rounded-[28px] bg-ink-3" />
-          <div aria-hidden className="absolute inset-x-3 -top-1.5 h-10 rounded-[28px] bg-ink-2" />
-          <div className="relative space-y-5 rounded-[28px] bg-ink p-7 text-white shadow-2xl">
-            <div className="eyebrow !text-white/50">How the day looks</div>
+                              <div className="relative space-y-4 rounded-xl bg-ink p-6 text-white">
+            <h2 className="text-sm font-semibold text-white/70">How the day looks</h2>
             {[
-              ["92", "Platform Engineer", "Remote · open to Kenya"],
-              ["84", "AI Automation Lead", "Nairobi · verified employer"],
+              ["92", "Platform Engineer", "Remote, open to Kenya"],
+              ["84", "AI Automation Lead", "Nairobi, verified employer"],
               ["71", "Pitch: logistics firm", "Budget signals found"],
             ].map(([score, title, sub]) => (
-              <div key={title} className="flex items-center gap-4 rounded-2xl bg-white/5 p-3">
-                <span className="font-display text-3xl tabular-nums text-signal">{score}</span>
+              <div key={title} className="flex items-center gap-4 rounded-lg bg-white/5 p-3">
+                <span className="text-2xl font-semibold tabular-nums text-signal">{score}</span>
                 <span className="min-w-0">
                   <span className="block truncate font-medium">{title}</span>
-                  <span className="block truncate text-xs text-white/50">{sub}</span>
+                  <span className="block truncate text-xs text-white/70">{sub}</span>
                 </span>
               </div>
             ))}
-            <p className="text-xs text-white/40">Illustration only.</p>
+            <p className="text-xs text-white/70">Illustration only.</p>
           </div>
         </div>
       </section>
 
       <section aria-labelledby="features" className="space-y-8">
         <div className="space-y-2">
-          <span className="eyebrow">What it does</span>
-          <h2 id="features" className="page-title tracking-tight" style={{ fontSize: "clamp(1.75rem, 3.5vw, 2.75rem)" }}>
-            From noisy boards to a <em>short</em> list.
+          <h2 id="features" className="page-title " style={{ fontSize: "clamp(1.75rem, 3.5vw, 2.75rem)" }}>
+            From noisy boards to a short list.
           </h2>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map(([n, title, body], i) => (
             <Reveal key={n} delay={i * 0.04}>
-              <div className="h-full rounded-[28px] bg-white p-6 shadow-sm">
-                <span className="font-display text-2xl text-signal">{n}</span>
+              <div className="h-full rounded-xl border border-rule bg-white p-6">
+                <span className="text-lg font-semibold tabular-nums text-signal-dark">{n}</span>
                 <h3 className="mt-3 text-lg font-semibold">{title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-ink-4">{body}</p>
+                <p className="mt-2 text-sm leading-relaxed text-muted">{body}</p>
               </div>
             </Reveal>
           ))}
@@ -90,25 +86,25 @@ export async function Landing() {
       </section>
 
       <section aria-labelledby="steps" className="space-y-8">
-        <h2 id="steps" className="page-title tracking-tight" style={{ fontSize: "clamp(1.75rem, 3.5vw, 2.75rem)" }}>
-          Four steps, <em>one</em> sitting.
+        <h2 id="steps" className="page-title " style={{ fontSize: "clamp(1.75rem, 3.5vw, 2.75rem)" }}>
+          Four steps, one sitting.
         </h2>
         <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {STEPS.map(([title, body], i) => (
-            <li key={title} className="rounded-[28px] bg-ink p-6 text-white">
-              <span className="font-display text-4xl text-white/30">{i + 1}</span>
+            <li key={title} className="rounded-xl bg-ink p-6 text-white">
+              <span className="text-3xl font-semibold tabular-nums text-white/60">{i + 1}</span>
               <h3 className="mt-2 font-semibold">{title}</h3>
-              <p className="mt-1 text-sm text-white/60">{body}</p>
+              <p className="mt-1 text-sm text-white/70">{body}</p>
             </li>
           ))}
         </ol>
       </section>
 
-      <section aria-labelledby="sources" className="rounded-[28px] bg-white p-8 shadow-sm">
+      <section aria-labelledby="sources" className="rounded-xl border border-rule bg-white p-8">
         <h2 id="sources" className="text-lg font-semibold">
           Sources and services
         </h2>
-        <ul className="mt-4 flex flex-wrap gap-x-6 gap-y-3 text-sm text-ink-4">
+        <ul className="mt-4 flex flex-wrap gap-x-6 gap-y-3 text-sm text-muted">
           {["BrighterMonday", "MyJobMag", "Remote4Africa", "Himalayas", "Remotive", "Jobicy", "RemoteOK"].map((b) => (
             <li key={b}>
               <Brand name={b} />

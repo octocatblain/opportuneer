@@ -1,0 +1,91 @@
+@theme static {
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.2rem;
+  --text-xl: 1.44rem;
+  --text-2xl: 1.728rem;
+  --text-3xl: 2.074rem;
+  --text-display-s: 1.44rem;
+  --text-display: 1.728rem;
+  --text-section: 1.2rem;
+  --text-title: 1rem;
+  --text-lead: 1rem;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* Brand palette, read from brand/colors.json. Paper is the brand "canvas". */
+  --color-paper: #eef1f4;
+  --color-paper-2: #e3e7ec;
+  --color-paper-3: #d6dbe2;
+  --color-canvas: #eef1f4;
+  --color-surface: #ffffff;
+  --color-ink: #0e1014;
+  --color-ink-2: #1b1e25;
+  --color-ink-3: #2b2f38;
+  --color-ink-4: #444955;
+  --color-muted: #4b515d;
+  --color-mist: #646a76;
+  --color-rule: #d3d8df;
+  --color-accent: #c93a17;
+  --color-accent-ink: #ffffff;
+  --color-focus: #c93a17;
+  --color-signal: #ef4b23;
+  --color-signal-dark: #c93a17;
+  --color-signal-deep: #a42f12;
+  --color-signal-soft: #fde6dd;
+
+  /* State colours for chips, notices and figures. */
+  --color-error: oklch(52% 0.19 27);
+  --color-success: oklch(48% 0.12 150);
+  --color-success-soft: oklch(94% 0.05 150);
+  --color-warn-soft: #fbf0c8;
+  --color-warn-ink: #5c4710;
+  --color-info-soft: #dbeefe;
+  --color-info-ink: #124a74;
+  --color-cream: #fbf0c8;
+  --color-sky-soft: #dbeefe;
+
+  --font-display: var(--font-inter-tight), "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  --font-body: var(--font-inter-tight), "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  --font-sans: var(--font-inter-tight), "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  --font-outlier: var(--font-body);
+
+  --radius-card: 12px;
+  --radius-control: 8px;
+  --radius-chip: 6px;
+  --radius-pill: 999px;
+  --shadow-card: none;
+  --shadow-pop: 0 12px 32px -12px oklch(20% 0.02 260 / 0.35);
+  --tracking-display: -0.02em;
+}
+:root {
+  --display-weight: 600;
+  --space-3xs: 2px;
+  --space-2xs: 4px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+  --space-2xl: 64px;
+  --space-3xl: 96px;
+  --space-4xl: 144px;
+  --dur-micro: 120ms;
+  --dur-short: 220ms;
+  --dur-long: 420ms;
+  --container: 80rem;
+  --gutter: 24px;
+  --gap-columns: 24px;
+  --z-base: 1;
+  --z-raised: 10;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-sticky-nav: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+  --z-tooltip: 600;
+  --rule-hair: 1px;
+}
+@media (max-width: 40rem) { :root { --gutter: 16px; --gap-columns: 16px; } }

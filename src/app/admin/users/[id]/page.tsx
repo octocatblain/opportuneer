@@ -35,15 +35,11 @@ export default async function AdminUser({ params, searchParams }: { params: Prom
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow={`Admin · read-only · ${user.email}`}
-        title={
-          <>
-            {user.name ?? user.email}&apos;s <em>content</em>.
-          </>
-        }
+        eyebrow={`Read-only view of ${user.email}`}
+        title={`${user.name ?? user.email}'s content`}
         actions={
           <Link href="/admin" className="link text-sm font-medium">
-            ← All accounts
+            All accounts
           </Link>
         }
       />
@@ -58,7 +54,7 @@ export default async function AdminUser({ params, searchParams }: { params: Prom
           opps.length === 0 ? (
             <Empty>No opportunities yet.</Empty>
           ) : (
-            <div className="divide-y divide-ink/5">
+            <div className="divide-y divide-rule">
               {opps.map((o) => (
                 <div key={o.id} className="flex items-center gap-2">
                   <div className="flex-1">
@@ -74,11 +70,11 @@ export default async function AdminUser({ params, searchParams }: { params: Prom
         ) : companies.length === 0 ? (
           <Empty>No companies yet.</Empty>
         ) : (
-          <div className="divide-y divide-ink/5">
+          <div className="divide-y divide-rule">
             {companies.map((c) => (
-              <Link key={c.id} href={`/companies/${c.id}`} className="group -mx-2 flex items-center gap-3 rounded-2xl px-2 py-2.5 transition-colors hover:bg-canvas">
+              <Link key={c.id} href={`/companies/${c.id}`} className="group -mx-3 flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-paper active:bg-paper-2">
                 <ScorePill score={c.score} />
-                <span className="min-w-0 flex-1 truncate font-medium group-hover:text-signal-dark">{c.name}</span>
+                <span className="min-w-0 flex-1 truncate font-medium group-hover:underline">{c.name}</span>
                 <TrackBadge track={c.recommendation} both={c.recommendBoth} />
               </Link>
             ))}

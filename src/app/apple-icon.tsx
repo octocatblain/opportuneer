@@ -9,7 +9,7 @@ export default function AppleIcon() {
   return new ImageResponse(
     (
       <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: INK }}>
-        <svg width="180" height="180" viewBox="0 0 64 64">
+        <svg width="180" height="180" viewBox="0 0 64 64" aria-hidden="true">
           <circle cx="28" cy="36" r="14" fill="none" stroke={SIGNAL} strokeWidth="8" />
           <path d={SPARK_PATH} fill={INK} stroke={INK} strokeWidth="6" strokeLinejoin="round" />
           <path d={SPARK_PATH} fill="#ffffff" />

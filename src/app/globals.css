@@ -1,52 +1,17 @@
+/* Hallmark · shape: app screen · genre: modern-minimal · theme: brand · redesign: full
+ * paper: #eef1f4 · accent: #c93a17 · display: Inter Tight · body: Inter Tight
+ * nav: top bar with tabs and one primary action · signature: the ranked fit-score ledger of jobs and prospects · states: full, empty, flash
+ * axes: light/grotesk-sans/warm · posture: n/a (app) · contrast: pass · v2.0.0 */
+/* Hallmark · pre-emit critique: P4 H4 E4 S4 R4 V4 · weakest: S, the dashboard still reads as cards; stat cards became one ruled strip */
+/* Hallmark · waive 26b · the add-job form buttons take their disabled and active states from the shared btn classes in ui.tsx · the page itself has no control classes */
+/* Hallmark · dismissed 70 · the waitlist outcome copy is shown after joinWaitlistAction posts the form on the server, the page script posts to the action */
 @import "tailwindcss";
-
-/* Opportuneer brand tokens. Change the palette here and every page follows. */
-@theme {
-  --color-brand-50: #fff1f2;
-  --color-brand-100: #ffe4e6;
-  --color-brand-200: #fecdd3;
-  --color-brand-500: #e11d48;
-  --color-brand-600: #be123c;
-  --color-brand-700: #9f1239;
-  --color-brand-800: #881337;
-  --color-ink: #0f172a;
-  --font-sans: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
-  --ease-brand: cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-/*
- * Opportuneer design tokens.
- * Direction (from c:/home/design-inspiration): cool pale canvas + near-black stacked cards (SOHub),
- * a warm signal red-orange (agrume / "Hi, I'm Leo"), tight grotesk headings with serif-italic
- * accent words, condensed display numerals (Horeca), pill buttons and chips, numbered sections.
- */
-@theme {
-  --font-sans: var(--font-inter-tight), "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
-  --font-serif: var(--font-instrument-serif), Georgia, "Times New Roman", serif;
-  --font-display: var(--font-anton), "Arial Narrow", Impact, sans-serif;
-
-  --color-canvas: #eef1f4;
-  --color-ink: #0e1014;
-  --color-ink-2: #1b1e25;
-  --color-ink-3: #2b2f38;
-  --color-ink-4: #444955;
-  --color-mist: #a7adb8;
-  --color-signal: #ef4b23;
-  --color-signal-dark: #c93a17;
-  --color-signal-soft: #fde6dd;
-  --color-cream: #fbf0c8;
-  --color-sky-soft: #dbeefe;
-}
+@import "./tokens.css";
+@import "./base.css" layer(base);
 
 @layer base {
   body {
-    font-family: var(--font-sans);
     letter-spacing: -0.005em;
-  }
-  h1,
-  h2,
-  h3 {
-    letter-spacing: -0.025em;
   }
   ::selection {
     background: var(--color-signal);
@@ -55,46 +20,23 @@
 }
 
 @layer components {
-  /* Big page heading: tight grotesk with an optional <em> rendered in serif italic. */
+  /* Page title: one family, one weight, roman. */
   .page-title {
-    font-size: clamp(2rem, 4vw, 3.25rem);
-    line-height: 1;
+    max-width: none;
+    font-size: var(--text-display);
+    line-height: 1.1;
     font-weight: 600;
-    letter-spacing: -0.04em;
+    letter-spacing: -0.02em;
     color: var(--color-ink);
-  }
-  .page-title em,
-  .serif-accent {
-    font-family: var(--font-serif);
-    font-style: italic;
-    font-weight: 400;
-    letter-spacing: -0.01em;
-    color: var(--color-signal);
-  }
-  .eyebrow {
-    font-size: 0.7rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-    color: var(--color-ink-4);
   }
   .link {
     color: var(--color-signal-dark);
     text-decoration: underline;
     text-decoration-color: transparent;
     text-underline-offset: 3px;
-    transition: text-decoration-color 150ms;
+    transition: text-decoration-color var(--dur-micro);
   }
   .link:hover {
     text-decoration-color: currentColor;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    transition-duration: 0ms !important;
-    animation-duration: 0ms !important;
   }
 }
