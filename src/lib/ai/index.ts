@@ -4,6 +4,7 @@ import { GoogleGenAI } from "@google/genai";
 import fs from "node:fs";
 import path from "node:path";
 import type { z } from "zod";
+import { cfg, loadConfig } from "@/lib/config";
 
 export type GenerateOptions = {
   system: string;
@@ -60,7 +61,7 @@ const openai: AIProvider = {
   async generate({ system, prompt, maxTokens = 32000 }) {
     const client = new OpenAI();
     const res = await client.responses.create({
-      model: process.env.OPENAI_MODEL || "gpt-5",
+      model: cfg().ai.openaiModel,
       instructions: system,
       input: prompt,
       max_output_tokens: maxTokens,

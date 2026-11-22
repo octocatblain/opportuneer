@@ -1,15 +1,23 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { researchCompanyAction, startPitchAction, updateCompanyAction } from "@/app/actions";
 import { SubmitButton } from "@/components/submit-button";
 import { Breakdown, btn, btnGhost, Card, Flash, input, OppRow, ScorePill, TrackBadge } from "@/components/ui";
-import { industries } from "@/config/profile";
+import { loadConfig } from "@/lib/config";
 import { db } from "@/lib/db";
 import type { ScoreLine } from "@/lib/scoring";
 
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const c = await db.company.findUnique({ where: { id }, select: { name: true } });
+  return { title: c?.name ?? "Not found" };
+}
+
 export default async function CompanyPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; error?: string }> }) {
+  const { industries } = await loadConfig();
   const { id } = await params;
   const sp = await searchParams;
   const c = await db.company.findUnique({
@@ -23,7 +31,7 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
     <div className="space-y-4">
       <Flash ok={sp.ok} error={sp.error} />
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="page-title">{c.name}</h1>
+        <h1 className="page-title tracking-tight text-ink">{c.name}</h1>
         <ScorePill score={c.score} />
         <TrackBadge track={c.recommendation} both={c.recommendBoth} />
         {c.website && (

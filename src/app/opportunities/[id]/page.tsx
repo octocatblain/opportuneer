@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -25,6 +26,13 @@ const DOC_LABEL: Record<string, string> = {
   FOLLOW_UP: "Follow-up email",
 };
 
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const o = await db.opportunity.findUnique({ where: { id }, select: { title: true, company: { select: { name: true } } } });
+  if (!o) return { title: "Not found" };
+  return { title: o.company?.name ? `${o.title} at ${o.company.name}` : o.title };
+}
+
 export default async function OpportunityPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; error?: string }> }) {
   const { id } = await params;
   const sp = await searchParams;
@@ -47,7 +55,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="page-title">{o.title}</h1>
+            <h1 className="page-title tracking-tight text-ink">{o.title}</h1>
             <ScorePill score={o.fitScore} />
             <TrackBadge track={o.track} />
           </div>

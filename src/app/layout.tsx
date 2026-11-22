@@ -1,5 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Anton, Instrument_Serif, Inter_Tight } from "next/font/google";
+import { logoutAction } from "@/app/auth-actions";
+import { LogoMark, MotionProvider } from "@/components/motion";
+import { Nav } from "@/components/nav";
+import { getUser } from "@/lib/auth";
 import "./globals.css";
 import { ScanOverlay } from "@/components/scan-overlay";
 import { NavLinks } from "@/components/nav-links";
@@ -9,13 +13,14 @@ const instrumentSerif = Instrument_Serif({ subsets: ["latin"], weight: "400", st
 const anton = Anton({ subsets: ["latin"], weight: "400", variable: "--font-anton", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "Opportuneer",
+  title: { default: "Opportuneer", template: "%s · Opportuneer" },
   description: "Strategic job search and Red Star Standard client pipeline",
 };
 
 export const viewport: Viewport = { themeColor: "#0e1014" };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const user = await getUser();
   return (
     <html lang="en" className={`${interTight.variable} ${instrumentSerif.variable} ${anton.variable}`}>
       <body className="min-h-screen bg-canvas text-ink antialiased">
@@ -23,11 +28,14 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
             <NavLinks />
           </div>
+          <div className="brand-bar" />
         </header>
-        <main data-app-shell className="mx-auto max-w-7xl px-4 pb-16 pt-8">
+        <MotionProvider>
+          <main data-app-shell className="mx-auto max-w-7xl px-4 pb-16 pt-8">
           {children}
         </main>
         <ScanOverlay />
+        </MotionProvider>
       </body>
     </html>
   );

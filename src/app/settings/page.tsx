@@ -1,6 +1,10 @@
-import { disconnectGmailAction } from "@/app/actions";
+import type { Metadata } from "next";
+import { disconnectGmailAction, resetConfigAction, saveConfigAction } from "@/app/actions";
+import { changePasswordAction, logoutAction, revokeOtherSessionsAction, revokeSessionAction } from "@/app/auth-actions";
+import { currentSession } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { btn, btnGhost, Card, Flash } from "@/components/ui";
-import { company, KES_PER_USD, packages, payFloors, profile, titleFamilies, industries, locations } from "@/config/profile";
+import { CONFIG_SECTIONS, loadConfig } from "@/lib/config";
 import { aiStatus } from "@/lib/ai";
 import { getSetting } from "@/lib/db";
 import { gmailAccount, gmailConfigured } from "@/lib/gmail";
@@ -10,15 +14,22 @@ export const dynamic = "force-dynamic";
 
 type Scan = { at: string; counts: Record<string, { fetched: number; matched: number; added: number }>; errors: string[] } | null;
 
+export const metadata: Metadata = { title: "Settings" };
+
 export default async function Settings({ searchParams }: { searchParams: Promise<{ ok?: string; error?: string }> }) {
   const sp = await searchParams;
+  const me = await currentSession();
+  const sessions = me ? await db.session.findMany({ where: { userId: me.user.id }, orderBy: { lastSeenAt: "desc" } }) : [];
+  const full = await loadConfig();
+  const { company, packages, payFloors, profile, titleFamilies, industries, locations } = full;
+  const KES_PER_USD = full.fx.kesPerUsd;
   const ai = aiStatus();
   const [gmail, scan, offer] = await Promise.all([gmailAccount(), getSetting<Scan>("lastScan", null), foundingOfferActive()]);
 
   return (
     <div className="space-y-6">
       <Flash ok={sp.ok} error={sp.error} />
-      <h1 className="page-title">Settings</h1>
+      <h1 className="page-title tracking-tight text-ink">Settings</h1>
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <Card index={1} title="Gmail (drafts only)">
           {gmail ? (
@@ -70,7 +81,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
               {ai.order[0] === "mock" && <span className="text-amber-700"> (add a key to .env to get real drafts)</span>}
             </li>
           </ul>
-          <p className="mt-2 text-xs text-ink-4">Change the order with AI_PROVIDERS in .env, e.g. “openai,claude”.</p>
+          <p className="mt-2 text-xs text-ink-4">Order and models are stored in the database (section “ai” below). API keys stay in .env.</p>
           {ai.gemini && (
             <p className="mt-2 text-xs text-amber-700">
               Gemini&apos;s free tier may let Google use prompts (including your CV details) to improve its products. Keep it last in AI_PROVIDERS once you
@@ -90,7 +101,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
             <li>Locations: Kenya ({locations.accepted.slice(0, 5).join(", ")}…), remote, abroad only with visa sponsorship. East Africa excluded.</li>
             <li>Notice period: {profile.noticePeriod}</li>
           </ul>
-          <p className="mt-2 text-xs text-ink-4">Edit these in src/config/profile.ts.</p>
+          <p className="mt-2 text-xs text-ink-4">Stored in the database; edit the sections below. src/config/profile.ts only supplies the first-run defaults.</p>
         </Card>
 
         <Card index={4} title="Red Star Standard offer">
@@ -108,7 +119,47 @@ export default async function Settings({ searchParams }: { searchParams: Promise
           </p>
         </Card>
 
-        <Card index={5} title="Last scan">
+        <Card title="Account & sessions">
+          <p className="text-sm">
+            Signed in as <b>{me?.user.email}</b>
+            {me?.user.googleId ? " (Google linked)" : ""}. Sessions last {full.auth.sessionDays} days and renew while you use the app.
+          </p>
+          <ul className="mt-3 space-y-2 text-xs">
+            {sessions.map((s) => (
+              <li key={s.id} className="flex items-start justify-between gap-2 rounded border border-slate-200 p-2">
+                <span>
+                  <b>{s.id === me?.sessionId ? "This device" : "Other device"}</b> · {s.method}
+                  <br />
+                  {(s.userAgent ?? "unknown browser").slice(0, 70)} · {s.ip ?? "?"}
+                  <br />
+                  Last active {s.lastSeenAt.toLocaleString("en-GB")} · expires {s.expiresAt.toLocaleDateString("en-GB")}
+                </span>
+                {s.id !== me?.sessionId && (
+                  <form action={revokeSessionAction}>
+                    <input type="hidden" name="id" value={s.id} />
+                    <button className={btnGhost}>Revoke</button>
+                  </form>
+                )}
+              </li>
+            ))}
+          </ul>
+          <div className="mt-3 flex gap-2">
+            <form action={revokeOtherSessionsAction}>
+              <button className={btnGhost}>Sign out other devices</button>
+            </form>
+            <form action={logoutAction}>
+              <button className={btnGhost}>Sign out</button>
+            </form>
+          </div>
+          <form action={changePasswordAction} className="mt-4 space-y-2 border-t border-slate-200 pt-3 text-sm">
+            <p className="text-xs font-medium text-slate-600">{me?.user.passwordHash ? "Change password" : "Set a password (so you can also sign in with email)"}</p>
+            {me?.user.passwordHash && <input name="current" type="password" placeholder="Current password" required autoComplete="current-password" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />}
+            <input name="next" type="password" placeholder="New password (10+ chars, letters and a number)" required minLength={10} autoComplete="new-password" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            <button className={btn}>Save password</button>
+          </form>
+        </Card>
+
+        <Card title="Last scan">
           {scan ? (
             <div className="text-sm">
               <p>{new Date(scan.at).toLocaleString("en-GB")}</p>
@@ -140,6 +191,29 @@ export default async function Settings({ searchParams }: { searchParams: Promise
           <p className="mt-2 text-xs text-ink-4">Sources: BrighterMonday and MyJobMag (Kenya); Remote4Africa, Himalayas, Remotive, Jobicy and Remote OK (remote, kept only when the post is open to Africa or Kenya). Each job links back to its original post.</p>
         </Card>
       </div>
+
+      <Card title="Edit configuration (stored in the database)">
+        <p className="mb-3 text-xs text-slate-500">
+          Every parameter the app uses lives in the database, one JSON section each. Changes apply within a few seconds. “Reset” restores the defaults from src/config/profile.ts / .env.
+        </p>
+        <div className="space-y-2">
+          {CONFIG_SECTIONS.map((section) => (
+            <details key={section} className="rounded border border-slate-200 p-2">
+              <summary className="cursor-pointer text-sm font-medium">{section}</summary>
+              <form action={saveConfigAction} className="mt-2 space-y-2">
+                <input type="hidden" name="section" value={section} />
+                <textarea name="json" defaultValue={JSON.stringify((full as Record<string, unknown>)[section], null, 2)} rows={14} spellCheck={false} className="w-full rounded border border-slate-300 p-2 font-mono text-xs" />
+                <div className="flex gap-2">
+                  <button className={btn}>Save</button>
+                  <button formAction={resetConfigAction} className={btnGhost}>
+                    Reset to defaults
+                  </button>
+                </div>
+              </form>
+            </details>
+          ))}
+        </div>
+      </Card>
     </div>
   );
 }

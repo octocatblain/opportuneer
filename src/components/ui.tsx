@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Reveal, StaggerItem } from "@/components/motion";
 import type { ScoreLine } from "@/lib/scoring";
 
 export const STAGES = ["FOUND", "SHORTLISTED", "DRAFTED", "SENT", "REPLIED", "INTERVIEW", "WON", "LOST", "ARCHIVED"] as const;
@@ -132,6 +133,7 @@ export function Card({
 }) {
   const dark = tone === "dark";
   return (
+    <Reveal>
     <section
       className={`rounded-[28px] p-6 ${dark ? "bg-ink text-white" : "bg-white shadow-[0_1px_0_rgba(14,16,20,0.04),0_12px_32px_-18px_rgba(14,16,20,0.18)]"}`}
     >
@@ -146,6 +148,7 @@ export function Card({
       )}
       {children}
     </section>
+    </Reveal>
   );
 }
 
@@ -189,6 +192,7 @@ export function OppRow({
         →
       </span>
     </Link>
+    </StaggerItem>
   );
 }
 

@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { getSetting, setSetting } from "@/lib/db";
+import { cfg as appCfg } from "@/lib/config";
 import { STORAGE_DIR } from "@/lib/pdf";
 
 /** Drafts only: this scope can create drafts and send, but cannot read your inbox. We never call send. */
@@ -29,7 +30,7 @@ export function authUrl(state: string) {
     scope: SCOPES.join(" "),
     access_type: "offline",
     prompt: "consent",
-    login_hint: process.env.GMAIL_ACCOUNT || "blainmuema@gmail.com",
+    login_hint: appCfg().gmail.account,
     state,
   });
   return `https://accounts.google.com/o/oauth2/v2/auth?${p}`;

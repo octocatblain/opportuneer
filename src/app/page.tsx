@@ -1,5 +1,7 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { scanAction } from "@/app/actions";
+import { CountUp, Stagger, StaggerItem } from "@/components/motion";
 import { SubmitButton } from "@/components/submit-button";
 import { btnSignal, Card, Empty, Flash, OppRow, PageHeader, ScorePill, TrackBadge } from "@/components/ui";
 import { db, getSetting } from "@/lib/db";
@@ -7,6 +9,8 @@ import { db, getSetting } from "@/lib/db";
 export const dynamic = "force-dynamic";
 
 type Scan = { at: string; counts: Record<string, { fetched: number; matched: number; added: number }>; errors: string[] } | null;
+
+export const metadata: Metadata = { title: "Today" };
 
 export default async function Today({ searchParams }: { searchParams: Promise<{ ok?: string; error?: string }> }) {
   const sp = await searchParams;
@@ -74,7 +78,7 @@ export default async function Today({ searchParams }: { searchParams: Promise<{ 
             <div className="font-display text-6xl leading-none tabular-nums">{n}</div>
           </div>
         ))}
-      </div>
+      </Stagger>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
@@ -90,11 +94,11 @@ export default async function Today({ searchParams }: { searchParams: Promise<{ 
             {shortlist.length === 0 ? (
               <Empty>Nothing new. Scan the boards, or paste a job on “Add job”.</Empty>
             ) : (
-              <div className="divide-y divide-ink/5">
+              <Stagger className="divide-y divide-ink/5">
                 {shortlist.map((o) => (
                   <OppRow key={o.id} o={o} />
                 ))}
-              </div>
+              </Stagger>
             )}
           </Card>
         </div>
@@ -103,11 +107,11 @@ export default async function Today({ searchParams }: { searchParams: Promise<{ 
             {followUps.length === 0 ? (
               <Empty>None due.</Empty>
             ) : (
-              <div className="divide-y divide-ink/5">
+              <Stagger className="divide-y divide-ink/5">
                 {followUps.map((o) => (
                   <OppRow key={o.id} o={o} />
                 ))}
-              </div>
+              </Stagger>
             )}
           </Card>
           <Card

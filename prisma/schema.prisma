@@ -122,3 +122,30 @@ model Setting {
   value     Json
   updatedAt DateTime @updatedAt
 }
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique // stored lowercase
+  name         String?
+  passwordHash String? // scrypt; null for Google-only accounts
+  googleId     String?   @unique
+  createdAt    DateTime  @default(now())
+  lastLoginAt  DateTime?
+  sessions     Session[]
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique // sha256 of the cookie token; the raw token is never stored
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  method     String // password | google
+  userAgent  String?
+  ip         String?
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  expiresAt  DateTime
+
+  @@index([userId])
+  @@index([expiresAt])
+}
