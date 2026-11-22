@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Card, Chip, Empty, input, OppRow, PageHeader, Segmented, STAGE_LABEL, tab } from "@/components/ui";
+import { Card, Chip, Empty, input, OppRow, PageHeader, Segmented, STAGE_LABEL } from "@/components/ui";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";

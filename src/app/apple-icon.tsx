@@ -1,6 +1,5 @@
 import { ImageResponse } from "next/og";
-import { MarkArt } from "@/components/brand-mark";
-import { INK } from "@/lib/brand";
+import { INK, SIGNAL, SPARK_PATH } from "@/lib/brand";
 
 export const size = { width: 180, height: 180 };
 export const contentType = "image/png";
@@ -11,7 +10,9 @@ export default function AppleIcon() {
     (
       <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: INK }}>
         <svg width="180" height="180" viewBox="0 0 64 64">
-          <MarkArt tile={false} />
+          <circle cx="28" cy="36" r="14" fill="none" stroke={SIGNAL} strokeWidth="8" />
+          <path d={SPARK_PATH} fill={INK} stroke={INK} strokeWidth="6" strokeLinejoin="round" />
+          <path d={SPARK_PATH} fill="#ffffff" />
         </svg>
       </div>
     ),

@@ -4,7 +4,7 @@ import { GoogleGenAI } from "@google/genai";
 import fs from "node:fs";
 import path from "node:path";
 import type { z } from "zod";
-import { cfg, loadConfig } from "@/lib/config";
+import { cfg } from "@/lib/config";
 
 export type GenerateOptions = {
   system: string;

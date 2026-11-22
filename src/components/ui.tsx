@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Reveal, StaggerItem } from "@/components/motion";
+import { Reveal } from "@/components/motion";
 import type { ScoreLine } from "@/lib/scoring";
 
 export const STAGES = ["FOUND", "SHORTLISTED", "DRAFTED", "SENT", "REPLIED", "INTERVIEW", "WON", "LOST", "ARCHIVED"] as const;
@@ -192,7 +192,6 @@ export function OppRow({
         →
       </span>
     </Link>
-    </StaggerItem>
   );
 }
 

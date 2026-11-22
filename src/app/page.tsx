@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { scanAction } from "@/app/actions";
-import { CountUp, Stagger, StaggerItem } from "@/components/motion";
+import { Stagger } from "@/components/motion";
 import { SubmitButton } from "@/components/submit-button";
 import { btnSignal, Card, Empty, Flash, OppRow, PageHeader, ScorePill, TrackBadge } from "@/components/ui";
 import { db, getSetting } from "@/lib/db";
@@ -78,7 +78,7 @@ export default async function Today({ searchParams }: { searchParams: Promise<{ 
             <div className="font-display text-6xl leading-none tabular-nums">{n}</div>
           </div>
         ))}
-      </Stagger>
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">

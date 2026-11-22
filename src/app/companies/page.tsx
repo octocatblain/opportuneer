@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { addCompanyAction } from "@/app/actions";
 import { SubmitButton } from "@/components/submit-button";
-import { btnSignal, Card, Empty, Flash, input, PageHeader, ScorePill, Segmented, TrackBadge, tab } from "@/components/ui";
+import { btnSignal, Card, Empty, Flash, input, PageHeader, ScorePill, Segmented, TrackBadge } from "@/components/ui";
 import { loadConfig } from "@/lib/config";
 import { db } from "@/lib/db";
 

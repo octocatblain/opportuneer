@@ -1,8 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Anton, Instrument_Serif, Inter_Tight } from "next/font/google";
-import { logoutAction } from "@/app/auth-actions";
-import { LogoMark, MotionProvider } from "@/components/motion";
-import { Nav } from "@/components/nav";
+import { MotionProvider } from "@/components/motion";
 import { getUser } from "@/lib/auth";
 import "./globals.css";
 import { ScanOverlay } from "@/components/scan-overlay";
@@ -20,7 +18,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { themeColor: "#0e1014" };
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const user = await getUser();
+  await getUser();
   return (
     <html lang="en" className={`${interTight.variable} ${instrumentSerif.variable} ${anton.variable}`}>
       <body className="min-h-screen bg-canvas text-ink antialiased">
