@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { registerAction } from "@/app/auth-actions";
 import { SubmitButton } from "@/components/submit-button";
+import { LogoMark } from "@/components/motion";
 import { btn, Flash, input } from "@/components/ui";
 import { loadConfig } from "@/lib/config";
 import { db } from "@/lib/db";
@@ -19,7 +20,8 @@ export default async function Register({ searchParams }: { searchParams: Promise
 
   return (
     <div className="mx-auto max-w-sm space-y-4 pt-10">
-      <h1 className="text-2xl font-bold tracking-tight text-ink">Create an account</h1>
+      <LogoMark className="mx-auto h-14 w-14" />
+      <h1 className="text-center text-2xl font-bold tracking-tight text-ink">Create an account</h1>
       <p className="text-sm text-slate-600">
         {first ? "No accounts yet: the first one you create becomes the owner." : "Only emails on the allowed list (Settings → auth) can register."}
       </p>

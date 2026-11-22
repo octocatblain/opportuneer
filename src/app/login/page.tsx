@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { loginAction } from "@/app/auth-actions";
 import { SubmitButton } from "@/components/submit-button";
+import { LogoMark } from "@/components/motion";
 import { btn, Flash, input } from "@/components/ui";
 import { loadConfig } from "@/lib/config";
 
@@ -17,7 +18,8 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
 
   return (
     <div className="mx-auto max-w-sm space-y-4 pt-10">
-      <h1 className="text-2xl font-bold tracking-tight text-ink">Sign in</h1>
+      <LogoMark className="mx-auto h-14 w-14" />
+      <h1 className="text-center text-2xl font-bold tracking-tight text-ink">Sign in</h1>
       <Flash error={sp.error} />
       {google && (
         <a href={`/api/auth/google/start${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="block rounded-md border border-slate-300 bg-white px-4 py-2 text-center text-sm font-medium hover:bg-slate-50">

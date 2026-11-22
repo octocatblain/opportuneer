@@ -2,6 +2,7 @@
 
 import { animate, MotionConfig, motion, useInView, useMotionValue, useReducedMotion, useTransform, type Variants } from "motion/react";
 import { useEffect, useRef } from "react";
+import { BRAND_COLOR, STAR_PATH } from "@/lib/brand";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -88,8 +89,8 @@ export function CountUp({ value, className }: { value: number; className?: strin
 export function LogoMark({ className }: { className?: string }) {
   return (
     <motion.svg viewBox="0 0 32 32" className={className} aria-hidden="true" initial={{ rotate: -90, scale: 0.4, opacity: 0 }} animate={{ rotate: 0, scale: 1, opacity: 1 }} whileHover={{ rotate: 12, scale: 1.08 }} transition={{ type: "spring", stiffness: 180, damping: 14 }}>
-      <rect width="32" height="32" rx="7" fill="#9f1239" />
-      <path fill="#fff" transform="translate(5 5) scale(.9167)" d="M12 2l2.9 6.6 7.1.7-5.4 4.8 1.6 7L12 17.4 5.8 21.1l1.6-7L2 9.3l7.1-.7z" />
+      <rect width="32" height="32" rx="7" fill={BRAND_COLOR} />
+      <path fill="#fff" transform="translate(5 5) scale(.9167)" d={STAR_PATH} />
     </motion.svg>
   );
 }
