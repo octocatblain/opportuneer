@@ -1,23 +1,16 @@
 # Opportuneer: X introduction post (Mon 23 Nov 2026, 08:00 EAT)
 
-Source: Post 1 in `plan.md`. Image: `x-intro-1200x675.png` (16:9, no crop on the X timeline; Red Star Standard logo and visual system).
+The plan (`../plan.md`, "Post 1") is the source of truth. Summary:
 
-## Post
+- Image: `x-intro-image.png` (final launch graphic). Fix before posting: "Opportuner" typo in the logo; "Launching Monday, Nov 24" and "Opens 24 Nov" (24 Nov is the Tuesday waitlist, the pilot starts Mon 30 Nov).
+- Video: `x-intro-1280x720.mp4` (13 s, silent) with thumbnail `x-intro-poster-1280x720.png`. Kept for the Tue 24 Nov waitlist post or a reply.
 
-Introducing Opportuneer, from Red Star Standard.
-Finds jobs that actually fit. Finds prospects that can pay. Drafts the applications and pitches, and never sends anything for you.
-30 pilot places open 30 Nov. Building in public this week. Waitlist opens tomorrow morning.
+## Post (279 characters)
 
-## Alt text
+Job searching is work. Opportuneer does the groundwork: finds and scores roles, researches employers and drafts applications and pitches.
 
-Opportuneer: "Opportunities that actually fit." with a card of three scored matches: Platform Engineer 92, AI Automation Lead 84, Pitch: logistics firm 71. Built by Red Star Standard.
+You review every draft and decide what gets sent.
 
-## Follow-up reply at 16:30 (optional)
+Waitlist opens Tue 24 Nov. 30-place pilot starts Mon 30 Nov.
 
-Why we built it: job boards are noisy, and many posts hide who is hiring or ask candidates for fees. Opportuneer filters those out, scores each company so you know whether to apply or pitch, and keeps every account private. Follow to get the waitlist link tomorrow.
-
-## Notes
-
-- Image is an illustration with demo data, labelled as such on the card. The plan prefers a real screenshot once the app is running; swap it in at 1200x675 if you have one by 08:00.
-- Post the link only on Tue 24 Nov, with `?src=` tags. Today's CTA is "follow", so nothing here links out.
-- Hashtags (max 4, optional on X): #Opportuneer #RedStarStandard #JobSearch #AIAutomation
+Built by Red Star Standard.

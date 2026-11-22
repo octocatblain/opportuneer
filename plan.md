@@ -51,10 +51,27 @@ Timeline (revised 22 Nov): testers start using the app on **Mon 30 Nov**. Until 
 
 ## Positioning line
 "Opportuneer: opportunities that actually fit. Prospects that can pay. A Red Star Standard product."
+**Public positioning (added 22 Nov):** Opportuneer doesn't just help you find jobs. It helps you do the work behind getting noticed. This is a product introduction, not a conventional ad: someone looking for work in Kenya should understand in seconds what it does and why it is different.
+The four capabilities that make up its public identity:
+| Capability | What the user gets |
+|---|---|
+| Job discovery | Find relevant opportunities |
+| Opportunity scoring | Understand which opportunities are worth pursuing |
+| Company research | Understand employers before applying |
+| Application and outreach drafting | Tailored applications and pitches, ready for review |
+Key differentiator: **Drafts, never sends.** The product assists and never takes control of someone's professional identity; the user is responsible for every application and message.
 Proof points to repeat: drafts never sends, nothing scraped from LinkedIn, every account private.
 
 ## Post 1: introduction (Mon 23 Nov, 08:00 EAT)
-Asset: the landing-page screenshot (hero + "How the day looks" card). Crop to 1200x675 for X/LinkedIn, and 1080x1350 for Instagram.
+**Assets (files in `social/`):**
+- `x-intro-image.png` (1536x1024): final launch graphic for X, black / off-white / orange, dark scoring interface, Red Star Standard attribution. Chosen 22 Nov. **Fix before posting, see the checks below.**
+- `x-intro-1280x720.mp4`: 13 s silent motion version (job-post filtering, score count-up, draft and send, end card), kept for the Tue 24 Nov waitlist post or a reply. Thumbnail: `x-intro-poster-1280x720.png`.
+- LinkedIn/Facebook can use the graphic cropped to 1200x675 (X/LinkedIn) or 1080x1350 (Instagram).
+Pre-post checks on the graphic (it is AI-generated):
+- [ ] The logo wordmark reads "Opportuner" (missing the final e). Fix it, or the whole launch carries a misspelt brand.
+- [ ] The button says "Launching Monday, Nov 24" and the tag says "Opens 24 Nov". 24 Nov is a Tuesday and is the waitlist, not the pilot. Correct to "Waitlist opens Tue 24 Nov" and "Pilot starts Mon 30 Nov", so the two milestones are not confused.
+- [ ] The sidebar shows Search, Outreach, Analytics, Settings and a user photo. These do not match the real app; change them to real nav items or crop them out.
+- [ ] "Illustration only" stays on the card, since the matches are demo data.
 
 **Caption (LinkedIn/Facebook):**
 > Job boards are noisy. Most roles don't fit, and many don't even say who is hiring.
@@ -71,24 +88,31 @@ Asset: the landing-page screenshot (hero + "How the day looks" card). Crop to 12
 >
 > The waitlist opens tomorrow morning (Tue 24 Nov). Follow to get the link first.
 
-**X version (under 280):**
-> Introducing Opportuneer, from Red Star Standard.
-> Finds jobs that actually fit. Finds prospects that can pay. Drafts the applications and pitches, and never sends anything for you.
-> 30 pilot places open 30 Nov. Building in public this week. Waitlist opens tomorrow morning.
+**X version (279 characters, final 22 Nov):**
+> Job searching is work. Opportuneer does the groundwork: finds and scores roles, researches employers and drafts applications and pitches.
+>
+> You review every draft and decide what gets sent.
+>
+> Waitlist opens Tue 24 Nov. 30-place pilot starts Mon 30 Nov.
+>
+> Built by Red Star Standard.
 
-**Alt text:** Opportuneer landing page: "Opportunities that actually fit. Prospects that can pay." with a dark card showing three scored matches: Platform Engineer 92, AI Automation Lead 84, Pitch: logistics firm 71.
+(The first draft of this copy was 291 characters, over the limit for a standard post; it was trimmed. Recount after any edit. The earlier X version is superseded.) Post the link on Tue 24 Nov only.
+
+**Alt text:** Opportuneer launch graphic: "Opportunities that actually fit." with four features (smart job search, opportunity scoring, company insights, ready-to-send applications) and a dashboard showing three scored matches: Platform Engineer 92, AI Automation Lead 84, Pitch: logistics firm 71. Waitlist opens 24 Nov; pilot of 30 places. Built by Red Star Standard.
 
 Hashtags (max 4): #Opportuneer #RedStarStandard #JobSearch #AIAutomation
 
 ## Build-in-public calendar (23 to 29 Nov, 08:00 post, 16:30 follow-up/story)
+Principle (added 22 Nov): don't spend the week telling people how good Opportuneer is. Show them what their job search could look like. One real demonstration (find a Kenyan opportunity, score it, research the employer, prepare the application) will say more than ten generic promo posts. Post 1 establishes the name; every post after it establishes usefulness.
 Rule: only post what really works in the app that day. Show real screenshots with demo data, never a real user's data. Include one honest "what broke / what I fixed" line per post, since the security and gap-tightening work is the story.
 | Day | Date | Build focus (also the post) | Hook | CTA |
 |---|---|---|---|---|
-| 1 | Mon 23 Nov | Intro + what the MVP must do by 30 Nov | The first look (post above) | "Waitlist opens tomorrow morning" (follow to get the link) |
+| 1 | Mon 23 Nov | Intro + how it works: "Job searching is work" (find, score, research, draft) | The launch graphic (post above) | "Waitlist opens tomorrow morning" (follow to get the link) |
 | 2 | Tue 24 | Waitlist goes live (morning post, link with `?src=tue24`) + Scan + filter: daily scan, archive fee-asking/employer-hiding posts | "We read the boards so you don't." Show an archived card with its reason | Waitlist link; comment: worst job post you've seen |
 | 3 | Wed 25 | Score + company research: fit score, size, budget, AI-readiness | What a 92 vs a 71 means | Waitlist |
 | 4 | Thu 26 | Drafts + Gmail drafts: CV, cover letter, proposal, "drafts, never sends" | Before/after of a tailored CV, show the Gmail draft | Waitlist |
-| 5 | Fri 27 | Security day: multi-user isolation, caps/credit ledger, privacy and delete-my-data | "Private by design", what we tested and fixed | Waitlist |
+| 5 | Fri 27 | Trust day: "Drafts, never sends" plus security: multi-user isolation, caps/credit ledger, privacy and delete-my-data | "You decide what gets sent"; "Private by design", what we tested and fixed | Waitlist |
 | 6 | Sat 28 | Pitch track + pilot details: 30 places, first 10 free for 3 months, next 20 at half price for 3 months, first come first served. If the pilot is already full, say so and point to the public-launch waitlist | Ties to Red Star services | "Want this built for your team? Book a call" |
 | 7 | Sun 29 | Poll + countdown: "job seeker or pitching for clients?" + "Invites go out tomorrow, 30 Nov" | Poll shows your audience mix | Public-launch waitlist push (the pilot is likely full by now) |
 | Pilot | Mon 30 Nov | Invites | Cohort A (the first 10 waitlist signups) invited by email; announce publicly | |
