@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { logoutAction } from "@/app/auth-actions";
 import { BrandMark, Wordmark } from "@/components/brand-mark";
@@ -42,6 +43,9 @@ type Item = { href: string; label: string; icon: string; exact?: boolean };
  */
 export function AppShell({ children, admin = false, ownSpace = "duo", name, email }: { children: ReactNode; admin?: boolean; ownSpace?: Space; name: string; email: string }) {
   const path = usePathname();
+  // Highlight the clicked item at once; the page itself follows when the server responds.
+  const [pending, setPending] = useState<string | null>(null);
+  useEffect(() => setPending(null), [path]);
   const inAdmin = path === "/admin" || path.startsWith("/admin/");
   const seg = path.split("/")[2];
   const space: Space = path.startsWith("/client/") && isSpace(seg) ? seg : ownSpace;
@@ -66,7 +70,7 @@ export function AppShell({ children, admin = false, ownSpace = "duo", name, emai
     { href: "/admin/config", label: "Configuration", icon: "config" },
   ];
   const items = adminMode ? adminItems : clientItems;
-  const on = (i: Item) => (i.exact ? path === i.href : path === i.href || path.startsWith(`${i.href}/`));
+  const on = (i: Item) => (pending ? i.href === pending : i.exact ? path === i.href : path === i.href || path.startsWith(`${i.href}/`));
   const initials =
     (name || email)
       .split(/[\s@.]+/)
@@ -106,6 +110,7 @@ export function AppShell({ children, admin = false, ownSpace = "duo", name, emai
           {items.map((i) => (
             <Link
               key={i.href}
+              onClick={() => setPending(i.href)}
               href={i.href}
               aria-current={on(i) ? "page" : undefined}
               className={`relative flex items-center gap-3 rounded-md px-3 py-2.5 font-medium transition-colors ${
@@ -166,7 +171,7 @@ export function AppShell({ children, admin = false, ownSpace = "duo", name, emai
           </div>
           <nav aria-label="Sections" className="flex w-full gap-1 overflow-x-auto text-sm lg:hidden">
             {items.map((i) => (
-              <Link key={i.href} href={i.href} aria-current={on(i) ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-3 py-1.5 font-medium ${on(i) ? "bg-ink text-white" : "text-muted"}`}>
+              <Link key={i.href} href={i.href} onClick={() => setPending(i.href)} aria-current={on(i) ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-3 py-1.5 font-medium ${on(i) ? "bg-ink text-white" : "text-muted"}`}>
                 {i.label}
               </Link>
             ))}

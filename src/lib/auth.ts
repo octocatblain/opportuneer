@@ -5,6 +5,7 @@
  *  - Sessions slide (extended while in use), can be listed and revoked, and end on sign-out.
  */
 import { createHash, randomBytes } from "node:crypto";
+import { cache } from "react";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Prisma, type User } from "@prisma/client";
@@ -81,9 +82,8 @@ export async function userForToken(token: string | undefined) {
   return { user: s.user, sessionId: s.id };
 }
 
-export async function currentSession() {
-  return userForToken((await cookies()).get(SESSION_COOKIE)?.value);
-}
+/** Memoised per request, so the layout, the page and any guards share one session lookup instead of one each. */
+export const currentSession = cache(async () => userForToken((await cookies()).get(SESSION_COOKIE)?.value));
 
 export async function getUser(): Promise<User | null> {
   return (await currentSession())?.user ?? null;
