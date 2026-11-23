@@ -155,6 +155,7 @@ model User {
   credits       CreditLedger[]
   feedback      Feedback[]
   events        AnalyticsEvent[]
+  kyc           UserProfile?
 }
 
 /// Which tracks an account may use. Opportunity.track stays JOB | PITCH: a single item is one or the other.
@@ -287,4 +288,22 @@ model WaitlistEntry {
 
   @@index([phase, cohort])
   @@index([status])
+}
+
+/// KYC / search profile, one row per user. Each section is saved separately and only overrides the app defaults once its *DoneAt is set.
+model UserProfile {
+  userId          String    @id
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  basics          Json? // name, phone, location, notice period, links
+  jobPrefs        Json? // job track: titles, industries, pay floors, locations
+  pitchPrefs      Json? // pitch track: the user's own agency, offer/packages, client floor
+  basicsDoneAt    DateTime?
+  jobDoneAt       DateTime?
+  pitchDoneAt     DateTime?
+  resumeName      String?
+  resumePath      String? // relative to storage/
+  resumeMime      String?
+  resumeText      String?
+  resumeUpdatedAt DateTime?
+  updatedAt       DateTime  @updatedAt
 }

@@ -6,6 +6,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { btn, btnGhost, Flash, input, Card, Chip, Empty, OppRow, PAGE_SIZE, PageHeader, pageParam, Pagination, ScorePill, Segmented, STAGE_LABEL, TrackBadge } from "@/components/ui";
 import { requireSuper } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { getProfile, missingSteps, type JobPrefs, type PitchPrefs } from "@/lib/kyc";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Admin: user content" };
@@ -19,6 +20,10 @@ export default async function AdminUser({ params, searchParams }: { params: Prom
   const sp = await searchParams;
   const user = await db.user.findUnique({ where: { id }, select: { id: true, email: true, name: true, role: true, trackAccess: true, createdAt: true, lastLoginAt: true, passwordHash: true, googleId: true } });
   if (!user) notFound();
+  const kyc = await getProfile(id);
+  const todo = missingSteps(user.trackAccess, kyc);
+  const jp = kyc?.jobPrefs as JobPrefs | null;
+  const pp = kyc?.pitchPrefs as PitchPrefs | null;
   const tab = sp.tab === "companies" ? "companies" : "opportunities";
   const [nOpp, nCo, sessions] = await Promise.all([db.opportunity.count({ where: { userId: id } }), db.company.count({ where: { userId: id } }), db.session.count({ where: { userId: id, expiresAt: { gt: new Date() } } })]);
   const total = tab === "companies" ? nCo : nOpp;
@@ -102,6 +107,26 @@ export default async function AdminUser({ params, searchParams }: { params: Prom
           </div>
         </div>
       </Card>
+      <Card title="Profile (KYC)">
+        <dl className="grid grid-cols-[10rem_1fr] gap-x-4 gap-y-1 text-sm">
+          <dt className="text-muted">Status</dt>
+          <dd>{user.role === "SUPERUSER" ? "Owner (not required)" : todo.length ? `Incomplete: ${todo.join(", ")}` : "Complete"}</dd>
+          <dt className="text-muted">Resume</dt>
+          <dd>{kyc?.resumeName ? <a className="link" href={`/api/profile/resume?user=${user.id}`}>{kyc.resumeName}</a> : "none"}</dd>
+          {jp && (
+            <>
+              <dt className="text-muted">Job targets</dt>
+              <dd>{[...jp.titleKeys, ...jp.customTitles].join(", ")} · floor ${jp.localMonthlyUsd}/${jp.remoteMonthlyUsd} per month</dd>
+            </>
+          )}
+          {pp && (
+            <>
+              <dt className="text-muted">Agency</dt>
+              <dd>{pp.agencyName} · {pp.packages.length} packages · client floor KES {pp.clientFloorKes.toLocaleString()}</dd>
+            </>
+          )}
+        </dl>
+      </Card>
       <Segmented
         items={[
           { href: `/admin/users/${id}?tab=opportunities`, label: `Opportunities (${nOpp})`, active: tab === "opportunities" },
@@ -131,7 +156,7 @@ export default async function AdminUser({ params, searchParams }: { params: Prom
         ) : (
           <div className="divide-y divide-rule">
             {companies.map((c) => (
-              <Link key={c.id} href={`/client/duo/companies/${c.id}`} className="group -mx-3 flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-paper active:bg-paper-2">
+              <Link key={c.id} href={`/client/duo/companies/${c.id}`} className="group -mx-3 flex items-center gap-3 rounded-md px-3 py-2 transition-colors hover:bg-paper active:bg-paper-2">
                 <ScorePill score={c.score} />
                 <span className="min-w-0 flex-1 truncate font-medium group-hover:underline">{c.name}</span>
                 <TrackBadge track={c.recommendation} both={c.recommendBoth} />

@@ -3,7 +3,8 @@ import fs from "node:fs/promises";
 import { Prisma, type Opportunity, type Company, type Track } from "@prisma/client";
 import { allowsTrack } from "@/lib/tracks";
 import { withCredits } from "@/lib/credits";
-import { cfg, loadConfig } from "@/lib/config";
+import { cfg, loadConfig, runForUser } from "@/lib/config";
+import { getProfile } from "@/lib/kyc";
 import { db, setSetting } from "@/lib/db";
 import { scanStatus, setScanRunning } from "@/lib/scan-status";
 import { feeds, fetchPageText, type RawJob } from "@/lib/feeds";
@@ -23,6 +24,11 @@ import { assembleHtml, loadCvParts } from "@/lib/cv";
 import { htmlToPdf, letterHtml, markdownHtml, STORAGE_DIR } from "@/lib/pdf";
 import { createDraft } from "@/lib/gmail";
 import { providerChain } from "@/lib/ai";
+
+/** Run an account-scoped function (first argument is the user id) inside that account's config. */
+function scoped<A extends [string, ...unknown[]], R>(fn: (...a: A) => Promise<R>) {
+  return (...a: A): Promise<R> => runForUser(a[0], () => fn(...a));
+}
 
 function requireAI() {
   if (providerChain()[0].name === "mock") throw new Error("No AI key configured: add GEMINI_API_KEY, ANTHROPIC_API_KEY or OPENAI_API_KEY to .env and restart the app.");
@@ -60,7 +66,7 @@ export async function upsertCompany(userId: string, name: string, data: Partial<
   });
 }
 
-export async function rescoreCompany(userId: string, id: string) {
+async function rescoreCompanyImpl(userId: string, id: string) {
   await loadConfig();
   const c = await db.company.findFirstOrThrow({
     where: { id, userId },
@@ -85,7 +91,7 @@ export function researchCompanyById(userId: string, id: string, extraText = "") 
   return withCredits(userId, "research", () => researchCompanyByIdRun(userId, id, extraText));
 }
 
-async function researchCompanyByIdRun(userId: string, id: string, extraText = "") {
+async function researchCompanyByIdRunImpl(userId: string, id: string, extraText = "") {
   await loadConfig();
   requireAI();
   const c = await db.company.findFirstOrThrow({ where: { id, userId } });
@@ -128,7 +134,7 @@ function fitJson(fit: JobFit) {
   return fit as unknown as Prisma.InputJsonValue;
 }
 
-export async function saveJob(userId: string, raw: RawJob, contact?: { name?: string | null; email?: string | null; website?: string | null }) {
+async function saveJobImpl(userId: string, raw: RawJob, contact?: { name?: string | null; email?: string | null; website?: string | null }) {
   await assertTrack(userId, "JOB");
   await loadConfig();
   const existing = await db.opportunity.findUnique({ where: { userId_source_sourceId: { userId, source: raw.source, sourceId: raw.sourceId } } });
@@ -188,7 +194,16 @@ export async function saveJob(userId: string, raw: RawJob, contact?: { name?: st
   return { opp, created: true };
 }
 
-export async function rescoreJob(userId: string, id: string) {
+/** Re-score every open job and company with the account's current profile (after the targets change). */
+async function rescoreAllImpl(userId: string) {
+  const jobs = await db.opportunity.findMany({ where: { userId, track: "JOB", stage: { notIn: ["ARCHIVED", "LOST", "WON"] } }, select: { id: true } });
+  for (const j of jobs) await rescoreJob(userId, j.id);
+  const companies = await db.company.findMany({ where: { userId }, select: { id: true } });
+  for (const c of companies) await rescoreCompany(userId, c.id);
+  return { jobs: jobs.length, companies: companies.length };
+}
+
+async function rescoreJobImpl(userId: string, id: string) {
   await loadConfig();
   const o = await db.opportunity.findFirstOrThrow({ where: { id, userId }, include: { company: true } });
   const fit = scoreJob({
@@ -209,6 +224,8 @@ export async function rescoreJob(userId: string, id: string) {
 
 export async function runScan(userId: string) {
   await assertTrack(userId, "JOB");
+  const u = await db.user.findUniqueOrThrow({ where: { id: userId }, select: { role: true } });
+  if (u.role === "USER" && !(await getProfile(userId))?.jobDoneAt) throw new Error("Finish your job search profile first (Profile → Job search) so the scan knows what to look for.");
   if ((await scanStatus(userId)).running) throw new Error("A scan is already running. Wait for it to finish.");
   await setScanRunning(userId, true);
   try {
@@ -218,7 +235,7 @@ export async function runScan(userId: string) {
   }
 }
 
-async function doScan(userId: string) {
+async function doScanImpl(userId: string) {
   await loadConfig();
   const counts: Record<string, { fetched: number; matched: number; added: number }> = {};
   const errors: string[] = [];
@@ -247,7 +264,7 @@ export function importJob(userId: string, input: { text?: string; url?: string; 
   return withCredits(userId, "import", () => importJobRun(userId, input));
 }
 
-async function importJobRun(userId: string, input: { text?: string; url?: string; source?: string }) {
+async function importJobRunImpl(userId: string, input: { text?: string; url?: string; source?: string }) {
   await assertTrack(userId, "JOB");
   await loadConfig();
   requireAI();
@@ -310,25 +327,25 @@ export function generateApplication(userId: string, id: string) {
   return withCredits(userId, "application", () => generateApplicationRun(userId, id));
 }
 
-async function generateApplicationRun(userId: string, id: string) {
+async function generateApplicationRunImpl(userId: string, id: string) {
   await assertTrack(userId, "JOB");
   await loadConfig();
   requireAI();
   const o = await db.opportunity.findFirstOrThrow({ where: { id, userId }, include: { company: true } });
   const companyName = o.company?.name ?? "the company";
   const mention = shouldMentionCompany(o.title, o.employment, o.description);
-  const cv = await loadCvParts();
+  const cv = await loadCvParts(userId);
   const date = new Date().toISOString().slice(0, 10);
   const base = `${o.id}/${date}-${slug(companyName)}`;
 
-  const tailored = await tailorCv({ cvBodyHtml: cv.body, jobTitle: o.title, companyName, jobDescription: o.description ?? "", mentionCompany: mention });
-  const cvPdf = await htmlToPdf(assembleHtml(cv.head, tailored.bodyHtml), `${base}-blain-muema-cv.pdf`);
+  const tailored = await tailorCv({ cvFormat: cv.format, cvBodyHtml: cv.body, jobTitle: o.title, companyName, jobDescription: o.description ?? "", mentionCompany: mention });
+  const cvPdf = await htmlToPdf(assembleHtml(cv.head, tailored.bodyHtml), `${base}-${slug(cfg().profile.name || "candidate")}-cv.pdf`);
   await saveDoc(id, "CV", tailored.bodyHtml, { pdfPath: cvPdf, provider: tailored.provider, subject: tailored.changes.slice(0, 1000) });
 
   const letter = await writeCoverLetter({ cvText: cv.text, jobTitle: o.title, companyName, jobDescription: o.description ?? "", companyResearch: o.company?.research, mentionCompany: mention });
   const letterPdf = await htmlToPdf(
     letterHtml({
-      from: [cfg().profile.name, cfg().profile.location, cfg().profile.email, cfg().profile.phone],
+      from: [cfg().profile.name, cfg().profile.location, cfg().profile.email, cfg().profile.phone].filter(Boolean),
       date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
       to: [companyName],
       subject: letter.data.subject,
@@ -346,13 +363,13 @@ async function generateApplicationRun(userId: string, id: string) {
   await log(id, "generated", `Tailored CV, cover letter and email drafted (${tailored.provider}). Red Star Standard ${mention ? "mentioned" : "not mentioned"}.`);
 }
 
-export async function foundingOfferActive(userId: string) {
+async function foundingOfferActiveImpl(userId: string) {
   await loadConfig();
   const won = await db.opportunity.count({ where: { userId, track: "PITCH", stage: "WON" } });
   return won < cfg().company.foundingOffer.maxFoundingClients;
 }
 
-export async function startPitch(userId: string, companyId: string) {
+async function startPitchImpl(userId: string, companyId: string) {
   await assertTrack(userId, "PITCH");
   await loadConfig();
   const c = await db.company.findFirstOrThrow({ where: { id: companyId, userId } });
@@ -369,7 +386,7 @@ export function generatePitch(userId: string, id: string) {
   return withCredits(userId, "pitch", () => generatePitchRun(userId, id));
 }
 
-async function generatePitchRun(userId: string, id: string) {
+async function generatePitchRunImpl(userId: string, id: string) {
   await assertTrack(userId, "PITCH");
   await loadConfig();
   requireAI();
@@ -407,7 +424,7 @@ export function generateFollowUp(userId: string, id: string) {
   return withCredits(userId, "followup", () => generateFollowUpRun(userId, id));
 }
 
-async function generateFollowUpRun(userId: string, id: string) {
+async function generateFollowUpRunImpl(userId: string, id: string) {
   await loadConfig();
   requireAI();
   const o = await db.opportunity.findFirstOrThrow({ where: { id, userId }, include: { company: true, documents: { orderBy: { createdAt: "desc" } } } });
@@ -426,7 +443,7 @@ export async function updateDocument(userId: string, docId: string, subject: str
 }
 
 /** Put an email document into Gmail as a draft, attaching the latest PDFs for this opportunity. */
-export async function gmailDraft(userId: string, docId: string, to: string | null) {
+async function gmailDraftImpl(userId: string, docId: string, to: string | null) {
   await loadConfig();
   const doc = await db.document.findFirstOrThrow({ where: { id: docId, opportunity: { userId } }, include: { opportunity: { include: { documents: { orderBy: { createdAt: "desc" } }, company: true } } } });
   const o = doc.opportunity;
@@ -446,3 +463,18 @@ export async function gmailDraft(userId: string, docId: string, to: string | nul
   if (to && o.companyId && !o.company?.contactEmail) await db.company.update({ where: { id: o.companyId }, data: { contactEmail: to } });
   await log(o.id, "gmail", `Gmail draft created${to ? ` to ${to}` : ""} with ${attachments.length} attachment(s). Review and send it in Gmail, then mark this as Sent.`);
 }
+
+// ---- every function below runs with cfg() resolved for the account (their saved KYC profile) ----
+export const rescoreCompany = scoped(rescoreCompanyImpl);
+const researchCompanyByIdRun = scoped(researchCompanyByIdRunImpl);
+export const saveJob = scoped(saveJobImpl);
+export const rescoreJob = scoped(rescoreJobImpl);
+const doScan = scoped(doScanImpl);
+const importJobRun = scoped(importJobRunImpl);
+const generateApplicationRun = scoped(generateApplicationRunImpl);
+export const startPitch = scoped(startPitchImpl);
+const generatePitchRun = scoped(generatePitchRunImpl);
+const generateFollowUpRun = scoped(generateFollowUpRunImpl);
+export const foundingOfferActive = scoped(foundingOfferActiveImpl);
+export const gmailDraft = scoped(gmailDraftImpl);
+export const rescoreAll = scoped(rescoreAllImpl);

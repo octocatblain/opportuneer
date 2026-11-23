@@ -26,7 +26,9 @@ import {
   type Package,
   type TitleFamily,
 } from "@/config/profile";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { db } from "@/lib/db";
+import { applyUserPrefs } from "@/lib/kyc";
 
 export type AppConfig = {
   profile: typeof profile;
@@ -51,6 +53,10 @@ export type AppConfig = {
     costs: Record<string, number>;
     costKes: Record<string, number>;
     monthlyCaps: { JOB: number; PITCH: number }; // max charged actions per calendar month, per track (0 = unlimited)
+    dailyLimit: number; // max AI actions per user per day (0 = unlimited)
+    perMinute: number; // max AI actions per user per minute, against double-clicks and scripts (0 = unlimited)
+    /** Global monthly spend guard on estimated provider cost (KES). 0 disables a threshold. */
+    killSwitch: { alertKes: number; pauseKes: number };
   };
 };
 
@@ -84,6 +90,9 @@ export function defaultConfig(): AppConfig {
       costs: { application: 5, import: 1, pitch: 6, research: 2, followup: 1 },
       costKes: { application: 25, import: 5, pitch: 30, research: 10, followup: 5 },
       monthlyCaps: { JOB: 60, PITCH: 40 },
+      dailyLimit: 30,
+      perMinute: 8,
+      killSwitch: { alertKes: 6000, pauseKes: 8000 },
     },
   });
 }
@@ -97,7 +106,27 @@ const g = globalThis as unknown as { __cfg?: { value: AppConfig; at: number } };
 
 /** Current config (cache, or defaults before the first load). */
 export function cfg(): AppConfig {
-  return g.__cfg?.value ?? defaultConfig();
+  return scope.getStore()?.value ?? g.__cfg?.value ?? defaultConfig();
+}
+
+/**
+ * Per-account configuration. Inside runForUser(), cfg() returns the app config as that account sees it
+ * (their saved KYC profile applied; regular users never see the owner's profile or agency).
+ */
+const scope = new AsyncLocalStorage<{ userId: string; value: AppConfig }>();
+
+/** The config for one account (global defaults + that account's saved profile sections). */
+export async function loadUserConfig(userId: string): Promise<AppConfig> {
+  const base = await loadConfig();
+  const user = await db.user.findUnique({ where: { id: userId }, select: { role: true, email: true, name: true, kyc: true } });
+  return user ? applyUserPrefs(base, user, user.kyc) : base;
+}
+
+/** Run fn with cfg() resolved for this account. Re-entrant: nested calls for the same account reuse the scope. */
+export async function runForUser<T>(userId: string, fn: () => Promise<T>): Promise<T> {
+  if (scope.getStore()?.userId === userId) return fn();
+  const value = await loadUserConfig(userId);
+  return scope.run({ userId, value }, fn);
 }
 
 /** Refresh the cache from the database, seeding any missing section from the defaults. */
@@ -108,7 +137,13 @@ export async function loadConfig(force = false): Promise<AppConfig> {
   const stored = new Map(rows.map((r) => [r.key.slice(PREFIX.length), r.value]));
   const value = { ...defaults } as Record<string, unknown>;
   for (const section of CONFIG_SECTIONS) {
-    if (stored.has(section)) value[section] = stored.get(section);
+    if (stored.has(section)) {
+      const s = stored.get(section);
+      const d = defaults[section] as unknown;
+      // A section saved before a field existed picks up that field's default (top level only; stored values always win).
+      const plain = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+      value[section] = plain(d) && plain(s) ? { ...d, ...s } : s;
+    }
     else await db.setting.create({ data: { key: PREFIX + section, value: defaults[section] as object } }).catch(() => {});
   }
   g.__cfg = { value: value as AppConfig, at: Date.now() };

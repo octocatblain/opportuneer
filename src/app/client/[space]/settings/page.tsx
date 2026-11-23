@@ -95,6 +95,13 @@ export default async function Settings({ params, searchParams }: { params: Promi
         </Card>
 
         <Card title="Profile">
+          <p className="mb-3 text-sm text-ink-3">
+            Your resume, job targets and agency offer live on the{" "}
+            <Link href={`/client/${space}/profile`} className="link">
+              Profile page
+            </Link>
+            .
+          </p>
           <form action={updateProfileAction} className="space-y-2 text-sm">
             <label className="block text-xs font-medium text-ink-3" htmlFor="profile-name">
               Display name
@@ -121,6 +128,13 @@ export default async function Settings({ params, searchParams }: { params: Promi
           <a href="/api/account/export" className={`${btnGhost} mt-3`}>
             Download my data
           </a>
+          <p className="mt-2 text-xs text-muted">
+            What we keep and why:{" "}
+            <Link href="/privacy" className="link">
+              privacy note
+            </Link>
+            .
+          </p>
           {!isSuper(me.user) && (
             <form action={deleteOwnAccountAction} className="mt-4 space-y-2 border-t border-rule pt-3 text-sm">
               <p className="font-medium text-error">Delete account</p>
@@ -141,7 +155,7 @@ export default async function Settings({ params, searchParams }: { params: Promi
           </p>
           <ul className="mt-3 space-y-2 text-xs">
             {sessions.map((s) => (
-              <li key={s.id} className="flex items-start justify-between gap-2 rounded-lg border border-rule p-3">
+              <li key={s.id} className="flex items-start justify-between gap-2 rounded-md border border-rule p-3">
                 <span className="space-y-0.5">
                   <span className="block">
                     <b>{s.id === me?.sessionId ? "This device" : "Other device"}</b>, {s.method}
@@ -172,8 +186,8 @@ export default async function Settings({ params, searchParams }: { params: Promi
           </div>
           <form action={changePasswordAction} className="mt-4 space-y-2 border-t border-rule pt-3 text-sm">
             <p className="text-sm font-medium text-ink-3">{me?.user.passwordHash ? "Change password" : "Set a password (so you can also sign in with email)"}</p>
-            {me?.user.passwordHash && <input name="current" type="password" placeholder="Current password" required autoComplete="current-password" className="w-full rounded-lg border border-mist bg-white px-3 py-2 text-sm" />}
-            <input name="next" type="password" placeholder="New password (10+ chars, letters and a number)" required minLength={10} autoComplete="new-password" className="w-full rounded-lg border border-mist bg-white px-3 py-2 text-sm" />
+            {me?.user.passwordHash && <input name="current" type="password" placeholder="Current password" required autoComplete="current-password" className="w-full rounded-md border border-mist bg-white px-3 py-2 text-sm" />}
+            <input name="next" type="password" placeholder="New password (10+ chars, letters and a number)" required minLength={10} autoComplete="new-password" className="w-full rounded-md border border-mist bg-white px-3 py-2 text-sm" />
             <button className={btn}>Save password</button>
           </form>
         </Card>

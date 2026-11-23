@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { inviteForToken, SESSION_COOKIE, userForToken } from "@/lib/auth";
+import { onboardingSteps } from "@/lib/kyc";
 import { canEnterSpace, homeFor, isSpace, SPACE_COOKIE } from "@/lib/spaces";
 
 // Two areas, two sign-ins:
@@ -13,7 +14,7 @@ export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|ico|css|js)$).*)"],
 };
 
-const PUBLIC = ["/", "/manifest.webmanifest", "/apple-icon", "/login", "/register", "/waitlist", "/admin/login", "/api/auth/google/start", "/api/auth/google/callback"];
+const PUBLIC = ["/", "/manifest.webmanifest", "/apple-icon", "/login", "/register", "/waitlist", "/pricing", "/privacy", "/admin/login", "/api/auth/google/start", "/api/auth/google/callback"];
 // Pre-/client URLs: old bookmarks are sent to the same page inside the account's own space.
 const LEGACY = /^\/(pipeline|jobs|companies|opportunities|add|settings)(\/|$)/;
 
@@ -38,6 +39,9 @@ export async function middleware(req: NextRequest) {
   if (pathname === "/") return go(home);
   if (pathname === "/login" || pathname === "/register" || pathname === "/admin/login") return go(home);
 
+  // First-login KYC: regular accounts finish onboarding before the workspace opens; once done (or for the owner) /onboarding leads home.
+  if (pathname === "/onboarding") return (await onboardingSteps(user)).length ? NextResponse.next() : go(home);
+
   if (pathname === "/admin" || pathname.startsWith("/admin/")) return user.role === "SUPERUSER" ? NextResponse.next() : go(home);
 
   if (pathname === "/client" || pathname === "/client/") return go(home);
@@ -45,6 +49,7 @@ export async function middleware(req: NextRequest) {
     const space = pathname.split("/")[2];
     if (!isSpace(space)) return NextResponse.next(); // falls through to the 404 page
     if (!canEnterSpace(user, space)) return go(home);
+    if ((await onboardingSteps(user)).length) return go("/onboarding");
     const res = NextResponse.next();
     // Remembered so server actions and the admin's role switcher know which space is being used.
     res.cookies.set(SPACE_COOKIE, space, { path: "/", sameSite: "lax", httpOnly: true });

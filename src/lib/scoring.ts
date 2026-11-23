@@ -333,7 +333,7 @@ export function recommend(
       return {
         track: "JOB",
         both: true,
-        reason: "Matching role is open, and the company also fits a Red Star Standard engagement (flexible or transformation role, low AI maturity).",
+        reason: `Matching role is open, and the company also fits a ${cfg().company.name || "consulting"} engagement (flexible or transformation role, low AI maturity).`,
       };
     }
     return {
@@ -362,6 +362,7 @@ export function recommend(
 
 /** Should Red Star Standard be mentioned in a job application? */
 export function shouldMentionCompany(title: string, employment?: string | null, description?: string | null) {
+  if (!cfg().company.name) return false; // this account has no agency to mention
   const fam = matchTitleFamily(title)?.key;
   const flexible = /contract|part[- ]time|fractional|consult|freelance|fixed[- ]term/.test(lc(employment) + " " + lc(title));
   const consultingFlavour = /consult|advis|transformation|ai lead|head of ai/.test(lc(title) + " " + lc(description).slice(0, 2000));

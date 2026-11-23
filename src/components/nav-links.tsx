@@ -1,5 +1,6 @@
 "use client";
 
+import { FeedbackButton } from "@/components/feedback-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -15,6 +16,7 @@ const ICONS: Record<string, string> = {
   pipeline: "M4 5h4v14H4zM10 5h4v9h-4zM16 5h4v6h-4z",
   jobs: "M3 8h18v12H3zM8 8V5h8v3M3 13h18",
   companies: "M4 21V5l8-2v18M12 9l8 2v10M8 9h1M8 13h1M8 17h1M16 15h1M16 18h1",
+  profile: "M12 12a4 4 0 100-8 4 4 0 000 8zM4 21v-1a6 6 0 016-6h4a6 6 0 016 6v1",
   settings: "M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0M14 4v4M8 10v4M16 16v4",
   accounts: "M16 20v-1a4 4 0 00-4-4H7a4 4 0 00-4 4v1M9.5 11a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM21 20v-1a4 4 0 00-3-3.9M16 4.1a3.5 3.5 0 010 6.8",
   waitlist: "M12 7v5l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
@@ -60,6 +62,7 @@ export function AppShell({ children, admin = false, ownSpace = "duo", name, emai
     { href: `${base}/pipeline`, label: "Pipeline", icon: "pipeline" },
     ...(showJobs ? [{ href: `${base}/jobs`, label: "Jobs", icon: "jobs" }] : []),
     ...(showPitches ? [{ href: `${base}/companies`, label: "Companies", icon: "companies" }] : []),
+    { href: `${base}/profile`, label: "Profile", icon: "profile" },
     { href: `${base}/settings`, label: "Settings", icon: "settings" },
   ];
   const adminItems: Item[] = [
@@ -164,8 +167,9 @@ export function AppShell({ children, admin = false, ownSpace = "duo", name, emai
             <div className="hidden flex-1 px-2 text-sm text-muted sm:block">{adminMode ? "Administrator console" : `${SPACE_LABEL[space]} workspace`}</div>
           )}
           <div className="ml-auto flex items-center gap-3 text-sm">
+            <FeedbackButton />
             <ThemeToggle />
-            {admin && <span className="hidden rounded-lg bg-amber-soft px-2.5 py-1 text-xs font-medium text-warn-ink md:inline">{inAdmin ? "Viewing as Admin" : `Viewing as ${SPACE_LABEL[space].split(" ")[0]}`}</span>}
+            {admin && <span className="hidden rounded-md bg-amber-soft px-2.5 py-1 text-xs font-medium text-warn-ink md:inline">{inAdmin ? "Viewing as Admin" : `Viewing as ${SPACE_LABEL[space].split(" ")[0]}`}</span>}
             <span className="hidden text-right leading-tight md:block">
               <span className="block text-sm font-medium">{name || email}</span>
               <span className="block text-xs text-muted">{email}</span>
@@ -173,12 +177,12 @@ export function AppShell({ children, admin = false, ownSpace = "duo", name, emai
           </div>
           <nav aria-label="Sections" className="flex w-full gap-1 overflow-x-auto text-sm lg:hidden">
             {items.map((i) => (
-              <Link key={i.href} href={i.href} onClick={() => setPending(i.href)} aria-current={on(i) ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-3 py-1.5 font-medium ${on(i) ? "bg-ink text-white" : "text-muted"}`}>
+              <Link key={i.href} href={i.href} onClick={() => setPending(i.href)} aria-current={on(i) ? "page" : undefined} className={`whitespace-nowrap rounded-md px-3 py-1.5 font-medium ${on(i) ? "bg-ink text-white" : "text-muted"}`}>
                 {i.label}
               </Link>
             ))}
             {admin && (
-              <Link href={inAdmin ? base : "/admin"} className="whitespace-nowrap rounded-lg px-3 py-1.5 font-medium text-signal-dark">
+              <Link href={inAdmin ? base : "/admin"} className="whitespace-nowrap rounded-md px-3 py-1.5 font-medium text-signal-dark">
                 {inAdmin ? "Open workspace" : "Admin"}
               </Link>
             )}
