@@ -26,7 +26,7 @@ export async function makeUser(label: string, data: { role?: "USER" | "SUPERUSER
   if (data.onboarded !== false && (data.role ?? "USER") === "USER") {
     const access = data.trackAccess ?? "BOTH";
     const now = new Date();
-    await db.userProfile.create({ data: { userId: user.id, basicsDoneAt: now, resumeText: "x".repeat(200), jobDoneAt: access !== "PITCH" ? now : null, pitchDoneAt: access !== "JOB" ? now : null } });
+    await db.userProfile.create({ data: { userId: user.id, basicsDoneAt: now, resumeText: "x".repeat(200), resumePath: "resumes/test/resume.txt", jobDoneAt: access !== "PITCH" ? now : null, pitchDoneAt: access !== "JOB" ? now : null } });
   }
   if (data.credits) await db.creditLedger.create({ data: { userId: user.id, action: "grant", credits: data.credits } });
   const token = randomBytes(32).toString("base64url");

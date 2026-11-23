@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { JobDescription } from "@/components/job-description";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -204,7 +205,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
 
           {o.description && (
             <Card index={2} title={isJob ? "Job description" : "Notes"}>
-              <p className="max-h-96 overflow-auto whitespace-pre-wrap text-sm leading-relaxed text-ink-3">{o.description}</p>
+              <JobDescription text={o.description} title={o.title} />
             </Card>
           )}
         </div>

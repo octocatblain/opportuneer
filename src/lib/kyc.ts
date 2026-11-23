@@ -286,10 +286,10 @@ export function applyUserPrefs(base: AppConfig, who: Who, row: Row): AppConfig {
 export type Step = "basics" | "resume" | "job" | "pitch";
 
 /** Steps still missing for this account, in the order they are asked. */
-export function missingSteps(access: TrackAccess, row: Pick<UserProfile, "basicsDoneAt" | "jobDoneAt" | "pitchDoneAt" | "resumeText"> | null): Step[] {
+export function missingSteps(access: TrackAccess, row: Pick<UserProfile, "basicsDoneAt" | "jobDoneAt" | "pitchDoneAt" | "resumePath"> | null): Step[] {
   const out: Step[] = [];
   if (!row?.basicsDoneAt) out.push("basics");
-  if (allowsTrack(access, "JOB") && !row?.resumeText) out.push("resume");
+  if (allowsTrack(access, "JOB") && !row?.resumePath) out.push("resume");
   if (allowsTrack(access, "JOB") && !row?.jobDoneAt) out.push("job");
   if (allowsTrack(access, "PITCH") && !row?.pitchDoneAt) out.push("pitch");
   return out;
@@ -298,9 +298,13 @@ export function missingSteps(access: TrackAccess, row: Pick<UserProfile, "basics
 export const getProfile = (userId: string) => db.userProfile.findUnique({ where: { userId } });
 
 /** Regular users must finish every step for their tracks before using the workspace; the owner is never forced. */
-export async function onboardingSteps(user: { id: string; role: Role; trackAccess: TrackAccess }): Promise<Step[]> {
+type KycFlags = Pick<UserProfile, "basicsDoneAt" | "jobDoneAt" | "pitchDoneAt" | "resumePath">;
+export const KYC_FLAGS = { basicsDoneAt: true, jobDoneAt: true, pitchDoneAt: true, resumePath: true } as const;
+
+/** Uses the flags already loaded with the session (user.kyc) when present, so navigating costs no extra query. */
+export async function onboardingSteps(user: { id: string; role: Role; trackAccess: TrackAccess; kyc?: KycFlags | null }): Promise<Step[]> {
   if (user.role === "SUPERUSER") return [];
-  return missingSteps(user.trackAccess, await getProfile(user.id));
+  return missingSteps(user.trackAccess, "kyc" in user ? (user.kyc ?? null) : await getProfile(user.id));
 }
 
 // ---------------- saving ----------------

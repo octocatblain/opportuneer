@@ -50,8 +50,17 @@ export function extractBody(answer: string): string {
   return raw.trim();
 }
 
+/** Page text with its structure kept: paragraphs and headings on their own lines, list items as "• item". */
 export function htmlToText(html: string) {
   const $ = cheerio.load(html);
   $("script,style,noscript,nav,footer,header svg").remove();
-  return $("body").text().replace(/\s+/g, " ").trim();
+  $("br").replaceWith("\n");
+  $("li").each((_, e) => void $(e).prepend("\n• ").append("\n"));
+  $("p,div,h1,h2,h3,h4,h5,h6,ul,ol,tr,section,article").each((_, e) => void $(e).prepend("\n").append("\n"));
+  return $("body")
+    .text()
+    .replace(/[ \t\u00a0]+/g, " ")
+    .replace(/ ?\n ?/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }

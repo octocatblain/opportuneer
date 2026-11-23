@@ -12,6 +12,7 @@ import { Prisma, type User } from "@prisma/client";
 import { cfg, loadConfig } from "@/lib/config";
 import { db } from "@/lib/db";
 import { logEvent } from "@/lib/analytics";
+import { KYC_FLAGS } from "@/lib/kyc";
 import { rateLimited } from "@/lib/rate-limit";
 import { canEnterSpace, clientBase, homeFor, isSpace, spaceForAccess, SPACE_COOKIE, type Space } from "@/lib/spaces";
 
@@ -58,7 +59,7 @@ export async function startSession(userId: string, method: "password" | "google"
 /** Validate a raw cookie token and slide its expiry. Used by middleware and server code. */
 export async function userForToken(token: string | undefined) {
   if (!token) return null;
-  const s = await db.session.findUnique({ where: { tokenHash: hashToken(token) }, include: { user: true } });
+  const s = await db.session.findUnique({ where: { tokenHash: hashToken(token) }, include: { user: { include: { kyc: { select: KYC_FLAGS } } } } });
   if (!s) return null;
   const now = Date.now();
   if (s.expiresAt.getTime() < now) {

@@ -133,8 +133,8 @@ describe("per-account config", () => {
     assert.deepEqual(missingSteps("BOTH", null), ["basics", "resume", "job", "pitch"]);
     assert.deepEqual(missingSteps("JOB", null), ["basics", "resume", "job"]);
     assert.deepEqual(missingSteps("PITCH", null), ["basics", "pitch"]);
-    assert.deepEqual(missingSteps("PITCH", { basicsDoneAt: done, jobDoneAt: null, pitchDoneAt: done, resumeText: null }), []);
-    assert.deepEqual(missingSteps("BOTH", { basicsDoneAt: done, jobDoneAt: done, pitchDoneAt: null, resumeText: "x" }), ["pitch"]);
+    assert.deepEqual(missingSteps("PITCH", { basicsDoneAt: done, jobDoneAt: null, pitchDoneAt: done, resumePath: null }), []);
+    assert.deepEqual(missingSteps("BOTH", { basicsDoneAt: done, jobDoneAt: done, pitchDoneAt: null, resumePath: "x" }), ["pitch"]);
   });
 
   it("scoring and matching use the profile of the account they run for, even concurrently", async () => {
