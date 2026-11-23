@@ -33,7 +33,7 @@ export function StackedBars({ data, height = 220 }: { data: BarDatum[]; height?:
       <div className="grid flex-1 grid-flow-col auto-cols-fr gap-3">
         {data.map((d, i) => (
           <div key={d.label} className="flex flex-col items-center gap-2" title={`${d.label}: ${d.parts.map((p) => `${p.name} ${p.value}`).join(", ")}`}>
-            <div className={`flex w-full max-w-14 flex-col-reverse overflow-hidden rounded-xl ${i === top && totals[i] > 0 ? "" : "bg-paper"}`} style={{ height }}>
+            <div className={`flex w-full max-w-14 flex-col-reverse overflow-hidden rounded-md ${i === top && totals[i] > 0 ? "" : "bg-paper"}`} style={{ height }}>
               {d.parts.map((p) => (
                 <div key={p.name} style={{ height: `${(p.value / max) * 100}%`, background: p.color, opacity: i === top || totals[i] === 0 ? 1 : 0.55 }} />
               ))}
@@ -96,5 +96,5 @@ export function Gauge({ value, caption }: { value: number; caption: string }) {
 
 /** Rounded square icon button look for card headers. */
 export function Tile({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`rounded-[20px] bg-white p-5 shadow-[var(--shadow-card)] ${className}`}>{children}</div>;
+  return <div className={`rounded-md bg-white p-5 shadow-[var(--shadow-card)] ${className}`}>{children}</div>;
 }

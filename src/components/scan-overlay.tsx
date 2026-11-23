@@ -70,7 +70,7 @@ export function ScanOverlay() {
         </div>
         <h2 className="mt-5 text-2xl font-semibold leading-tight text-ink">Scanning the job boards…</h2>
         <p className="mt-2 text-sm text-ink-4">The app is locked until the scan finishes. New jobs will appear automatically.</p>
-        <div className="mt-8 flex items-end justify-between rounded-lg border border-rule p-4">
+        <div className="mt-8 flex items-end justify-between rounded-md border border-rule p-4">
           <span className="text-sm text-ink-4">Elapsed</span>
           <span className="text-5xl font-semibold leading-none tabular-nums text-ink">{elapsed}</span>
         </div>

@@ -5,7 +5,7 @@ import { addCompanyAction } from "@/app/actions";
 import { SubmitButton } from "@/components/submit-button";
 import { btnSignal, Card, Empty, Flash, input, PAGE_SIZE, PageHeader, pageParam, Pagination, ScorePill, Segmented, TrackBadge } from "@/components/ui";
 import { requireSpace } from "@/lib/auth";
-import { loadConfig } from "@/lib/config";
+import { loadUserConfig } from "@/lib/config";
 import { db } from "@/lib/db";
 import { clientBase, isSpace, spaceAllowsTrack } from "@/lib/spaces";
 
@@ -23,7 +23,7 @@ export default async function Companies({ params, searchParams }: { params: Prom
   const base = clientBase(space);
   if (!spaceAllowsTrack(space, "PITCH")) redirect(base);
 
-  const { industries } = await loadConfig();
+  const { industries } = await loadUserConfig(user.id);
   const sp = await searchParams;
   const filter =
     sp.filter === "pitch"
@@ -61,7 +61,7 @@ export default async function Companies({ params, searchParams }: { params: Prom
             ) : (
               <div className="divide-y divide-rule">
                 {companies.map((c) => (
-                  <Link key={c.id} href={`${base}/companies/${c.id}`} className="group -mx-3 flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-paper active:bg-paper-2">
+                  <Link key={c.id} href={`${base}/companies/${c.id}`} className="group -mx-3 flex items-center gap-3 rounded-md px-3 py-2 transition-colors hover:bg-paper active:bg-paper-2">
                     <ScorePill score={c.score} />
                     <div className="min-w-0 flex-1">
                       <div className="truncate font-medium group-hover:underline">{c.name}</div>

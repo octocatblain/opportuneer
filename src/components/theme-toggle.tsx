@@ -18,7 +18,7 @@ export function ThemeToggle() {
     try { localStorage.setItem("theme", next); } catch {}
   };
   return (
-    <button type="button" onClick={toggle} aria-label={dark ? "Switch to light theme" : "Switch to dark theme"} title={dark ? "Light theme" : "Dark theme"} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-ink-4 hover:bg-paper-2 active:bg-paper-3">
+    <button type="button" onClick={toggle} aria-label={dark ? "Switch to light theme" : "Switch to dark theme"} title={dark ? "Light theme" : "Dark theme"} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-ink-4 hover:bg-paper-2 active:bg-paper-3">
       <svg aria-hidden viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         {dark ? (
           <>

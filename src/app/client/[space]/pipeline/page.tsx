@@ -53,19 +53,19 @@ export default async function Pipeline({ params, searchParams }: { params: Promi
         {BOARD.map((stage) => {
           const items = opps.filter((o) => o.stage === stage);
           return (
-            <div key={stage} className={`min-w-0 rounded-xl border bg-paper-2 p-2 ${stage === "WON" ? "border-signal" : "border-paper-3"}`}>
+            <div key={stage} className={`min-w-0 rounded-md border bg-paper-2 p-2 ${stage === "WON" ? "border-signal" : "border-paper-3"}`}>
               <h2 className="mb-2 flex items-baseline justify-between px-2 pt-1 text-ink">
                 <span className="text-sm font-semibold">{STAGE_LABEL[stage]}</span>
                 <span className="text-sm font-semibold tabular-nums text-muted">{items.length}</span>
               </h2>
               <div className="space-y-2">
-                {items.length === 0 && <p className="rounded-lg border border-dashed border-paper-3 px-3 py-4 text-center text-xs text-muted">Empty</p>}
+                {items.length === 0 && <p className="rounded-md border border-dashed border-paper-3 px-3 py-4 text-center text-xs text-muted">Empty</p>}
                 {items.map((o) => {
                   const due = o.stage === "SENT" && o.followUpAt && o.followUpAt <= new Date();
                   const idx = BOARD.indexOf(stage);
                   const next = BOARD[idx + 1];
                   return (
-                    <div key={o.id} className={`rounded-lg border bg-white p-3 text-sm ${due ? "border-signal" : "border-rule"}`}>
+                    <div key={o.id} className={`rounded-md border bg-white p-3 text-sm ${due ? "border-signal" : "border-rule"}`}>
                       <Link href={`${base}/opportunities/${o.id}`} className="block font-semibold leading-snug hover:underline">
                         {o.title}
                       </Link>

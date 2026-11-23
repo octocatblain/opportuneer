@@ -6,7 +6,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { Breakdown, btn, btnGhost, Card, Flash, input, OppRow, ReadOnlyNotice, ScorePill, TrackBadge } from "@/components/ui";
 import { canView, getUser, requireSpace } from "@/lib/auth";
 import { clientBase, isSpace, spaceAllowsTrack } from "@/lib/spaces";
-import { loadConfig } from "@/lib/config";
+import { loadUserConfig } from "@/lib/config";
 import { db } from "@/lib/db";
 import type { ScoreLine } from "@/lib/scoring";
 
@@ -24,7 +24,7 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
   if (!isSpace(space)) notFound();
   const viewer = await requireSpace(space);
   const base = clientBase(space);
-  const { industries } = await loadConfig();
+  const { industries } = await loadUserConfig(viewer.id);
   const sp = await searchParams;
   const c = await db.company.findUnique({
     where: { id },

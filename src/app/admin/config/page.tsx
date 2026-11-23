@@ -90,11 +90,11 @@ export default async function AdminConfig({ searchParams }: { searchParams: Prom
         </p>
         <div className="space-y-2">
           {CONFIG_SECTIONS.map((section) => (
-            <details key={section} className="rounded-lg border border-rule p-3">
+            <details key={section} className="rounded-md border border-rule p-3">
               <summary className="cursor-pointer text-sm font-medium">{section}</summary>
               <form action={saveConfigAction} className="mt-2 space-y-2">
                 <input type="hidden" name="section" value={section} />
-                <textarea name="json" defaultValue={JSON.stringify((full as Record<string, unknown>)[section], null, 2)} rows={14} spellCheck={false} className="w-full rounded-lg border border-mist bg-white p-2 font-mono text-xs" />
+                <textarea name="json" defaultValue={JSON.stringify((full as Record<string, unknown>)[section], null, 2)} rows={14} spellCheck={false} className="w-full rounded-md border border-mist bg-white p-2 font-mono text-xs" />
                 <div className="flex gap-2">
                   <button className={btn}>Save</button>
                   <button formAction={resetConfigAction} className={btnGhost}>

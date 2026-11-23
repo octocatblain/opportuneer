@@ -128,7 +128,7 @@ export default async function Dashboard({ params, searchParams }: { params: Prom
           </Card>
         </div>
         <div className="xl:col-span-4">
-          <Card title="Follow-ups due" actions={<span className="rounded-lg bg-paper px-2 py-0.5 text-xs tabular-nums text-muted">{followUps.length}</span>}>
+          <Card title="Follow-ups due" actions={<span className="rounded-md bg-paper px-2 py-0.5 text-xs tabular-nums text-muted">{followUps.length}</span>}>
             {followUps.length === 0 ? (
               <Empty>Nothing due. Sent items appear here when their follow-up date arrives.</Empty>
             ) : (
@@ -194,7 +194,7 @@ export default async function Dashboard({ params, searchParams }: { params: Prom
                 <ul className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
                   {prospects.map((c) => (
                     <li key={c.id}>
-                      <Link href={`${base}/companies/${c.id}`} className="flex items-center gap-3 rounded-xl bg-paper px-3 py-3 transition-colors hover:bg-paper-2">
+                      <Link href={`${base}/companies/${c.id}`} className="flex items-center gap-3 rounded-md bg-paper px-3 py-3 transition-colors hover:bg-paper-2">
                         <ScorePill score={c.score} />
                         <span className="flex-1 truncate text-sm font-medium">{c.name}</span>
                         <TrackBadge track={c.recommendation} both={c.recommendBoth} />

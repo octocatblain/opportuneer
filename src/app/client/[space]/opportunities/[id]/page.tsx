@@ -94,7 +94,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
         </div>
         <form action={setStageAction} className="flex items-center gap-2">
           <input type="hidden" name="id" value={o.id} />
-          <select name="stage" defaultValue={o.stage} className="min-h-10 rounded-lg border border-mist bg-white px-3 py-2 text-sm font-medium transition-colors hover:border-ink-3">
+          <select name="stage" defaultValue={o.stage} className="min-h-10 rounded-md border border-mist bg-white px-3 py-2 text-sm font-medium transition-colors hover:border-ink-3">
             {STAGES.map((s) => (
               <option key={s} value={s}>
                 {STAGE_LABEL[s]}
@@ -157,12 +157,12 @@ export default async function OpportunityPage({ params, searchParams }: { params
               {d.kind === "CV" ? (
                 <div className="text-sm text-muted">
                   <p>Built from your master CV. Open the PDF to review it.</p>
-                  {d.subject && <pre className="mt-2 whitespace-pre-wrap rounded-lg bg-paper p-2 text-xs">What changed: {d.subject}</pre>}
+                  {d.subject && <pre className="mt-2 whitespace-pre-wrap rounded-md bg-paper p-2 text-xs">What changed: {d.subject}</pre>}
                 </div>
               ) : d.kind === "PROPOSAL" ? (
                 <div className="space-y-2 text-sm">
-                  {d.subject && <pre className="whitespace-pre-wrap rounded-lg bg-signal-soft p-3 text-xs text-ink-3">{d.subject}</pre>}
-                  <pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded-lg bg-paper p-3 text-xs">{d.content}</pre>
+                  {d.subject && <pre className="whitespace-pre-wrap rounded-md bg-signal-soft p-3 text-xs text-ink-3">{d.subject}</pre>}
+                  <pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded-md bg-paper p-3 text-xs">{d.content}</pre>
                 </div>
               ) : (
                 <form action={gmail && emailKinds.includes(d.kind) ? gmailDraftAction : saveDocAction} className="space-y-2">
