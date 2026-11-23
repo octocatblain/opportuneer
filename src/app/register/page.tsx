@@ -33,13 +33,13 @@ export default async function Register({ searchParams }: { searchParams: Promise
       </p>
       <Flash error={sp.error} />
       {google && (
-        <a href={`/api/auth/google/start?invite=${encodeURIComponent(token)}`} className="flex items-center justify-center gap-3 min-h-10 rounded-lg border border-rule bg-white px-4 py-2 text-sm font-semibold transition-colors hover:bg-paper-2 active:bg-paper-3">
+        <a href={`/api/auth/google/start?invite=${encodeURIComponent(token)}`} className="flex items-center justify-center gap-3 min-h-10 rounded-md border border-rule bg-white px-4 py-2 text-sm font-semibold transition-colors hover:bg-paper-2 active:bg-paper-3">
           <GoogleIcon size={20} />
           Sign up with Google
         </a>
       )}
       {auth.allowPassword && (
-        <form action={registerAction} className="space-y-3 rounded-xl border border-rule bg-white p-5">
+        <form action={registerAction} className="space-y-3 rounded-md border border-rule bg-white p-5">
           <input type="hidden" name="invite" value={token} />
           <label className="block text-sm">
             <span className="text-sm font-medium text-ink-3">Name</span>
@@ -62,6 +62,13 @@ export default async function Register({ searchParams }: { searchParams: Promise
           </SubmitButton>
         </form>
       )}
+      <p className="text-center text-xs text-muted">
+        By creating an account you accept how we handle your data, set out in the{" "}
+        <Link href="/privacy" className="link">
+          privacy note
+        </Link>
+        . You can download or delete everything from Settings.
+      </p>
       <p className="text-center text-sm text-muted">
         Already registered?{" "}
         <Link href="/login" className="link">

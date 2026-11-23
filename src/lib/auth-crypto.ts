@@ -1,11 +1,19 @@
 // Pure helpers (no Next.js imports) so scripts such as prisma/seed.ts can use them too.
-import { randomBytes, scrypt as scryptCb, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, scrypt as scryptCb, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 
 const scrypt = promisify(scryptCb) as (pw: string, salt: Buffer, len: number) => Promise<Buffer>;
 
 export const normalizeEmail = (e: string) => e.trim().toLowerCase();
 export const validEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
+
+// ---------- invite links ----------
+/** An invite link works once and for this many days. */
+export const INVITE_DAYS = 7;
+/** SHA-256 hex digest. Session cookies and invite secrets are stored only as this hash. */
+export const sha256 = (t: string) => createHash("sha256").update(t).digest("hex");
+/** A new random invite secret (256 bits). Only its hash is stored; the link carrying it is shown once. */
+export const newInviteToken = () => randomBytes(32).toString("base64url");
 
 // ---------- passwords ----------
 export async function hashPassword(password: string): Promise<string> {

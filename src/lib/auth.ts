@@ -4,7 +4,7 @@
  *  - Sessions are random 256-bit tokens in an httpOnly cookie; only their SHA-256 hash is stored.
  *  - Sessions slide (extended while in use), can be listed and revoked, and end on sign-out.
  */
-import { createHash, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { cache } from "react";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -12,30 +12,21 @@ import { Prisma, type User } from "@prisma/client";
 import { cfg, loadConfig } from "@/lib/config";
 import { db } from "@/lib/db";
 import { logEvent } from "@/lib/analytics";
+import { rateLimited } from "@/lib/rate-limit";
 import { canEnterSpace, clientBase, homeFor, isSpace, spaceForAccess, SPACE_COOKIE, type Space } from "@/lib/spaces";
 
-import { normalizeEmail } from "@/lib/auth-crypto";
-export { hashPassword, normalizeEmail, passwordProblem, validEmail, verifyPassword } from "@/lib/auth-crypto";
+import { normalizeEmail, sha256 } from "@/lib/auth-crypto";
+export { hashPassword, INVITE_DAYS, newInviteToken, normalizeEmail, passwordProblem, validEmail, verifyPassword } from "@/lib/auth-crypto";
 
 export const SESSION_COOKIE = "opp_session";
 const TOUCH_EVERY_MS = 5 * 60 * 1000;
 const DAY = 24 * 60 * 60 * 1000;
 
 // ---------- throttling (in memory; enough for one server) ----------
-const attempts = new Map<string, { n: number; first: number }>();
-export function throttled(key: string, max = 6, windowMs = 15 * 60 * 1000): boolean {
-  const now = Date.now();
-  const a = attempts.get(key);
-  if (!a || now - a.first > windowMs) {
-    attempts.set(key, { n: 1, first: now });
-    return false;
-  }
-  a.n++;
-  return a.n > max;
-}
+export const throttled = (key: string, max = 6, windowMs = 15 * 60 * 1000): boolean => rateLimited(key, max, windowMs);
 
 // ---------- sessions ----------
-const hashToken = (t: string) => createHash("sha256").update(t).digest("hex");
+const hashToken = sha256;
 
 export async function clientInfo() {
   const h = await headers();
@@ -135,10 +126,6 @@ export async function endSession() {
 
 // ---------- who may sign in ----------
 export const SIGNUP_CLOSED = "Sign-up is by invitation only. Use the invitation link you were sent.";
-export const INVITE_DAYS = 14;
-
-/** A new random invite secret; only its hash is stored. */
-export const newInviteToken = () => randomBytes(32).toString("base64url");
 export const inviteTokenHash = hashToken;
 
 /** The pending, unexpired invite for a link token, or null. Used by the middleware, the register page and sign-up. */
