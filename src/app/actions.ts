@@ -114,6 +114,15 @@ export async function researchCompanyAction(form: FormData) {
   await attempt(`${base}/companies/${id}`, () => svc.researchCompanyById(user.id, id, str(form, "extra") ?? ""), "Research updated");
 }
 
+/** "About this company" paragraph, searched live on the web. Returns to the page it was started from. */
+export async function aboutCompanyAction(form: FormData) {
+  const user = await requireUser();
+  const base = await baseFor(user);
+  const id = str(form, "id")!;
+  const oppId = str(form, "oppId");
+  await attempt(oppId ? `${base}/opportunities/${oppId}` : `${base}/companies/${id}`, () => svc.aboutCompanyById(user.id, id), "Company profile updated");
+}
+
 export async function startPitchAction(form: FormData) {
   const user = await requireUser();
   const base = await baseFor(user);

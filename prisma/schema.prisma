@@ -56,6 +56,9 @@ model Company {
   contactRole     String?
   notes           String?
   research        String? // AI-written research summary
+  about           String? // short factual company profile researched from the web (Gemini + Google Search)
+  aboutSources    Json? // [{ title, url }] the profile was grounded in
+  aboutAt         DateTime?
   score           Int? // 0-100 company fit
   scoreBreakdown  Json?
   recommendation  Track? // primary route the app suggests

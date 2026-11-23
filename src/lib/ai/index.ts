@@ -103,6 +103,38 @@ function geminiModels() {
   return (process.env.GEMINI_MODEL || GEMINI_DEFAULT_MODELS).split(",").map((m) => m.trim()).filter(Boolean);
 }
 
+/**
+ * One Gemini call with Google Search grounding: the model searches the live web and the answer comes back with the pages it
+ * used. Only Gemini does this here (Claude/OpenAI would need their own search tools), so it needs GEMINI_API_KEY.
+ */
+export async function generateGroundedText(opts: { system: string; prompt: string; maxTokens?: number }): Promise<{ text: string; sources: { title: string; url: string }[]; model: string }> {
+  if (!gemini.available()) throw new Error("Web research needs GEMINI_API_KEY in .env (free from Google AI Studio).");
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY, apiVersion: "v1beta", httpOptions: { timeout: 120_000 } });
+  const errors: string[] = [];
+  for (const model of geminiModels()) {
+    try {
+      const res = await ai.models.generateContent({
+        model,
+        contents: opts.prompt,
+        config: { systemInstruction: opts.system, maxOutputTokens: opts.maxTokens ?? 4000, tools: [{ googleSearch: {} }] },
+      });
+      if (!res.text) throw new Error(`returned no text (${res.candidates?.[0]?.finishReason ?? "unknown reason"})`);
+      const seen = new Set<string>();
+      const sources: { title: string; url: string }[] = [];
+      for (const ch of res.candidates?.[0]?.groundingMetadata?.groundingChunks ?? []) {
+        const url = ch.web?.uri;
+        if (!url || seen.has(url)) continue;
+        seen.add(url);
+        sources.push({ title: ch.web?.title || new URL(url).hostname, url });
+      }
+      return { text: res.text, sources, model };
+    } catch (e) {
+      errors.push(`${model}: ${(e as Error).message.slice(0, 200)}`);
+    }
+  }
+  throw new Error(errors.join(" | "));
+}
+
 // ---------- Mock (no keys yet) ----------
 const mock: AIProvider = {
   name: "mock",

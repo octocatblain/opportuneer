@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { cfg } from "@/lib/config";
 import type { Package } from "@/config/profile";
-import { generateJson, generateText } from "@/lib/ai";
+import { generateGroundedText, generateJson, generateText } from "@/lib/ai";
 import { extractBody } from "@/lib/cv";
 
 const VOICE = `Write in plain, confident British English as used in Kenya. Short sentences. No buzzwords
@@ -37,6 +37,25 @@ JSON keys: title, companyName, companyWebsite, location, remote, employment, sal
     maxTokens: 8000,
     effort: "low",
   });
+}
+
+// ---------- Company profile (live web search) ----------
+
+/** A short, factual paragraph about a company, from a Google-grounded search. Never invents: says so when the company can't be identified. */
+export async function researchCompanyProfile(input: { name: string; website?: string | null; location?: string | null; industry?: string | null; jobTitle?: string | null }) {
+  const hints = [input.website && `website: ${input.website}`, input.location && `location: ${input.location}`, input.industry && `industry: ${input.industry}`, input.jobTitle && `currently hiring for: ${input.jobTitle}`].filter(Boolean).join("; ");
+  const r = await generateGroundedText({
+    system: "You write short, factual company profiles for a job seeker. Use web search and state only facts found in the search results. Never guess or pad.",
+    prompt: `Search the web for the company "${input.name}"${hints ? ` (${hints})` : ""} and write ONE paragraph of 3-5 sentences about it: what it does, where it is based and operates, its size or history, notable products, clients or recent news, if found.
+
+Rules:
+- Plain text only: no markdown, no bullet points, no citations or links inside the paragraph.
+- Only include facts you actually found. Leave out anything uncertain rather than guessing numbers.
+- If several different companies share the name, pick the one that matches the hints. If you cannot confidently identify the company, reply exactly: NOT_FOUND`,
+    maxTokens: 3000,
+  });
+  const text = r.text.replace(/\*\*|__/g, "").replace(/\s*\n+\s*/g, " ").trim();
+  return { about: text === "NOT_FOUND" || text.startsWith("NOT_FOUND") ? null : text, sources: r.sources, model: r.model };
 }
 
 // ---------- Company research ----------

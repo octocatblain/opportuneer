@@ -13,6 +13,7 @@ import { matchTitleFamily, recommend, scoreCompany, scoreJob, shouldMentionCompa
 import {
   extractJob,
   researchCompany,
+  researchCompanyProfile,
   tailorCv,
   writeApplicationEmail,
   writeCoverLetter,
@@ -85,6 +86,15 @@ async function rescoreCompanyImpl(userId: string, id: string) {
       recommendReason: rec.reason,
     },
   });
+}
+
+/** Fetches a factual, web-researched paragraph about the company and stores it (with the pages it came from). */
+export async function aboutCompanyById(userId: string, id: string) {
+  await loadConfig();
+  const c = await db.company.findFirstOrThrow({ where: { id, userId }, include: { opportunities: { orderBy: { createdAt: "desc" }, take: 1, select: { title: true } } } });
+  const r = await researchCompanyProfile({ name: c.name, website: c.website, location: c.location, industry: c.industry, jobTitle: c.opportunities[0]?.title });
+  if (!r.about) throw new Error(`Couldn't confidently identify "${c.name}" on the web. Add its website on the company page and try again.`);
+  await db.company.update({ where: { id }, data: { about: r.about, aboutSources: r.sources.slice(0, 6), aboutAt: new Date() } });
 }
 
 export function researchCompanyById(userId: string, id: string, extraText = "") {

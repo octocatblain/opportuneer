@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import {
   deleteOpportunityAction,
   generateAction,
+  aboutCompanyAction,
   gmailDraftAction,
   saveDocAction,
   setStageAction,
@@ -249,6 +250,35 @@ export default async function OpportunityPage({ params, searchParams }: { params
                 <TrackBadge track={o.company.recommendation} both={o.company.recommendBoth} />
               </div>
               {(o.company.industry || o.company.location) && <p className="mt-0.5 text-xs text-muted">{[o.company.industry, o.company.location].filter(Boolean).join(" · ")}</p>}
+              <div className="mt-3">
+                <div className="mb-1 text-xs font-medium uppercase tracking-wide text-muted">About</div>
+                {o.company.about ? (
+                  <>
+                    <p className="text-sm leading-relaxed text-ink-3">{o.company.about}</p>
+                    {Array.isArray(o.company.aboutSources) && o.company.aboutSources.length > 0 && (
+                      <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+                        Sources:
+                        {(o.company.aboutSources as { title: string; url: string }[]).slice(0, 4).map((s) => (
+                          <a key={s.url} href={s.url} target="_blank" rel="noreferrer" className="link max-w-[10rem] truncate">
+                            {s.title}
+                          </a>
+                        ))}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-muted">No profile yet. Search the web for a short factual summary of this company.</p>
+                )}
+                {!readOnly && (
+                  <form action={aboutCompanyAction} className="mt-2">
+                    <input type="hidden" name="id" value={o.company.id} />
+                    <input type="hidden" name="oppId" value={o.id} />
+                    <SubmitButton className="text-xs font-semibold link" pending="Searching the web…">
+                      {o.company.about ? `Refresh (last updated ${o.company.aboutAt?.toLocaleDateString("en-GB", { day: "numeric", month: "short" })})` : "Research this company online"}
+                    </SubmitButton>
+                  </form>
+                )}
+              </div>
               {o.company.recommendReason && <p className="mt-3 rounded-md bg-paper px-3 py-2 text-sm leading-snug text-ink-3">{o.company.recommendReason}</p>}
               <Link href={`${base}/companies/${o.company.id}`} className={`${btnGhost} mt-3 w-full`}>
                 Research or edit company
