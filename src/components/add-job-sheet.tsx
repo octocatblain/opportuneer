@@ -36,7 +36,7 @@ export function AddJobSheet({ open, onClose, error }: { open: boolean; onClose: 
             Job text
             <textarea name="text" rows={14} autoFocus placeholder="Paste the whole job posting here…" className={`${input} mt-1 text-sm`} />
           </label>
-          <SubmitButton className={btnSignal} pending="Reading the job…">
+          <SubmitButton className={btnSignal} pending="Reading the job…" blocking={{ title: "Reading and scoring the job…", detail: "The AI is pulling out the title, company, pay and location." }}>
             Add and score
           </SubmitButton>
         </form>

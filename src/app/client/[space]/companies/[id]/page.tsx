@@ -67,7 +67,7 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
             <form action={researchCompanyAction} className="mt-3 space-y-2">
               <input type="hidden" name="id" value={c.id} />
               <textarea name="extra" rows={3} placeholder="Optional: paste extra material (LinkedIn company page text, news article, annual report extract)…" className={input} />
-              <SubmitButton className={btnGhost} pending="Reading their website and researching…">
+              <SubmitButton className={btnGhost} pending="Reading their website and researching…" blocking={{ title: "Researching this company…", detail: "Reading their website and writing the brief. This can take a minute." }}>
                 {c.research ? "Re-run research" : "Research this company"}
               </SubmitButton>
               <p className="text-xs text-muted">Reads their home, about and contact pages, plus your notes, then fills in the signals below.</p>

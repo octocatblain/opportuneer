@@ -106,7 +106,7 @@ export function ResumeForm({ resume, returnTo, required }: { resume: { name: str
           {resume?.name ? "Replace resume" : "Upload resume"} (PDF, Word .docx, text, Markdown or HTML; 4 MB max)
         </label>
         <input id="resume-file" name="resume" type="file" accept={RESUME_ACCEPT} required className={input} />
-        <SubmitButton className={btn} pending="Reading your resume…">
+        <SubmitButton className={btn} pending="Reading your resume…" blocking={{ title: "Reading your resume…" }}>
           Upload
         </SubmitButton>
       </form>
