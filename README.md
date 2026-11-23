@@ -53,3 +53,23 @@ Edit `src/config/profile.ts` to change job titles, industries, pay floors, the e
 Starting the app (`npm run dev` or `npm start`) also runs a scan in the background, unless the last scan was less than 3 hours ago (see `src/instrumentation-node.ts`). Set `SKIP_STARTUP_SCAN=1` in `.env` to turn this off.
 
 While any scan is running (from the Scan button, on startup, or the 08:00 task), the app shows a full-screen overlay and blocks other actions until it finishes. Then the page refreshes with the new jobs. A scan that hasn't finished after 30 minutes is treated as crashed, so the overlay can't stay stuck.
+
+## Pilot operations
+
+**Inviting a cohort** (`/admin/waitlist`): add the people as Google test users first (the page lists their emails), then press *Invite cohort A* (30 Nov) or *B* (7 Dec). That creates one single-use link per waiting person (stored only as a hash, valid 7 days, works only for their email), marks them invited, and downloads the links as a CSV. Links are shown once; use *Get new link* on `/admin` if one is lost. Nothing is emailed: send each link yourself.
+
+**Spend guards** (config section `credits`, `/admin/config`): 30 AI actions per user per day, 8 per minute, monthly per-track caps, and a monthly kill-switch on estimated provider cost: at KES 6,000 the alert shows on `/admin` and free-trial (cohort A) AI use pauses; at KES 8,000 AI pauses for everyone except the owner account.
+
+**Tests**: `npm test`. It creates a separate `<db>_test` database, applies the migrations, starts its own server on port 3199 (build folder `.next-test`) and never touches the real data. It covers user-to-user isolation, invites, credits and caps, and delete-my-data.
+
+**Secrets**: `npm run check:secrets` fails if a key is tracked by git or sits in its history. Keep `.env` and the Google client JSON (`~/.secrets/opportuneer/`) out of zips and screenshots. Set `PRIVACY_EMAIL` in `.env` to show a contact address on `/privacy`.
+
+**Backups**: `npm run backup` writes a database dump and a `storage/` archive to `~/backups/opportuneer` (override with `BACKUP_DIR`), checks the dump reads back, and keeps the newest 14 (`BACKUP_KEEP`). Schedule it daily (Task Scheduler, one line in PowerShell):
+
+```powershell
+schtasks /Create /TN "Opportuneer backup" /SC DAILY /ST 02:00 /TR "cmd /c cd /d C:\home\apps\opportuneer && npm run backup >> %USERPROFILE%\backups\opportuneer\backup.log 2>&1"
+```
+
+Restore: `pg_restore --clean --if-exists --no-owner -d "<database url>" <file>.dump`. Copy backups off this laptop too (a second disk or private cloud folder); a laptop failure takes the live database and its backups together. Backups hold users' data, so keep them private.
+
+**Retention**: `npm run prune` deletes product events older than 12 months, expired sessions and stale invitations (the privacy note promises this). Run it monthly.

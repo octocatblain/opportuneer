@@ -121,14 +121,14 @@ Rule: only post what really works in the app that day. Show real screenshots wit
 Because places are first come, first served, share the waitlist link early and widely on Tue 24 Nov only if you are happy with whoever fills the 30 places first. The link carries a `?src=` tag so you can see which post each signup came from.
 
 MVP "done" checklist for Sun 29 Nov (do not invite anyone until all are ticked):
-- [ ] Multi-user accounts with invite-only signup (see "Access method"); one user can never read another's data (automated test)
-- [ ] Track choice: Seeker / Pitch / Both
-- [ ] Credit ledger, per-user caps, global monthly AI-spend kill-switch (see "Guardrails")
-- [ ] Per-account `cohort`, `plan_price_stage` (free_until, founding_until) dates so billing switches automatically
+- [x] Multi-user accounts with invite-only signup (see "Access method"); one user can never read another's data (automated test: `npm test`, tests/isolation.test.ts)
+- [x] Track choice: Seeker / Pitch / Both
+- [x] Credit ledger, per-user caps, daily guard (30/day), global monthly AI-spend kill-switch (see "Guardrails")
+- [x] Per-account `cohort`, `plan_price_stage` (free_until, founding_until) dates so billing switches automatically
 - [x] Waitlist table and form built (22 Nov: `/waitlist`, auto cohort assignment, admin page at `/admin/waitlist`, CSV export). Still to do for Tue 24 Nov go-live: restart the app, apply the `WaitlistEntry` table to the production database, add a privacy contact email to the note on `/waitlist`, and test the form once on the live URL
-- [ ] Privacy note, consent, delete-my-data, analytics that collect only the allowed fields (see "Data privacy and analytics")
-- [ ] In-app feedback button
-- [ ] Rate limits on login and AI routes, secrets out of the repo, backups of the database
+- [x] Privacy note (/privacy), consent, delete-my-data, analytics that collect only the allowed fields (see "Data privacy and analytics")
+- [x] In-app feedback button
+- [x] Rate limits on login and AI routes, secrets out of the repo (`npm run check:secrets`), backups of the database (`npm run backup`; schedule it, see README)
 - [ ] Gmail OAuth: every tester added as test user until Google verification is complete
 
 ## Action list: address now (added 22 Nov)
@@ -138,14 +138,14 @@ Ordered by what blocks what. Item 0 blocks the waitlist going live on Tue 24 Nov
 0. [ ] Waitlist is built and tested locally (35 simultaneous signups gave exactly 10 A, 20 B, 5 public). Remaining: restart the dev server, apply the `WaitlistEntry` table to production (the local database is also behind an earlier schema change, so check before running `db push`), add a privacy contact email to the note on `/waitlist`, test one signup on the live URL, then post the link with `?src=` tags.
 
 **Repo gaps (found in the app repo, `C:\home\apps\opportuneer`)**
-1. [ ] Remove the unique index on `User.seat` in `prisma/schema.prisma`. It limits regular users to one, so multi-user cannot work. Add a migration and check that existing data is not broken.
-2. [ ] Add Both track support. `Track` has only JOB and PITCH. Add a BOTH value, or a `tracks` setting that allows one or both, and gate screens and caps by it.
-3. [ ] Add the missing models: `Invite`, credit ledger (`user_id, action, credits, cost_estimate_kes, created_at`), `Feedback`, and `AnalyticsEvent`. (`WaitlistEntry` is done.) Add `cohort`, `free_until` and `founding_until` to the user or account, copied from the waitlist entry when the invite is accepted.
-4. [ ] Google client secret JSON in the repo root: it is git-ignored, which is fine, but keep it out of any backups, zips or screenshots you share. Also move it out of the repo folder if you can, and rotate the secret if it has ever been shared.
+1. [x] Remove the unique index on `User.seat` in `prisma/schema.prisma`. It limits regular users to one, so multi-user cannot work. Add a migration and check that existing data is not broken.
+2. [x] Add Both track support. `Track` has only JOB and PITCH. Add a BOTH value, or a `tracks` setting that allows one or both, and gate screens and caps by it.
+3. [x] Add the missing models: `Invite`, credit ledger (`user_id, action, credits, cost_estimate_kes, created_at`), `Feedback`, and `AnalyticsEvent`. (`WaitlistEntry` is done.) Add `cohort`, `free_until` and `founding_until` to the user or account, copied from the waitlist entry when the invite is accepted.
+4. [x] Google client secret JSON in the repo root: it is git-ignored, which is fine, but keep it out of any backups, zips or screenshots you share. Also move it out of the repo folder if you can, and rotate the secret if it has ever been shared.
 
 **Build before 30 Nov**
-5. [ ] Invite-only signup flow (single-use hashed token, 7-day expiry, bound to email) with an admin "invite cohort" action that reads the waitlist (cohort A on 30 Nov, cohort B on 7 Dec), sets status to invited, and an automated test that one user can never read another's data.
-6. [ ] Credit ledger writes, per-user caps, daily guard (30 AI actions a day), and the monthly kill-switch (alert KES 6,000, pause KES 8,000).
+5. [x] Invite-only signup flow (single-use hashed token, 7-day expiry, bound to email) with an admin "invite cohort" action that reads the waitlist (cohort A on 30 Nov, cohort B on 7 Dec), sets status to invited, and an automated test that one user can never read another's data.
+6. [x] Credit ledger writes, per-user caps, daily guard (30 AI actions a day), and the monthly kill-switch (alert KES 6,000, pause KES 8,000).
    Also: in-app feedback button, privacy note with delete-my-data for accounts, rate limits on login and AI routes, secrets out of the repo, database backups, and every tester added as a Google test user.
 
 **Before Mon 7 Dec (Cohort B pays)**
