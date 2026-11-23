@@ -12,7 +12,7 @@ import {
 } from "@/app/actions";
 import { SourceLabel } from "@/components/brand-icons";
 import { SubmitButton } from "@/components/submit-button";
-import { Breakdown, btn, btnGhost, Card, Flash, input, ReadOnlyNotice, ScorePill, STAGE_LABEL, STAGES, TrackBadge } from "@/components/ui";
+import { Breakdown, btn, btnGhost, Card, Flash, input, ReadOnlyNotice, ScoreHeadline, ScorePill, STAGE_LABEL, STAGES, TrackBadge } from "@/components/ui";
 import { canView, getUser, requireSpace } from "@/lib/auth";
 import { clientBase, isSpace, spaceAllowsTrack } from "@/lib/spaces";
 import { db } from "@/lib/db";
@@ -213,87 +213,125 @@ export default async function OpportunityPage({ params, searchParams }: { params
         <div className="space-y-6">
           {fit?.lines && (
             <Card index={3} title="Why this score">
+              <ScoreHeadline score={o.fitScore} />
               <Breakdown lines={fit.lines} />
               {fit.trust && (
-                <div className="mt-3 border-t border-rule pt-2 text-sm">
-                  <span className="font-medium">Trust: </span>
-                  <span
-                    className={
-                      fit.trust.level === "verified"
-                        ? "text-success"
-                        : fit.trust.level === "ok"
-                          ? "text-ink-3"
-                          : "text-error"
-                    }
-                  >
-                    {{ verified: "Verified employer", ok: "Looks genuine", unclear: "Unclear post", suspicious: "Possible scam" }[fit.trust.level]}
-                  </span>
-                  <ul className="mt-1 list-disc pl-5 text-xs text-muted">
+                <div
+                  className={`mt-4 rounded-md border px-3.5 py-3 text-sm ${
+                    fit.trust.level === "verified" || fit.trust.level === "ok" ? "border-success/30 bg-success-soft" : fit.trust.level === "unclear" ? "border-amber-soft bg-amber-soft" : "border-error/30 bg-error/10"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 font-semibold">
+                    <svg aria-hidden viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      {fit.trust.level === "verified" || fit.trust.level === "ok" ? <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM8.5 12l2.5 2.5 4.5-5" /> : <path d="M12 3l9 16H3zM12 10v4M12 17h.01" />}
+                    </svg>
+                    <span className={fit.trust.level === "suspicious" ? "text-error" : fit.trust.level === "unclear" ? "text-warn-ink" : "text-success"}>
+                      {{ verified: "Verified employer", ok: "Looks genuine", unclear: "Unclear post", suspicious: "Possible scam" }[fit.trust.level]}
+                    </span>
+                  </div>
+                  <ul className="mt-1.5 space-y-0.5 text-xs text-ink-3">
                     {fit.trust.reasons.map((r) => (
                       <li key={r}>{r}</li>
                     ))}
                   </ul>
-                  <p className="mt-1 text-xs text-muted">Always check the employer&apos;s own website or LinkedIn page, and never pay to apply.</p>
+                  <p className="mt-2 text-xs text-muted">Always check the employer&apos;s own website or LinkedIn page, and never pay to apply.</p>
                 </div>
               )}
-              {fit.excluded && <p className="mt-2 text-sm text-error">Auto-archived: {fit.excludeReason}</p>}
+              {fit.excluded && <p className="mt-3 rounded-md bg-error/10 px-3 py-2 text-sm text-error">Auto-archived: {fit.excludeReason}</p>}
             </Card>
           )}
           {o.company && (
             <Card index={4} title="Company">
-              <p className="text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <Link href={`${base}/companies/${o.company.id}`} className="min-w-0 truncate text-base font-semibold text-ink hover:underline">
+                  {o.company.name}
+                </Link>
                 <TrackBadge track={o.company.recommendation} both={o.company.recommendBoth} />
-              </p>
-              <p className="mt-2 text-sm text-muted">{o.company.recommendReason}</p>
-              <Link href={`${base}/companies/${o.company.id}`} className="mt-2 block text-sm link">
+              </div>
+              {(o.company.industry || o.company.location) && <p className="mt-0.5 text-xs text-muted">{[o.company.industry, o.company.location].filter(Boolean).join(" · ")}</p>}
+              {o.company.recommendReason && <p className="mt-3 rounded-md bg-paper px-3 py-2 text-sm leading-snug text-ink-3">{o.company.recommendReason}</p>}
+              <Link href={`${base}/companies/${o.company.id}`} className={`${btnGhost} mt-3 w-full`}>
                 Research or edit company
               </Link>
             </Card>
           )}
           {isJob && (
             <Card index={5} title="Details (correct if wrong)">
-              <form action={updateOpportunityAction} className="space-y-2 text-sm">
+              <form action={updateOpportunityAction} className="space-y-4 text-sm">
                 <input type="hidden" name="id" value={o.id} />
-                <input name="location" defaultValue={o.location ?? ""} placeholder="Location" className={input} />
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" name="remote" defaultChecked={o.remote} /> Remote
-                </label>
-                <input name="employment" defaultValue={o.employment ?? ""} placeholder="full-time / contract / part-time" className={input} />
-                <div className="grid grid-cols-2 gap-2">
-                  <input name="salaryMin" type="number" defaultValue={o.salaryMin ?? ""} placeholder="Pay min" className={input} />
-                  <input name="salaryMax" type="number" defaultValue={o.salaryMax ?? ""} placeholder="Pay max" className={input} />
-                  <input name="currency" defaultValue={o.currency ?? ""} placeholder="KES / USD" className={input} />
-                  <select name="salaryPeriod" defaultValue={o.salaryPeriod ?? ""} className={input}>
-                    <option value="">period?</option>
-                    <option value="month">per month</option>
-                    <option value="year">per year</option>
-                    <option value="hour">per hour</option>
-                  </select>
-                </div>
-                <label className="block text-xs text-muted">
+                <fieldset className="space-y-2 border-0 p-0">
+                  <legend className="mb-1 text-xs font-medium uppercase tracking-wide text-muted">Role</legend>
+                  <label className="block text-xs text-muted">
+                    Location
+                    <input name="location" defaultValue={o.location ?? ""} placeholder="e.g. Nairobi" className={`${input} mt-1`} />
+                  </label>
+                  <label className="block text-xs text-muted">
+                    Employment type
+                    <input name="employment" defaultValue={o.employment ?? ""} placeholder="full-time / contract / part-time" className={`${input} mt-1`} />
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-ink">
+                    <input type="checkbox" name="remote" defaultChecked={o.remote} /> Remote role
+                  </label>
+                </fieldset>
+                <fieldset className="space-y-2 border-0 p-0">
+                  <legend className="mb-1 text-xs font-medium uppercase tracking-wide text-muted">Pay</legend>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="block text-xs text-muted">
+                      Min
+                      <input name="salaryMin" type="number" defaultValue={o.salaryMin ?? ""} className={`${input} mt-1`} />
+                    </label>
+                    <label className="block text-xs text-muted">
+                      Max
+                      <input name="salaryMax" type="number" defaultValue={o.salaryMax ?? ""} className={`${input} mt-1`} />
+                    </label>
+                    <label className="block text-xs text-muted">
+                      Currency
+                      <input name="currency" defaultValue={o.currency ?? ""} placeholder="KES / USD" className={`${input} mt-1`} />
+                    </label>
+                    <label className="block text-xs text-muted">
+                      Period
+                      <select name="salaryPeriod" defaultValue={o.salaryPeriod ?? ""} className={`${input} mt-1`}>
+                        <option value="">Not stated</option>
+                        <option value="month">per month</option>
+                        <option value="year">per year</option>
+                        <option value="hour">per hour</option>
+                      </select>
+                    </label>
+                  </div>
+                </fieldset>
+                <label className="block text-xs font-medium uppercase tracking-wide text-muted">
                   Follow up on
-                  <input name="followUpAt" type="date" defaultValue={o.followUpAt?.toISOString().slice(0, 10) ?? ""} className={input} />
+                  <input name="followUpAt" type="date" defaultValue={o.followUpAt?.toISOString().slice(0, 10) ?? ""} className={`${input} mt-1 normal-case tracking-normal`} />
                 </label>
-                <SubmitButton className={btnGhost}>Save and re-score</SubmitButton>
+                <SubmitButton className={`${btnGhost} w-full`}>Save and re-score</SubmitButton>
               </form>
             </Card>
           )}
           <Card index={6} title="Activity">
-            <ul className="space-y-2 text-xs">
-              {o.activities.map((a) => (
-                <li key={a.id}>
-                  <span className="text-muted">{a.createdAt.toLocaleString("en-GB")}</span>
-                  <br />
-                  {a.message}
-                </li>
-              ))}
-            </ul>
+            {o.activities.length === 0 ? (
+              <p className="text-sm text-muted">Nothing yet.</p>
+            ) : (
+              <ol className="relative space-y-4 border-l border-rule pl-5 text-sm">
+                {o.activities.map((a) => (
+                  <li key={a.id} className="relative">
+                    <span aria-hidden className="absolute -left-[25px] top-1.5 h-2 w-2 rounded-full bg-signal ring-4 ring-white" />
+                    <div className="leading-snug text-ink">{a.message}</div>
+                    <time dateTime={a.createdAt.toISOString()} className="text-xs text-muted">
+                      {a.createdAt.toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                    </time>
+                  </li>
+                ))}
+              </ol>
+            )}
           </Card>
-          <form action={deleteOpportunityAction}>
+          <form action={deleteOpportunityAction} className="rounded-md border border-error/30 px-4 py-3">
             <input type="hidden" name="id" value={o.id} />
-            <SubmitButton className="text-xs text-error hover:underline" pending="Deleting…" confirm="Delete this opportunity? This cannot be undone.">
-              Delete this opportunity
-            </SubmitButton>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs text-muted">Removes this job, its drafts and activity.</p>
+              <SubmitButton className="shrink-0 rounded-md border border-error/40 px-3 py-1.5 text-xs font-semibold text-error hover:bg-error/10" pending="Deleting…" confirm="Delete this opportunity? This cannot be undone.">
+                Delete
+              </SubmitButton>
+            </div>
           </form>
         </div>
       </div>
