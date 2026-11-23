@@ -24,7 +24,7 @@ export function gmailConfigured() {
   return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 }
 
-export function authUrl(state: string) {
+export function authUrl(state: string, loginHint?: string) {
   const { clientId, redirectUri } = cfg();
   const p = new URLSearchParams({
     client_id: clientId,
@@ -33,7 +33,7 @@ export function authUrl(state: string) {
     scope: SCOPES.join(" "),
     access_type: "offline",
     prompt: "consent",
-    login_hint: appCfg().gmail.account,
+    login_hint: loginHint ?? appCfg().gmail.account,
     state,
   });
   return `https://accounts.google.com/o/oauth2/v2/auth?${p}`;
@@ -68,7 +68,18 @@ export async function gmailAccount(userId: string): Promise<string | null> {
   return t?.refresh_token ? (t.email ?? "connected") : null;
 }
 
+/** Forget the stored Gmail tokens and revoke the permission at Google (best effort: a network failure must not block disconnecting or deleting an account). */
 export async function disconnectGmail(userId: string) {
+  const t = await getSetting<Tokens | null>(key(userId), null);
+  const token = t?.refresh_token ?? t?.access_token;
+  if (token) {
+    await fetch("https://oauth2.googleapis.com/revoke", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ token }),
+      signal: AbortSignal.timeout(5000),
+    }).catch(() => {});
+  }
   await setSetting(key(userId), null);
 }
 

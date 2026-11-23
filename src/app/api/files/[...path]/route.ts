@@ -10,10 +10,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ path: s
   if (!user) return new NextResponse("Not signed in", { status: 401 });
   const { path: parts } = await params;
   // Files live under storage/<opportunityId>/...: only the owner (or the superuser) may open them.
-  const opp = await db.opportunity.findUnique({ where: { id: parts[0] ?? "" }, select: { userId: true } });
+  // Resolve the path FIRST and take the opportunity id from where it really lands, so "<mine>/../<theirs>/x" can't borrow my id.
+  const root = path.resolve(STORAGE_DIR);
+  const file = path.resolve(root, ...parts);
+  if (!file.startsWith(root + path.sep)) return new NextResponse("Not found", { status: 404 });
+  const oppId = file.slice(root.length + 1).split(path.sep)[0];
+  const opp = await db.opportunity.findUnique({ where: { id: oppId }, select: { userId: true } });
   if (!opp || !canView(user, opp.userId)) return new NextResponse("Not found", { status: 404 });
-  const file = path.resolve(STORAGE_DIR, ...parts);
-  if (!file.startsWith(path.resolve(STORAGE_DIR) + path.sep)) return new NextResponse("Not found", { status: 404 });
   try {
     const data = await fs.readFile(file);
     return new NextResponse(data, {

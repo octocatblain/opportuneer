@@ -4,6 +4,7 @@ import { cfg, loadConfig } from "@/lib/config";
 import { db } from "@/lib/db";
 import { normalizeEmail, registerMember, startSession } from "@/lib/auth";
 import { landingFor } from "@/lib/spaces";
+import { ipFrom, rateLimited } from "@/lib/rate-limit";
 
 export async function GET(req: NextRequest) {
   await loadConfig();
@@ -18,6 +19,7 @@ export async function GET(req: NextRequest) {
   jar.set("g_state", "", { path: "/api/auth/google", maxAge: 0 });
   jar.set("g_next", "", { path: "/api/auth/google", maxAge: 0 });
 
+  if (rateLimited(`google-callback:${ipFrom(req.headers) ?? "?"}`, 30, 15 * 60 * 1000)) return NextResponse.redirect(new URL(`${admin ? "/admin/login" : "/login"}?error=${encodeURIComponent("Too many attempts. Wait 15 minutes and try again.")}`, url.origin));
   const bounce = (msg: string) => NextResponse.redirect(new URL(`${admin ? "/admin/login" : "/login"}?error=${encodeURIComponent(msg)}`, url.origin));
   if (url.searchParams.get("error")) return bounce(`Google: ${url.searchParams.get("error")}`);
   if (!cfg().auth.allowGoogle) return bounce("Google sign-in is turned off.");
