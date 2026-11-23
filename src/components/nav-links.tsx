@@ -44,7 +44,7 @@ type Item = { href: string; label: string; icon: string; exact?: boolean };
  * account card), a top bar with search, and the page content. Admin and client areas share the frame
  * but show their own links.
  */
-export function AppShell({ children, admin = false, ownSpace = "duo", name, email }: { children: ReactNode; admin?: boolean; ownSpace?: Space; name: string; email: string }) {
+export function AppShell({ children, admin = false, ownSpace = "duo", name, email, locked = false }: { children: ReactNode; admin?: boolean; ownSpace?: Space; name: string; email: string; locked?: boolean }) {
   const path = usePathname();
   // Highlight the clicked item at once; the page itself follows when the server responds.
   const [pending, setPending] = useState<string | null>(null);
@@ -73,7 +73,8 @@ export function AppShell({ children, admin = false, ownSpace = "duo", name, emai
     { href: "/admin/analytics", label: "Analytics", icon: "analytics" },
     { href: "/admin/config", label: "Configuration", icon: "config" },
   ];
-  const items = adminMode ? adminItems : clientItems;
+  // Until first-login setup is finished the account has no menu: only the onboarding page is open.
+  const items = locked ? [] : adminMode ? adminItems : clientItems;
   const on = (i: Item) => (pending ? i.href === pending : i.exact ? path === i.href : path === i.href || path.startsWith(`${i.href}/`));
   const initials =
     (name || email)
@@ -87,7 +88,7 @@ export function AppShell({ children, admin = false, ownSpace = "duo", name, emai
   return (
     <div className="flex min-h-screen">
       <aside data-app-shell className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col overflow-y-auto border-r border-rule bg-white p-4 lg:flex">
-        <Link href={adminMode ? "/admin" : base} className="mb-5 inline-flex items-center gap-2 self-start py-1.5 text-sm font-semibold text-ink">
+        <Link href={locked ? "/onboarding" : adminMode ? "/admin" : base} className="mb-5 inline-flex items-center gap-2 self-start py-1.5 text-sm font-semibold text-ink">
           <BrandMark size={32} tile={false} />
           <Wordmark tone="light" />
         </Link>
@@ -110,6 +111,7 @@ export function AppShell({ children, admin = false, ownSpace = "duo", name, emai
           </div>
         )}
 
+        {locked && <p className="rounded-md bg-paper px-3 py-3 text-sm text-muted">Finish setting up your profile to unlock the dashboard, jobs, pipeline and settings.</p>}
         <nav aria-label="Main" className="flex flex-col gap-1 text-sm">
           {items.map((i) => (
             <Link
@@ -128,7 +130,7 @@ export function AppShell({ children, admin = false, ownSpace = "duo", name, emai
         </nav>
 
         <div className="mt-auto space-y-3 pt-6">
-          {!adminMode && showJobs && (
+          {!locked && !adminMode && showJobs && (
             <Link href={`${base}/add`} className={`${btnSignal} w-full`}>
               <Icon name="add" className="h-4 w-4" /> Add job
             </Link>
@@ -152,11 +154,13 @@ export function AppShell({ children, admin = false, ownSpace = "duo", name, emai
       <div className="flex min-w-0 flex-1 flex-col">
         <header data-app-shell className="sticky top-0 z-30 flex flex-wrap items-center gap-3 border-b border-rule bg-white px-4 py-3 lg:px-8">
           {/* Small screens: brand and the same links as the sidebar, scrollable. */}
-          <Link href={adminMode ? "/admin" : base} className="inline-flex items-center gap-2 py-1.5 text-sm font-semibold text-ink lg:hidden">
+          <Link href={locked ? "/onboarding" : adminMode ? "/admin" : base} className="inline-flex items-center gap-2 py-1.5 text-sm font-semibold text-ink lg:hidden">
             <BrandMark size={26} tile={false} />
             <Wordmark tone="light" />
           </Link>
-          {showJobs && !adminMode ? (
+          {locked ? (
+            <div className="hidden flex-1 px-2 text-sm text-muted sm:block">Account setup</div>
+          ) : showJobs && !adminMode ? (
             <form action={`${base}/jobs`} role="search" className="relative hidden min-w-0 max-w-md flex-1 sm:block">
               <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-mist">
                 <Icon name="search" className="h-4 w-4" />
@@ -175,7 +179,7 @@ export function AppShell({ children, admin = false, ownSpace = "duo", name, emai
               <span className="block text-xs text-muted">{email}</span>
             </span>
           </div>
-          <nav aria-label="Sections" className="flex w-full gap-1 overflow-x-auto text-sm lg:hidden">
+          <nav aria-label="Sections" className={`w-full gap-1 overflow-x-auto text-sm lg:hidden ${locked ? "hidden" : "flex"}`}>
             {items.map((i) => (
               <Link key={i.href} href={i.href} onClick={() => setPending(i.href)} aria-current={on(i) ? "page" : undefined} className={`whitespace-nowrap rounded-md px-3 py-1.5 font-medium ${on(i) ? "bg-ink text-white" : "text-muted"}`}>
                 {i.label}

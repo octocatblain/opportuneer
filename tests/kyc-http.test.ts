@@ -46,6 +46,14 @@ describe("first-login gate", () => {
     assert.doesNotMatch(pHtml, /Your resume/);
   });
 
+  it("an account that has not finished onboarding has no menu; one that has, does", async () => {
+    const locked = await (await get("/onboarding", fresh)).text();
+    for (const href of ["/client/duo/jobs", "/client/duo/pipeline", "/client/duo/settings", "/client/duo/profile", "/client/duo/add"]) assert.ok(!locked.includes(`href="${href}"`), `${href} must not be linked while onboarding`);
+    assert.match(locked, /Finish setting up your profile/);
+    const open = await (await get("/client/duo", done)).text();
+    for (const href of ["/client/duo/jobs", "/client/duo/pipeline", "/client/duo/profile"]) assert.ok(open.includes(`href="${href}"`), `${href} is linked once onboarded`);
+  });
+
   it("an onboarded account goes straight to the workspace and onboarding bounces back", async () => {
     assert.equal((await get("/client/duo", done)).status, 200);
     const r = await get("/onboarding", done);
