@@ -3,9 +3,9 @@ import { inviteForToken, SESSION_COOKIE, userForToken } from "@/lib/auth";
 import { onboardingSteps } from "@/lib/kyc";
 import { canEnterSpace, homeFor, isSpace, SPACE_COOKIE } from "@/lib/spaces";
 
-// Two areas, two sign-ins:
-//   /admin/**          superuser only (sign in at /admin/login)
-//   /client/<space>/** clients (sign in at /login); space is jobs | pitches | duo and must match the
+// Two areas, one shared sign-in at /login (/admin/login just redirects there):
+//   /admin/**          superuser only
+//   /client/<space>/** clients; space is jobs | pitches | duo and must match the
 //                      account's track access. The superuser may enter every space.
 // Signed-out visitors can only reach the landing page, the sign-in pages, the Google sign-in routes and app icons.
 // Runs on the Node.js runtime so it can check the session in the database.
@@ -27,7 +27,7 @@ export async function middleware(req: NextRequest) {
     if (pathname === "/register" && !(await inviteForToken(req.nextUrl.searchParams.get("invite")))) return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent("Sign-up is by invitation only. Use the invitation link you were sent.")}`, req.url));
     if (PUBLIC.includes(pathname)) return NextResponse.next();
     if (pathname.startsWith("/api/")) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-    const login = new URL(pathname.startsWith("/admin") ? "/admin/login" : "/login", req.url);
+    const login = new URL("/login", req.url);
     login.searchParams.set("next", pathname + search);
     return NextResponse.redirect(login);
   }

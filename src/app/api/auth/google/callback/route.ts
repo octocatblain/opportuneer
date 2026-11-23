@@ -14,13 +14,12 @@ export async function GET(req: NextRequest) {
   const next = jar.get("g_next")?.value ?? "/";
   const inviteToken = jar.get("g_invite")?.value;
   jar.set("g_invite", "", { path: "/api/auth/google", maxAge: 0 });
-  const admin = jar.get("g_area")?.value === "admin";
   jar.set("g_area", "", { path: "/api/auth/google", maxAge: 0 });
   jar.set("g_state", "", { path: "/api/auth/google", maxAge: 0 });
   jar.set("g_next", "", { path: "/api/auth/google", maxAge: 0 });
 
-  if (rateLimited(`google-callback:${ipFrom(req.headers) ?? "?"}`, 30, 15 * 60 * 1000)) return NextResponse.redirect(new URL(`${admin ? "/admin/login" : "/login"}?error=${encodeURIComponent("Too many attempts. Wait 15 minutes and try again.")}`, url.origin));
-  const bounce = (msg: string) => NextResponse.redirect(new URL(`${admin ? "/admin/login" : "/login"}?error=${encodeURIComponent(msg)}`, url.origin));
+  if (rateLimited(`google-callback:${ipFrom(req.headers) ?? "?"}`, 30, 15 * 60 * 1000)) return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent("Too many attempts. Wait 15 minutes and try again.")}`, url.origin));
+  const bounce = (msg: string) => NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(msg)}`, url.origin));
   if (url.searchParams.get("error")) return bounce(`Google: ${url.searchParams.get("error")}`);
   if (!cfg().auth.allowGoogle) return bounce("Google sign-in is turned off.");
   if (!expected || expected !== url.searchParams.get("state")) return bounce("Sign-in expired or was tampered with. Try again.");
@@ -50,7 +49,6 @@ export async function GET(req: NextRequest) {
 
   const email = normalizeEmail(claims.email);
   let user = (await db.user.findUnique({ where: { googleId: claims.sub } })) ?? (await db.user.findUnique({ where: { email } }));
-  if (!user && admin) return bounce("That Google account is not an administrator.");
   if (!user) {
     const made = await registerMember({ token: inviteToken, name: claims.name ?? null, googleId: claims.sub, googleEmail: email });
     if ("error" in made) return bounce(made.error);
@@ -58,8 +56,6 @@ export async function GET(req: NextRequest) {
   } else if (!user.googleId) {
     user = await db.user.update({ where: { id: user.id }, data: { googleId: claims.sub, name: user.name ?? claims.name ?? null } });
   }
-  if (admin && user.role !== "SUPERUSER") return bounce("That Google account is not an administrator.");
-  if (!admin && user.role === "SUPERUSER") return bounce("Administrators sign in at /admin/login.");
   await startSession(user.id, "google");
   const safe = next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\") ? next : "/";
   return NextResponse.redirect(new URL(landingFor(user, safe), url.origin));

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter_Tight } from "next/font/google";
 import { MotionProvider } from "@/components/motion";
 import { getUser, isSuper } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { onboardingSteps } from "@/lib/kyc";
 import { spaceForAccess } from "@/lib/spaces";
 import "./globals.css";
@@ -24,6 +25,7 @@ export const viewport: Viewport = { themeColor: "#0e1014" };
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const user = await getUser();
   const locked = user ? (await onboardingSteps(user)).length > 0 : false;
+  const feedbackNew = user && isSuper(user) ? await db.feedback.count({ where: { status: "NEW" } }) : 0;
   return (
     <html lang="en" className={interTight.variable} suppressHydrationWarning>
       <head>
@@ -32,7 +34,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       <body className="min-h-screen bg-paper text-ink antialiased">
         {user ? (
           <MotionProvider>
-            <AppShell admin={isSuper(user)} ownSpace={spaceForAccess(user.trackAccess)} name={user.name ?? ""} email={user.email} locked={locked}>
+            <AppShell admin={isSuper(user)} ownSpace={spaceForAccess(user.trackAccess)} name={user.name ?? ""} email={user.email} locked={locked} feedbackNew={feedbackNew}>
               {children}
             </AppShell>
             <ScanOverlay />

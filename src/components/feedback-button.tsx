@@ -2,12 +2,11 @@
 
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { submitFeedbackAction } from "@/app/feedback-actions";
-import { SubmitButton } from "@/components/submit-button";
+import { FeedbackForm } from "@/components/feedback-form";
 import { SideSheet } from "@/components/side-sheet";
 
 /** "Feedback" button in the top bar on every signed-in page. Opens a right-hand sidebar form; the page you were on is sent with it. */
-export function FeedbackButton() {
+export function FeedbackButton({ name = "", email = "" }: { name?: string; email?: string }) {
   const [open, setOpen] = useState(false);
   const path = usePathname();
 
@@ -28,32 +27,7 @@ export function FeedbackButton() {
         </svg>
       </button>
       <SideSheet open={open} onClose={() => setOpen(false)} title="Send feedback">
-        <form action={submitFeedbackAction} className="space-y-3 text-sm" aria-label="Send feedback">
-          <input type="hidden" name="page" value={path} />
-          <select name="kind" defaultValue="general" aria-label="Type" className="w-full rounded-md border border-mist bg-white px-3 py-2 text-sm">
-            <option value="general">General feedback</option>
-            <option value="bug">Something is broken</option>
-            <option value="idea">Idea</option>
-          </select>
-          <textarea
-            name="message"
-            required
-            minLength={3}
-            maxLength={4000}
-            rows={8}
-            autoFocus
-            placeholder="What should be better? Please don't paste passwords."
-            className="w-full rounded-md border border-mist bg-white px-3 py-2 text-sm"
-          />
-          <div className="flex items-center justify-between gap-2">
-            <SubmitButton className="rounded-md bg-ink px-4 py-2 text-sm font-medium text-white" pending="Sending…">
-              Send
-            </SubmitButton>
-            <button type="button" onClick={() => setOpen(false)} className="text-xs text-muted underline">
-              Cancel
-            </button>
-          </div>
-        </form>
+        {open && <FeedbackForm page={path} name={name} email={email} compact />}
       </SideSheet>
     </div>
   );

@@ -38,14 +38,14 @@ function Icon({ name, className = "h-[18px] w-[18px]" }: { name: string; classNa
   );
 }
 
-type Item = { href: string; label: string; icon: string; exact?: boolean };
+type Item = { href: string; label: string; icon: string; exact?: boolean; badge?: number };
 
 /**
  * The signed-in app frame: a flat full-height sidebar (brand, role switcher for the superuser, section links, the
  * account card), a top bar with search, and the page content. Admin and client areas share the frame
  * but show their own links.
  */
-export function AppShell({ children, admin = false, ownSpace = "duo", name, email, locked = false }: { children: ReactNode; admin?: boolean; ownSpace?: Space; name: string; email: string; locked?: boolean }) {
+export function AppShell({ children, admin = false, ownSpace = "duo", name, email, locked = false, feedbackNew = 0 }: { children: ReactNode; admin?: boolean; ownSpace?: Space; name: string; email: string; locked?: boolean; feedbackNew?: number }) {
   const path = usePathname();
   // Highlight the clicked item at once; the page itself follows when the server responds.
   const [pending, setPending] = useState<string | null>(null);
@@ -93,7 +93,7 @@ export function AppShell({ children, admin = false, ownSpace = "duo", name, emai
     { href: "/admin", label: "Accounts", icon: "accounts", exact: true },
     { href: "/admin/waitlist", label: "Waitlist", icon: "waitlist" },
     { href: "/admin/credits", label: "Credits", icon: "credits" },
-    { href: "/admin/feedback", label: "Feedback", icon: "feedback" },
+    { href: "/admin/feedback", label: "Feedback", icon: "feedback", badge: feedbackNew },
     { href: "/admin/analytics", label: "Analytics", icon: "analytics" },
     { href: "/admin/config", label: "Configuration", icon: "config" },
   ];
@@ -150,7 +150,7 @@ export function AppShell({ children, admin = false, ownSpace = "duo", name, emai
               onClick={() => setPending(i.href)}
               href={i.href}
               title={collapsed ? i.label : undefined}
-              aria-label={collapsed ? i.label : undefined}
+              aria-label={collapsed ? i.label : i.badge ? `${i.label}, ${i.badge} new` : undefined}
               aria-current={on(i) ? "page" : undefined}
               className={`relative flex items-center gap-3 rounded-md px-3 py-2.5 font-medium transition-colors ${collapsed ? "justify-center" : ""} ${
                 on(i) ? "bg-paper text-ink before:absolute before:-left-4 before:top-2 before:h-6 before:w-1 before:bg-ink" : "text-ink-4 hover:bg-paper hover:text-ink"
@@ -158,6 +158,7 @@ export function AppShell({ children, admin = false, ownSpace = "duo", name, emai
             >
               <Icon name={i.icon} />
               {!collapsed && i.label}
+              {!!i.badge && (collapsed ? <span aria-hidden className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-signal" /> : <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-signal px-1.5 text-xs font-semibold text-white">{i.badge > 99 ? "99+" : i.badge}</span>)}
             </Link>
           ))}
         </nav>
@@ -175,7 +176,6 @@ export function AppShell({ children, admin = false, ownSpace = "duo", name, emai
               <div className="truncate text-xs text-muted">{admin ? "Administrator" : SPACE_LABEL[ownSpace]}</div>
             </div>
             <form action={logoutAction}>
-              <input type="hidden" name="area" value={admin ? "admin" : "client"} />
               <button type="submit" title="Sign out" aria-label="Sign out" className="grid h-8 w-8 place-items-center rounded text-muted hover:bg-paper hover:text-ink">
                 <Icon name="out" />
               </button>
@@ -204,7 +204,7 @@ export function AppShell({ children, admin = false, ownSpace = "duo", name, emai
             <div className="hidden flex-1 px-2 text-sm text-muted sm:block">{adminMode ? "Administrator console" : `${SPACE_LABEL[space]} workspace`}</div>
           )}
           <div className="ml-auto flex items-center gap-3 text-sm">
-            <FeedbackButton />
+            <FeedbackButton name={name} email={email} />
             <ThemeToggle />
             {admin && <span className="hidden rounded-md bg-amber-soft px-2.5 py-1 text-xs font-medium text-warn-ink md:inline">{inAdmin ? "Viewing as Admin" : `Viewing as ${SPACE_LABEL[space].split(" ")[0]}`}</span>}
             <span className="hidden text-right leading-tight md:block">

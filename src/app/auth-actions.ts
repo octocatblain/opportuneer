@@ -37,11 +37,10 @@ const safeNext = (n: string) => (n.startsWith("/") && !n.startsWith("//") && !n.
 const fail = (page: string, next: string, msg: string): never =>
   redirect(`${page}?error=${encodeURIComponent(msg)}${next !== "/" ? `&next=${encodeURIComponent(next)}` : ""}`);
 
-/** Client sign-in (/login) and admin sign-in (/admin/login) share this action; the "area" field says which form it came from. */
+/** One shared sign-in (/login) for clients and the administrator; landingFor sends each to their own area. */
 export async function loginAction(form: FormData) {
   await loadConfig();
-  const admin = text(form, "area") === "admin";
-  const page = admin ? "/admin/login" : "/login";
+  const page = "/login";
   const email = normalizeEmail(text(form, "email"));
   const password = String(form.get("password") ?? "");
   const next = safeNext(text(form, "next"));
@@ -51,9 +50,6 @@ export async function loginAction(form: FormData) {
   const user = await db.user.findUnique({ where: { email } });
   const ok = await verifyPassword(password, user?.passwordHash ?? null);
   if (!user || !ok) fail(page, next, user && !user.passwordHash ? "This account uses Google sign-in." : "Wrong email or password.");
-  // Each sign-in only admits its own kind of account (the admin form gives nothing away about client accounts).
-  if (admin && user!.role !== "SUPERUSER") fail(page, next, "Wrong email or password.");
-  if (!admin && user!.role === "SUPERUSER") fail(page, next, "Administrators sign in at /admin/login.");
   await startSession(user!.id, "password");
   redirect(landingFor(user!, next));
 }
@@ -82,9 +78,9 @@ export async function registerAction(form: FormData) {
   redirect(landingFor(user, "/"));
 }
 
-export async function logoutAction(form?: FormData) {
+export async function logoutAction(_form?: FormData) {
   await endSession();
-  redirect(form?.get("area") === "admin" ? "/admin/login" : "/login");
+  redirect("/login");
 }
 
 /** Revoke one session of the signed-in user (not the current one: use sign out for that). */

@@ -6,11 +6,11 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { Brand } from "@/components/brand-icons";
 import { currentSession, isSuper, requireSpace } from "@/lib/auth";
-import { isSpace } from "@/lib/spaces";
+import { clientBase, isSpace } from "@/lib/spaces";
 import { db } from "@/lib/db";
 import { btn, btnGhost, Card, Flash, input } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
-import { submitFeedbackAction } from "@/app/feedback-actions";
+import { FeedbackForm } from "@/components/feedback-form";
 import { creditBalance } from "@/lib/credits";
 import { loadConfig } from "@/lib/config";
 import { getSetting } from "@/lib/db";
@@ -50,17 +50,9 @@ export default async function Settings({ params, searchParams }: { params: Promi
           <p className="text-sm">
             {credits === null ? "Owner account: no credit limits." : <>Credits left: <b>{credits}</b>. Tracks: <b>{me.user.trackAccess.toLowerCase()}</b>.</>}
           </p>
-          <form action={submitFeedbackAction} className="mt-3 space-y-2">
-            <select name="kind" className={input} aria-label="Type" defaultValue="general">
-              <option value="general">General feedback</option>
-              <option value="bug">Something is broken</option>
-              <option value="idea">Idea</option>
-            </select>
-            <textarea name="message" required minLength={3} maxLength={4000} rows={3} placeholder="What should be better?" className={input} />
-            <SubmitButton className={btn} pending="Sending…">
-              Send feedback
-            </SubmitButton>
-          </form>
+          <div className="mt-4">
+            <FeedbackForm page={`${clientBase(space)}/settings`} name={me.user.name ?? ""} email={me.user.email} compact />
+          </div>
         </Card>
         <Card index={1} title={<Brand name="Gmail" label="Gmail (drafts only)" size={20} />}>
           {gmail ? (

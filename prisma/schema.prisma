@@ -216,9 +216,32 @@ model Feedback {
   rating    Int? // 1-5
   message   String
   page      String?
+  status    String   @default("NEW") // NEW | READ | RESOLVED
+  adminNote String? // private note from the administrator
+  // How to get back to the sender. Prefilled from the account, editable per message.
+  contactName  String?
+  contactEmail String?
+  contactPhone String?
+  allowContact Boolean  @default(true) // false = the sender asked not to be contacted
+  attachments  FeedbackAttachment[]
   createdAt DateTime @default(now())
 
   @@index([userId, createdAt])
+  @@index([status, createdAt])
+}
+
+/// A file sent with a feedback message (screenshot, screen recording, PDF or Word document). Bytes live in storage/feedback/<feedbackId>/.
+model FeedbackAttachment {
+  id         String   @id @default(cuid())
+  feedbackId String
+  feedback   Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  name       String // original file name, for display and download
+  mime       String // derived from the extension on our side, never trusted from the browser
+  size       Int
+  path       String // relative to storage/
+  createdAt  DateTime @default(now())
+
+  @@index([feedbackId])
 }
 
 model AnalyticsEvent {

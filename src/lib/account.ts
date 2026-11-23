@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { db } from "@/lib/db";
 import { disconnectGmail } from "@/lib/gmail";
+import { removeFeedbackFiles } from "@/lib/feedback-files";
 import { STORAGE_DIR } from "@/lib/pdf";
 
 /** Everything stored about one account, as a plain object (no password hash, no session secrets). */
@@ -34,6 +35,7 @@ export async function exportAccount(userId: string) {
 export async function deleteAccount(userId: string) {
   const user = await db.user.findUniqueOrThrow({ where: { id: userId }, select: { email: true } });
   const opps = await db.opportunity.findMany({ where: { userId }, select: { id: true } });
+  const feedbackIds = (await db.feedback.findMany({ where: { userId }, select: { id: true } })).map((f) => f.id);
   await disconnectGmail(userId);
   await db.$transaction([
     db.analyticsEvent.deleteMany({ where: { userId } }),
@@ -44,5 +46,6 @@ export async function deleteAccount(userId: string) {
   ]);
   const root = path.resolve(STORAGE_DIR);
   await fs.rm(path.resolve(root, "resumes", userId), { recursive: true, force: true }).catch(() => {});
+  await removeFeedbackFiles(feedbackIds);
   await Promise.all(opps.map((o) => fs.rm(path.resolve(root, o.id), { recursive: true, force: true }).catch(() => {})));
 }

@@ -92,7 +92,7 @@ export const isSuper = (u: Pick<User, "role">) => u.role === "SUPERUSER";
 /** Admin-only pages and actions. Signed-out visitors go to the admin sign-in; clients go to their own workspace. */
 export async function requireSuper(): Promise<User> {
   const u = await getUser();
-  if (!u) redirect("/admin/login");
+  if (!u) redirect("/login");
   if (!isSuper(u)) redirect(homeFor(u));
   return u;
 }
