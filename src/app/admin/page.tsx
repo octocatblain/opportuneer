@@ -6,6 +6,7 @@ import { Legend, Meter, Metric, StackedBars, type BarDatum } from "@/components/
 import { SubmitButton } from "@/components/submit-button";
 import { btn, Card, Chip, Flash, input, PageHeader } from "@/components/ui";
 import { requireSuper } from "@/lib/auth";
+import { spendStatus } from "@/lib/credits";
 import { db } from "@/lib/db";
 import { SPACE_LABEL, spaceForAccess } from "@/lib/spaces";
 
@@ -35,6 +36,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
     db.session.count({ where: { expiresAt: { gt: now } } }),
     db.waitlistEntry.count({ where: { status: "WAITING" } }).catch(() => 0),
   ]);
+  const spend = await spendStatus();
   const sentBy = (id: string) => counts.filter((c) => c.userId === id && ["SENT", "REPLIED", "INTERVIEW", "WON"].includes(c.stage)).reduce((n, c) => n + c._count, 0);
   const clients = users.filter((u) => u.role !== "SUPERUSER");
   const totalOpps = counts.reduce((n, c) => n + c._count, 0);
@@ -67,9 +69,21 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
         }
       />
 
+      {spend.state !== "ok" && (
+        <Card tone="dark" title={spend.state === "paused" ? "AI is paused for clients" : "AI spend alert"}>
+          <p className="text-sm">
+            Estimated provider cost this month is KSh {Math.round(spend.spentKes).toLocaleString("en-KE")} (alert {spend.alertKes.toLocaleString("en-KE")}, pause {spend.pauseKes.toLocaleString("en-KE")}).{" "}
+            {spend.state === "paused" ? "New AI actions are blocked for everyone except you." : "Free-trial usage is paused; paying users continue."}{" "}
+            <Link href="/admin/credits" className="underline">
+              Open credits
+            </Link>
+          </p>
+        </Card>
+      )}
+
       {link && (
         <Card title={`Invitation link for ${link.email}`}>
-          <p className="mb-2 text-sm text-muted">Send this to them yourself. It works once, for 14 days, and only for this email. It is shown here now and cannot be shown again (use “Get new link” if you lose it).</p>
+          <p className="mb-2 text-sm text-muted">Send this to them yourself. It works once, for 7 days, and only for this email. It is shown here now and cannot be shown again (use “Get new link” if you lose it).</p>
           <input readOnly value={link.url} aria-label="Invitation link" className={`${input} font-mono text-xs`} />
         </Card>
       )}
@@ -113,7 +127,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
         </div>
 
         <div className="xl:col-span-8">
-          <Card title="Accounts" actions={<span className="rounded-lg bg-paper px-2 py-0.5 text-xs tabular-nums text-muted">{users.length}</span>}>
+          <Card title="Accounts" actions={<span className="rounded-md bg-paper px-2 py-0.5 text-xs tabular-nums text-muted">{users.length}</span>}>
             <ul className="divide-y divide-rule">
               {users.map((u) => (
                 <li key={u.id} className="flex flex-wrap items-center gap-3 py-3">

@@ -5,6 +5,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { btn, Card, Chip, Flash, input, PageHeader } from "@/components/ui";
 import { requireSuper } from "@/lib/auth";
 import { cfg, loadConfig } from "@/lib/config";
+import { spendStatus } from "@/lib/credits";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +26,7 @@ export default async function AdminCredits({ searchParams }: { searchParams: Pro
     db.creditLedger.findMany({ orderBy: { createdAt: "desc" }, take: 40, include: { user: { select: { email: true } } } }),
     db.creditLedger.aggregate({ where: { createdAt: { gte: since } }, _sum: { costEstimateKes: true } }),
   ]);
+  const spend = await spendStatus();
   const bal = (id: string) => balances.find((b) => b.userId === id)?._sum.credits ?? 0;
   const used = (id: string, actions: string[]) => monthRows.filter((r) => r.userId === id && actions.includes(r.action)).reduce((n, r) => n + r._count, 0);
   const JOB = ["application", "import"];
@@ -47,6 +49,19 @@ export default async function AdminCredits({ searchParams }: { searchParams: Pro
           </>
         }
       />
+      <Card title="Monthly spend guard" tone={spend.state === "ok" ? undefined : "dark"}>
+        <p className="text-sm">
+          {spend.state === "paused" ? (
+            <b>AI is PAUSED for all clients.</b>
+          ) : spend.state === "alert" ? (
+            <b>Alert level reached: free-trial usage is paused, paying users continue.</b>
+          ) : (
+            <b>Within budget.</b>
+          )}{" "}
+          Estimated provider cost for {spend.monthKey}: KSh {Math.round(spend.spentKes).toLocaleString("en-KE")}. Alert at KSh {spend.alertKes.toLocaleString("en-KE")}, pause at KSh {spend.pauseKes.toLocaleString("en-KE")}. The owner account is never paused.
+          Daily limit {cfg().credits.dailyLimit} AI actions per user. Change these in App configuration, section &quot;credits&quot;.
+        </p>
+      </Card>
       <div className="grid items-start gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <Card title="Accounts">
