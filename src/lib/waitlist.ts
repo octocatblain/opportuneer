@@ -77,3 +77,45 @@ export async function waitlistCounts() {
 }
 
 export type Entry = WaitlistEntry;
+
+export type WaitlistFilters = { q?: string; group?: string; status?: string; track?: string };
+
+/** Build the Prisma filter shared by the admin list and the CSV export. group: A | B | PUBLIC. */
+export function waitlistWhere(f: WaitlistFilters): Prisma.WaitlistEntryWhereInput {
+  const where: Prisma.WaitlistEntryWhereInput = {};
+  const q = f.q?.trim();
+  if (q)
+    where.OR = [
+      { email: { contains: q, mode: "insensitive" } },
+      { name: { contains: q, mode: "insensitive" } },
+      { country: { contains: q, mode: "insensitive" } },
+      { source: { contains: q, mode: "insensitive" } },
+    ];
+  if (f.group === "A" || f.group === "B") Object.assign(where, { phase: "PILOT", cohort: f.group });
+  else if (f.group === "PUBLIC") where.phase = "PUBLIC";
+  if (f.status === "WAITING" || f.status === "INVITED" || f.status === "ACTIVE" || f.status === "DECLINED") where.status = f.status;
+  if (f.track === "SEEKER" || f.track === "PITCH" || f.track === "BOTH") where.trackInterest = f.track;
+  return where;
+}
+
+/** Move one entry to cohort A, B or the public list. Refuses when the target pilot cohort is full. */
+export async function moveWaitlistEntry(id: string, target: "A" | "B" | "PUBLIC"): Promise<{ ok: true } | { ok: false; error: string }> {
+  return db.$transaction(
+    async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(884201)`;
+      const e = await tx.waitlistEntry.findUnique({ where: { id }, select: { phase: true, cohort: true, status: true } });
+      if (!e) return { ok: false as const, error: "Entry not found." };
+      if (e.status !== "WAITING") return { ok: false as const, error: "Only people still waiting can be moved." };
+      if (target === "PUBLIC") {
+        await tx.waitlistEntry.update({ where: { id }, data: { phase: "PUBLIC", cohort: null } });
+        return { ok: true as const };
+      }
+      if (e.phase === "PILOT" && e.cohort === target) return { ok: true as const };
+      const size = target === "A" ? COHORT_A_SIZE : COHORT_B_SIZE;
+      if ((await tx.waitlistEntry.count({ where: { phase: "PILOT", cohort: target } })) >= size) return { ok: false as const, error: `Cohort ${target} is full.` };
+      await tx.waitlistEntry.update({ where: { id }, data: { phase: "PILOT", cohort: target } });
+      return { ok: true as const };
+    },
+    { timeout: 10_000 },
+  );
+}

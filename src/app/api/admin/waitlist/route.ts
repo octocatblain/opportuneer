@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getUser, isSuper } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { waitlistWhere } from "@/lib/waitlist";
 
 export const dynamic = "force-dynamic";
 
@@ -12,10 +13,14 @@ const cell = (v: unknown) => {
 };
 
 /** Admin-only CSV export of the waitlist. */
-export async function GET() {
+export async function GET(req: Request) {
   const user = await getUser();
   if (!user || !isSuper(user)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  const rows = await db.waitlistEntry.findMany({ orderBy: { seq: "asc" } });
+  const sp = new URL(req.url).searchParams;
+  const rows = await db.waitlistEntry.findMany({
+    where: waitlistWhere({ q: sp.get("q") ?? undefined, group: sp.get("group") ?? undefined, status: sp.get("status") ?? undefined, track: sp.get("track") ?? undefined }),
+    orderBy: { seq: "asc" },
+  });
   const head = ["seq", "email", "name", "track", "role", "occupation", "industry", "country", "source", "phase", "cohort", "status", "marketing_ok", "joined_at"];
   const lines = [head.join(",")].concat(
     rows.map((r) =>

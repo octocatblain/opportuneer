@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { industries } from "@/config/profile";
 import { clientInfo, normalizeEmail, requireSuper, throttled, validEmail } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { joinWaitlist, OCCUPATION_KEYS, ROLE_KEYS } from "@/lib/waitlist";
+import { joinWaitlist, moveWaitlistEntry, OCCUPATION_KEYS, ROLE_KEYS } from "@/lib/waitlist";
 
 const text = (f: FormData, k: string, max = 120) => String(f.get(k) ?? "").trim().slice(0, max);
 const pick = (v: string, allowed: string[]) => (allowed.includes(v) ? v : null);
@@ -46,6 +46,39 @@ export async function joinWaitlistAction(form: FormData) {
   revalidatePath("/");
   if (result.kind === "duplicate") back({ joined: "dup" });
   else back({ joined: result.phase === "PILOT" ? result.cohort! : "P" });
+}
+
+const adminBack = (msg: { ok?: string; error?: string }, form: FormData): never => {
+  const p = new URLSearchParams();
+  const ret = text(form, "returnTo", 300);
+  if (ret.startsWith("?")) new URLSearchParams(ret).forEach((v, k) => p.set(k, v));
+  p.delete("ok");
+  p.delete("error");
+  if (msg.ok) p.set("ok", msg.ok);
+  if (msg.error) p.set("error", msg.error);
+  return redirect(`/admin/waitlist?${p}`);
+};
+
+/** Admin: move a waiting person to cohort A, B or the public list (respects cohort sizes). */
+export async function moveWaitlistEntryAction(form: FormData) {
+  await requireSuper();
+  const target = text(form, "target");
+  if (target !== "A" && target !== "B" && target !== "PUBLIC") return adminBack({ error: "Invalid target." }, form);
+  const r = await moveWaitlistEntry(text(form, "id"), target);
+  revalidatePath("/admin/waitlist");
+  return adminBack(r.ok ? { ok: "Entry moved." } : { error: r.error }, form);
+}
+
+/** Admin: mark a person declined, or put a declined person back to waiting. */
+export async function setWaitlistStatusAction(form: FormData) {
+  await requireSuper();
+  const status = text(form, "status");
+  if (status !== "DECLINED" && status !== "WAITING") return adminBack({ error: "Invalid status." }, form);
+  // Only touch people who haven't been invited yet, so invite links and accounts stay consistent.
+  const from = status === "DECLINED" ? "WAITING" : "DECLINED";
+  await db.waitlistEntry.updateMany({ where: { id: text(form, "id"), status: from }, data: { status } });
+  revalidatePath("/admin/waitlist");
+  return adminBack({ ok: status === "DECLINED" ? "Marked declined." : "Back on the waitlist." }, form);
 }
 
 /** Admin: remove a waitlist entry (delete-my-data requests). Frees a pilot place if it was one. */
