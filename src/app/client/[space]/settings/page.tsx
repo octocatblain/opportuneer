@@ -213,7 +213,7 @@ export default async function Settings({ params, searchParams }: { params: Promi
           ) : (
             <p className="text-sm text-muted">No scan yet.</p>
           )}
-          <p className="mt-2 text-xs text-muted">Sources: BrighterMonday and MyJobMag (Kenya); Remote4Africa, Himalayas, Remotive, Jobicy and Remote OK (remote, kept only when the post is open to Africa or Kenya). Each job links back to its original post.</p>
+          <p className="mt-2 text-xs text-muted">Sources: remote boards for everyone (Himalayas, Remotive, Jobicy, Remote OK), plus national boards for the country in your profile: BrighterMonday and MyJobMag for Kenya, Remote4Africa for African countries, Arbeitnow for Germany and nearby. Jobs outside those countries come from remote boards or pasted posts (Add job). Each job links back to its original post.</p>
         </Card>
       </div>
 

@@ -24,7 +24,7 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
   if (!isSpace(space)) notFound();
   const viewer = await requireSpace(space);
   const base = clientBase(space);
-  const { industries } = await loadUserConfig(viewer.id);
+  const { industries, company: agency } = await loadUserConfig(viewer.id);
   const sp = await searchParams;
   const c = await db.company.findUnique({
     where: { id },
@@ -53,7 +53,7 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
         <div className="space-y-6 lg:col-span-2">
           <Card index={1} title="Recommendation">
             <p className="text-sm">{c.recommendReason ?? "Add details or research the company to get a recommendation."}</p>
-            {sb && !sb.canAffordFloor && <p className="mt-2 text-sm text-warn-ink">Below your client floor: no sign they can afford a KES 60,000 Strategy Sprint or a retainer.</p>}
+            {sb && !sb.canAffordFloor && <p className="mt-2 text-sm text-warn-ink">Below your client floor: no sign they can afford your minimum project ({agency.currency} {agency.clientFloorKes.toLocaleString()}) or a retainer.</p>}
             <div className="mt-3 flex flex-wrap gap-2">
               {spaceAllowsTrack(space, "PITCH") && <form action={startPitchAction}>
                 <input type="hidden" name="id" value={c.id} />

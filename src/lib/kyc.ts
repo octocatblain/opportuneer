@@ -13,7 +13,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import * as cheerio from "cheerio";
 import { z } from "zod";
-import { industries as defaultIndustries, titleFamilies as defaultFamilies, type Industry, type Package, type TitleFamily } from "@/config/profile";
+import { extraIndustries, extraTitleFamilies, industries as defaultIndustries, titleFamilies as defaultFamilies, type Industry, type Package, type TitleFamily } from "@/config/profile";
+import { regionTermsFor } from "@/lib/regions";
 import type { AppConfig } from "@/lib/config";
 import { db } from "@/lib/db";
 import { allowsTrack } from "@/lib/tracks";
@@ -49,6 +50,7 @@ const stripProto = (u: string) => u.trim().replace(/^https?:\/\//i, "").replace(
 
 /** Search terms per built-in title family (what the job boards are queried with). */
 const PRESET_SEARCH: Record<string, string[]> = {
+  ...Object.fromEntries(extraTitleFamilies.map((f) => [f.key, f.search])),
   "ai-automation": ["AI engineer", "automation engineer"],
   "transformation-lead": ["digital transformation"],
   fullstack: ["full stack developer", "software engineer"],
@@ -56,8 +58,15 @@ const PRESET_SEARCH: Record<string, string[]> = {
   platform: ["platform engineer"],
 };
 
-export const PRESET_FAMILIES = defaultFamilies;
-export const PRESET_INDUSTRIES = defaultIndustries;
+export const PRESET_FAMILIES: TitleFamily[] = [...defaultFamilies, ...extraTitleFamilies.map((f) => ({ key: f.key, label: f.label, keywords: f.keywords, weight: f.weight }))];
+export const PRESET_INDUSTRIES: Industry[] = [...defaultIndustries, ...extraIndustries];
+
+/** The app compares pay in USD: convert an amount in `currency` (unknown currencies count as USD). */
+const usdOf = (base: AppConfig, amount: number, currency: string) => {
+  const perUsd = currency === "KES" ? base.fx.kesPerUsd : (base.fx.perUsd[currency] ?? 1);
+  return Math.round(amount / perUsd);
+};
+const currencyCode = z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/, "Choose a currency");
 
 // ---------------- schemas ----------------
 
@@ -85,6 +94,14 @@ export const jobPrefsSchema = z
     acceptedLocations: z.array(z.string()).min(1, "Add at least one location you would work in"),
     abroadNeedsSponsorship: z.boolean(),
     excludedRegions: z.array(z.string()),
+    /** Currency of the two pay floors (monthly). Missing = USD (older saved profiles). */
+    currency: currencyCode.optional(),
+    /** Country the account searches in: decides which national boards are scanned. */
+    country: z.string().trim().max(60).optional(),
+    /** Opt in to the "late AI adopter" scoring line (for people selling or hiring for AI work). */
+    lateAiAdopters: z.boolean().optional(),
+    /** Archive remote posts that never say they are open to the account's region. */
+    remoteMustNameRegion: z.boolean().optional(),
   })
   .refine((v) => v.titleKeys.length + v.customTitles.length > 0, { message: "Choose or add at least one job title", path: ["titleKeys"] });
 export type JobPrefs = z.infer<typeof jobPrefsSchema>;
@@ -93,7 +110,7 @@ export const pitchPrefsSchema = z.object({
   agencyName: z.string().trim().min(2, "Enter your agency or business name").max(80),
   website: z.string().trim().max(160),
   tagline: z.string().trim().max(200),
-  /** One line per package: Name | price KES | monthly KES | duration | summary */
+  /** One line per package: Name | price | monthly fee | duration | summary (in the profile's currency) */
   packages: z.array(z.string().max(400)).max(40),
   services: z.array(z.string().max(120)).max(60),
   clientFloorKes: money("Client budget floor", 1_000_000_000),
@@ -102,6 +119,10 @@ export const pitchPrefsSchema = z.object({
   foundingMax: money("Founding clients", 1000),
   industryKeys: z.array(z.string()),
   customIndustries: z.array(z.string().max(160)).max(15),
+  /** Currency of the packages and client floor. Missing = the app default for the account. */
+  currency: currencyCode.optional(),
+  /** Sells AI services: weigh a prospect's AI maturity when scoring and recommending. */
+  sellsAi: z.boolean().optional(),
 });
 export type PitchPrefs = z.infer<typeof pitchPrefsSchema>;
 
@@ -111,10 +132,10 @@ export type ParsedPackage = Package;
 export function parsePackageLine(line: string, clientFloorKes: number): ParsedPackage | { error: string } {
   const [name = "", price = "", monthly = "", duration = "", ...rest] = line.split("|").map((s) => s.trim());
   if (!name) return { error: `Package "${line.slice(0, 30)}": start with the package name` };
-  const num = (s: string) => (s === "" ? 0 : Number(s.replace(/[,\s]|kes|ksh/gi, "")));
+  const num = (s: string) => (s === "" ? 0 : Number(s.replace(/[,\s$€£]|[a-z]{3}/gi, "")));
   const priceKes = num(price);
   const monthlyKes = num(monthly);
-  if (!Number.isFinite(priceKes) || !Number.isFinite(monthlyKes) || priceKes < 0 || monthlyKes < 0) return { error: `Package "${name}": price and monthly fee must be numbers (KES)` };
+  if (!Number.isFinite(priceKes) || !Number.isFinite(monthlyKes) || priceKes < 0 || monthlyKes < 0) return { error: `Package "${name}": price and monthly fee must be plain numbers` };
   const kind: Package["kind"] = monthlyKes > 0 && priceKes > 0 && priceKes !== monthlyKes ? "setup+retainer" : monthlyKes > 0 || /monthly|retainer|\/mo/i.test(duration) ? "retainer" : "one-off";
   return {
     key: slugify(name),
@@ -168,6 +189,10 @@ export function parseJobPrefs(f: FormData): { ok: JobPrefs } | { error: string }
     acceptedLocations: splitList(str(f, "acceptedLocations")).map((s) => s.toLowerCase()),
     abroadNeedsSponsorship: f.get("abroadNeedsSponsorship") === "on",
     excludedRegions: splitList(str(f, "excludedRegions")).map((s) => s.toLowerCase()),
+    currency: str(f, "currency") || undefined,
+    country: str(f, "country") || undefined,
+    lateAiAdopters: f.get("lateAiAdopters") === "on",
+    remoteMustNameRegion: f.get("remoteMustNameRegion") === "on",
   });
   return r.success ? { ok: r.data } : { error: issue(r.error) };
 }
@@ -187,6 +212,8 @@ export function parsePitchPrefs(f: FormData): { ok: PitchPrefs } | { error: stri
     foundingMax: str(f, "foundingMax") === "" ? 0 : num(f, "foundingMax"),
     industryKeys: f.getAll("industryKeys").map(String).filter((k) => presetInd.has(k)),
     customIndustries: lines("customIndustries", 15),
+    currency: str(f, "currency") || undefined,
+    sellsAi: f.get("sellsAi") === "on",
   });
   if (!r.success) return { error: issue(r.error) };
   for (const line of r.data.packages) {
@@ -210,9 +237,10 @@ function neutral(base: AppConfig, who: Who): AppConfig {
     titleFamilies: [],
     industries: [],
     searchTerms: [],
-    locations: { accepted: [], abroadNeedsSponsorship: true, excludedRegions: [] },
+    locations: { country: "", regionTerms: [], remoteMustNameRegion: false, accepted: [], abroadNeedsSponsorship: true, excludedRegions: [] },
+    scoring: { lateAiAdopter: false, pitchAiMaturity: false },
     payFloors: { ...base.payFloors, localMonthlyUsd: 0, remoteMonthlyUsd: 0 },
-    company: { name: "", website: "", pricingUrl: "", tagline: "", terms: [], foundingOffer: { text: "", maxFoundingClients: 0 }, clientFloorKes: 0 },
+    company: { name: "", website: "", pricingUrl: "", tagline: "", terms: [], foundingOffer: { text: "", maxFoundingClients: 0 }, clientFloorKes: 0, currency: "USD" },
     packages: [],
     serviceLines: {},
   };
@@ -250,8 +278,16 @@ export function applyUserPrefs(base: AppConfig, who: Who, row: Row): AppConfig {
       ...c,
       titleFamilies: families,
       searchTerms: terms,
-      payFloors: { ...c.payFloors, localMonthlyUsd: p.localMonthlyUsd, remoteMonthlyUsd: p.remoteMonthlyUsd },
-      locations: { accepted: p.acceptedLocations, abroadNeedsSponsorship: p.abroadNeedsSponsorship, excludedRegions: p.excludedRegions },
+      payFloors: { ...c.payFloors, localMonthlyUsd: usdOf(base, p.localMonthlyUsd, p.currency ?? "USD"), remoteMonthlyUsd: usdOf(base, p.remoteMonthlyUsd, p.currency ?? "USD") },
+      locations: {
+        country: p.country ?? c.locations.country,
+        regionTerms: p.country ? regionTermsFor(p.country) : c.locations.regionTerms,
+        remoteMustNameRegion: p.remoteMustNameRegion ?? c.locations.remoteMustNameRegion,
+        accepted: p.acceptedLocations,
+        abroadNeedsSponsorship: p.abroadNeedsSponsorship,
+        excludedRegions: p.excludedRegions,
+      },
+      scoring: { ...c.scoring, lateAiAdopter: p.lateAiAdopters ?? c.scoring.lateAiAdopter },
     };
   }
   if (row.pitchDoneAt && row.pitchPrefs) {
@@ -269,7 +305,9 @@ export function applyUserPrefs(base: AppConfig, who: Who, row: Row): AppConfig {
         terms: p.terms,
         foundingOffer: { text: p.foundingText, maxFoundingClients: p.foundingText ? p.foundingMax : 0 },
         clientFloorKes: p.clientFloorKes,
+        currency: p.currency ?? c.company.currency,
       },
+      scoring: { ...c.scoring, pitchAiMaturity: p.sellsAi ?? c.scoring.pitchAiMaturity },
       packages,
       serviceLines: p.services.length ? { "Services we offer": p.services } : {},
     };
@@ -397,9 +435,13 @@ export function formDefaults(base: AppConfig, who: Who, row: Row) {
     customIndustries: [],
     localMonthlyUsd: isOwner ? c.payFloors.localMonthlyUsd : NaN,
     remoteMonthlyUsd: isOwner ? c.payFloors.remoteMonthlyUsd : NaN,
-    acceptedLocations: (isOwner ? c.locations.accepted : base.locations.accepted) as string[],
+    acceptedLocations: isOwner ? c.locations.accepted : [],
     abroadNeedsSponsorship: base.locations.abroadNeedsSponsorship,
-    excludedRegions: base.locations.excludedRegions,
+    excludedRegions: isOwner ? base.locations.excludedRegions : [],
+    currency: "USD",
+    country: isOwner ? c.locations.country : "",
+    lateAiAdopters: c.scoring.lateAiAdopter,
+    remoteMustNameRegion: c.locations.remoteMustNameRegion,
   };
   const pitch: PitchPrefs = (row?.pitchPrefs as PitchPrefs | null) ?? {
     agencyName: c.company.name,
@@ -413,6 +455,8 @@ export function formDefaults(base: AppConfig, who: Who, row: Row) {
     foundingMax: c.company.foundingOffer.maxFoundingClients,
     industryKeys: isOwner ? c.industries.map((i) => i.key) : [],
     customIndustries: [],
+    currency: c.company.currency || "USD",
+    sellsAi: c.scoring.pitchAiMaturity,
   };
   return { basics, job, pitch };
 }

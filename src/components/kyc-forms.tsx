@@ -4,6 +4,26 @@ import { btn, btnGhost, Card, input } from "@/components/ui";
 import type { Basics, JobPrefs, PitchPrefs } from "@/lib/kyc";
 import { PRESET_FAMILIES, PRESET_INDUSTRIES, RESUME_ACCEPT } from "@/lib/kyc";
 
+/** Currencies offered for pay floors and prices (rates for comparing pay live in config.fx.perUsd). */
+const CURRENCIES = ["USD", "KES", "EUR", "GBP", "NGN", "GHS", "ZAR", "UGX", "TZS", "RWF", "EGP", "MAD", "INR", "AED", "SGD", "CAD", "AUD", "PHP", "PKR", "BDT", "BRL", "MXN"];
+
+function CurrencySelect({ id, defaultValue }: { id: string; defaultValue: string }) {
+  return (
+    <div className="space-y-1">
+      <label htmlFor={id} className={label}>
+        Currency
+      </label>
+      <select id={id} name="currency" defaultValue={defaultValue} className={input}>
+        {CURRENCIES.map((c) => (
+          <option key={c} value={c}>
+            {c}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 /**
  * The KYC forms, shared by first-login onboarding (/onboarding) and the per-track Profile page.
  * Each form saves its own section and returns to `returnTo` (a same-site path).
@@ -50,8 +70,8 @@ export function BasicsForm({ defaults, returnTo, saveLabel = "Save details" }: {
           <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted">Contact and availability</legend>
           <div className="grid gap-x-4 gap-y-4 @lg:grid-cols-2 @3xl:grid-cols-4">
             <Field id="b-name" name="fullName" text="Full name" defaultValue={defaults.fullName} required />
-            <Field id="b-phone" name="phone" text="Phone" defaultValue={defaults.phone} required placeholder="+254 7xx xxx xxx" />
-            <Field id="b-loc" name="location" text="Based in" defaultValue={defaults.location} required placeholder="Nairobi, Kenya" />
+            <Field id="b-phone" name="phone" text="Phone" defaultValue={defaults.phone} required placeholder="+country code and number" />
+            <Field id="b-loc" name="location" text="Based in" defaultValue={defaults.location} required placeholder="City, Country" />
             <Field id="b-notice" name="noticePeriod" text="Notice period" defaultValue={defaults.noticePeriod} placeholder="1 month" help="for cover letters" inline />
           </div>
         </fieldset>
@@ -114,7 +134,7 @@ export function ResumeForm({ resume, returnTo, required }: { resume: { name: str
   );
 }
 
-export function JobForm({ defaults, returnTo, fx }: { defaults: JobPrefs; returnTo: string; fx: number }) {
+export function JobForm({ defaults, returnTo }: { defaults: JobPrefs; returnTo: string }) {
   return (
     <Card title="Job search targets">
       <form action={saveJobPrefsAction} className="space-y-5 text-sm">
@@ -140,10 +160,13 @@ export function JobForm({ defaults, returnTo, fx }: { defaults: JobPrefs; return
           <textarea id="j-ind" name="customIndustries" rows={2} defaultValue={defaults.customIndustries.join("\n")} placeholder="Energy: solar, utilities, power" className={input} />
         </fieldset>
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field id="j-local" name="localMonthlyUsd" text="Pay floor, local roles (USD / month)" type="number" required defaultValue={val(defaults.localMonthlyUsd)} help={`≈ KES ${Number.isFinite(defaults.localMonthlyUsd) ? (defaults.localMonthlyUsd * fx).toLocaleString() : "…"} at KES ${fx}/USD`} />
-          <Field id="j-remote" name="remoteMonthlyUsd" text="Pay floor, remote roles (USD / month)" type="number" required defaultValue={val(defaults.remoteMonthlyUsd)} />
+        <div className="grid gap-3 sm:grid-cols-3">
+          <CurrencySelect id="j-cur" defaultValue={defaults.currency ?? "USD"} />
+          <Field id="j-local" name="localMonthlyUsd" text="Pay floor, local roles (per month)" type="number" required defaultValue={val(defaults.localMonthlyUsd)} help="Jobs paying far below this are archived." />
+          <Field id="j-remote" name="remoteMonthlyUsd" text="Pay floor, remote roles (per month)" type="number" required defaultValue={val(defaults.remoteMonthlyUsd)} />
         </div>
+
+        <Field id="j-country" name="country" text="Country you search in" defaultValue={defaults.country ?? ""} placeholder="Kenya, Nigeria, Germany, United States…" help="Decides which national job boards are scanned. Remote boards are always scanned." />
 
         <div className="space-y-1">
           <label htmlFor="j-loc" className={label}>
@@ -161,6 +184,17 @@ export function JobForm({ defaults, returnTo, fx }: { defaults: JobPrefs; return
         <label className="flex items-center gap-2">
           <input type="checkbox" name="abroadNeedsSponsorship" defaultChecked={defaults.abroadNeedsSponsorship} />
           Abroad only with visa sponsorship or relocation
+        </label>
+        <label className="flex items-center gap-2">
+          <input type="checkbox" name="remoteMustNameRegion" defaultChecked={defaults.remoteMustNameRegion ?? false} />
+          Remote roles must say they are open to my country or region
+        </label>
+        <label className="flex items-start gap-2">
+          <input type="checkbox" name="lateAiAdopters" defaultChecked={defaults.lateAiAdopters ?? false} className="mt-1" />
+          <span>
+            Prefer employers that are late to AI adoption
+            <span className="block text-xs text-muted">For people who sell or lead AI and automation work. Leave off otherwise.</span>
+          </span>
         </label>
         <SubmitButton className={btn} pending="Saving…">
           Save job targets
@@ -188,7 +222,7 @@ export function PitchForm({ defaults, returnTo, isOwner }: { defaults: PitchPref
             Priced packages (one per line)
           </label>
           <textarea id="p-pk" name="packages" rows={6} defaultValue={defaults.packages.join("\n")} placeholder={"Starter Package | 15000 | | 1 week | One working automation plus team training\nSupport retainer | 0 | 5000 | monthly | Hosting, updates, small improvements"} className={`${input} font-mono text-xs`} />
-          <p className={hint}>Format: Name | price in KES | monthly fee in KES (optional) | duration | short summary.</p>
+          <p className={hint}>Format: Name | price | monthly fee (optional) | duration | short summary. Amounts are in the currency chosen below.</p>
         </div>
         <div className="space-y-1">
           <label htmlFor="p-sv" className={label}>
@@ -196,10 +230,18 @@ export function PitchForm({ defaults, returnTo, isOwner }: { defaults: PitchPref
           </label>
           <textarea id="p-sv" name="services" rows={3} defaultValue={defaults.services.join(", ")} className={input} />
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field id="p-floor" name="clientFloorKes" text="Smallest budget worth pitching (KES)" type="number" required defaultValue={val(defaults.clientFloorKes)} help="Prospects that clearly cannot afford this are scored down." />
+        <div className="grid gap-3 sm:grid-cols-3">
+          <CurrencySelect id="p-cur" defaultValue={defaults.currency ?? "USD"} />
+          <Field id="p-floor" name="clientFloorKes" text="Smallest budget worth pitching" type="number" required defaultValue={val(defaults.clientFloorKes)} help="Prospects that clearly cannot afford this are scored down." />
           <Field id="p-fmax" name="foundingMax" text="Founding clients to offer the discount to" type="number" defaultValue={String(defaults.foundingMax)} help="0 = no founding offer." />
         </div>
+        <label className="flex items-start gap-2">
+          <input type="checkbox" name="sellsAi" defaultChecked={defaults.sellsAi ?? false} className="mt-1" />
+          <span>
+            I sell AI or automation services
+            <span className="block text-xs text-muted">Scores prospects higher when they are new to AI. Leave off for any other kind of service.</span>
+          </span>
+        </label>
         <Field id="p-found" name="foundingText" text="Founding-client offer (optional)" defaultValue={defaults.foundingText} placeholder="30% off the first project in exchange for a testimonial" />
         <div className="space-y-1">
           <label htmlFor="p-terms" className={label}>

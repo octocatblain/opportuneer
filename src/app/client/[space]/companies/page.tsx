@@ -90,7 +90,7 @@ export default async function Companies({ params, searchParams }: { params: Prom
             <SubmitButton className={btnSignal}>Add company</SubmitButton>
           </form>
           <p className="mt-4 text-xs leading-relaxed text-muted">
-            Places to find prospects: Kenya Association of Manufacturers members, KUSCCO SACCO lists, Kenya Healthcare Federation, KEPSA, Google Maps searches by industry and town, and companies whose job posts mention manual or Excel work.
+            Places to find prospects: trade associations and member directories in your target industries, chambers of commerce, Google Maps searches by industry and town, LinkedIn company searches, and companies whose job posts show a need your services could fill.
           </p>
         </Card>
         </div>

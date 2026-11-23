@@ -7,14 +7,17 @@ export type Salary = {
   period?: "month" | "year" | "hour";
 };
 
-const fxToUsd = (): Record<string, number> => ({
-  USD: 1,
-  KES: 1 / cfg().fx.kesPerUsd,
-  EUR: 1.08,
-  GBP: 1.27,
-  CAD: 0.73,
-  AUD: 0.66,
-});
+/** USD value of one unit of each currency we know (kesPerUsd stays the owner-tunable KES rate). */
+export function usdPerUnit(): Record<string, number> {
+  const { kesPerUsd, perUsd } = cfg().fx;
+  const out: Record<string, number> = {};
+  for (const [code, perDollar] of Object.entries({ ...perUsd, KES: kesPerUsd })) if (perDollar > 0) out[code] = 1 / perDollar;
+  return out;
+}
+const fxToUsd = usdPerUnit;
+
+/** Convert an amount in `currency` to USD (unknown currency: returned unchanged, treated as USD). */
+export const toUsd = (amount: number, currency: string) => Math.round(amount * (usdPerUnit()[currency.toUpperCase()] ?? 1));
 
 /** Monthly salary in USD (uses the top of the range when present). */
 export function monthlyUsd(s: Salary): number | null {
@@ -46,17 +49,11 @@ export function parseSalary(text: string | null | undefined): Salary {
   if (!text) return {};
   const t = text.replace(/ /g, " ");
   const re =
-    /(KES|KSh\.?|Ksh\.?|USD|US\$|\$|EUR|€|GBP|£)\s?(\d[\d,. ]*[kKmM]?)(?:\s?(?:-|–|to)\s?(?:KES|KSh\.?|Ksh\.?|USD|US\$|\$|EUR|€|GBP|£)?\s?(\d[\d,. ]*[kKmM]?))?/;
+    /(KES|KSh\.?|Ksh\.?|USD|US\$|\$|EUR|€|GBP|£|NGN|GHS|ZAR|UGX|TZS|RWF|INR|CAD|AUD|AED|SGD)\s?(\d[\d,. ]*[kKmM]?)(?:\s?(?:-|–|to)\s?(?:KES|KSh\.?|Ksh\.?|USD|US\$|\$|EUR|€|GBP|£|NGN|GHS|ZAR|UGX|TZS|RWF|INR|CAD|AUD|AED|SGD)?\s?(\d[\d,. ]*[kKmM]?))?/;
   const m = t.match(re);
   if (!m) return {};
   const sym = m[1].toUpperCase();
-  const currency = sym.startsWith("K")
-    ? "KES"
-    : sym === "€" || sym === "EUR"
-      ? "EUR"
-      : sym === "£" || sym === "GBP"
-        ? "GBP"
-        : "USD";
+  const currency = sym.startsWith("K") ? "KES" : sym === "€" ? "EUR" : sym === "£" ? "GBP" : /^[A-Z]{3}$/.test(sym) ? sym : "USD";
   const min = toNumber(m[2]);
   const max = m[3] ? toNumber(m[3]) : undefined;
   const after = t.slice((m.index ?? 0) + m[0].length, (m.index ?? 0) + m[0].length + 30).toLowerCase();

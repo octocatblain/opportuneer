@@ -32,7 +32,7 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <BasicsForm defaults={d.basics} returnTo={here} />
         <ResumeForm resume={row?.resumeName ? { name: row.resumeName, updatedAt: row.resumeUpdatedAt, chars: row.resumeText?.length ?? 0 } : null} returnTo={here} required={job} />
-        {job && <JobForm defaults={d.job} returnTo={here} fx={base.fx.kesPerUsd} />}
+        {job && <JobForm defaults={d.job} returnTo={here} />}
         {pitch && <PitchForm defaults={d.pitch} returnTo={here} isOwner={isSuper(me.user)} />}
       </div>
     </div>

@@ -22,9 +22,9 @@ export default async function AdminConfig({ searchParams }: { searchParams: Prom
   return (
     <div className="space-y-6">
       <Flash ok={sp.ok} error={sp.error} />
-      <PageHeader title="App configuration" sub="Shared by the whole app: AI providers, search targets, offers and every tunable section." />
+      <PageHeader title="App configuration" sub="Platform settings (AI providers, limits, credits) apply to everyone. Search targets and the offer below are the owner account's defaults; regular users set their own during onboarding." />
       <div className="grid items-start gap-6 lg:grid-cols-2">
-        <Card index={2} title="AI providers">
+        <Card index={2} title="AI providers (all users)">
           <ul className="space-y-1 text-sm">
             <li className="flex items-center gap-2">
               <Brand name="Claude" />:{" "}
@@ -53,7 +53,7 @@ export default async function AdminConfig({ searchParams }: { searchParams: Prom
           )}
         </Card>
 
-        <Card index={3} title="Job search targets">
+        <Card index={3} title="Job search targets (owner defaults)">
           <ul className="space-y-1 text-sm">
             <li>Titles: {titleFamilies.map((t) => t.label).join(", ")}</li>
             <li>Industries: {industries.map((i) => i.label).join(", ")}</li>
@@ -64,10 +64,10 @@ export default async function AdminConfig({ searchParams }: { searchParams: Prom
             <li>Locations: Kenya ({locations.accepted.slice(0, 5).join(", ")}…), remote, abroad only with visa sponsorship. East Africa excluded.</li>
             <li>Notice period: {profile.noticePeriod}</li>
           </ul>
-          <p className="mt-2 text-xs text-muted">Stored in the database; edit the sections below. src/config/profile.ts only supplies the first-run defaults.</p>
+          <p className="mt-2 text-xs text-muted">Not shown to regular users: each account saves its own titles, industries, pay floors and locations in onboarding, which override these. Edit the owner values in the sections below; src/config/profile.ts only supplies first-run defaults.</p>
         </Card>
 
-        <Card index={4} title="Red Star Standard offer">
+        <Card index={4} title="Red Star Standard offer (owner account only)">
           <ul className="space-y-1 text-sm">
             {packages.map((p) => (
               <li key={p.key}>

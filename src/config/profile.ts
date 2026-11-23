@@ -24,6 +24,22 @@ export const profile = {
 /** Exchange rate used to compare salaries. Update when it drifts. */
 export const KES_PER_USD = 129;
 
+/**
+ * Approximate units of each currency per 1 USD, used to compare salaries and pay floors across currencies.
+ * Rough values: update when they drift. KES is overridden by KES_PER_USD above.
+ */
+export const PER_USD: Record<string, number> = {
+  USD: 1, KES: KES_PER_USD, EUR: 0.93, GBP: 0.79, CAD: 1.37, AUD: 1.52, NGN: 1500, GHS: 15, ZAR: 18, UGX: 3700, TZS: 2600, RWF: 1350, EGP: 49, MAD: 10, INR: 84, AED: 3.67, SGD: 1.34, PHP: 57, PKR: 278, BDT: 120, BRL: 5.5, MXN: 19,
+};
+
+/** Switches for scoring signals that only make sense for an AI-services business. The owner has both on; regular users opt in. */
+export const scoring = {
+  /** Job scoring: reward employers that look late to AI adoption. */
+  lateAiAdopter: true,
+  /** Company scoring (pitch track): reward low AI maturity and gate pitches on it. */
+  pitchAiMaturity: true,
+};
+
 export const payFloors = {
   /** Local (Kenya) roles: about USD 2,000 a month. */
   localMonthlyUsd: 2000,
@@ -34,6 +50,12 @@ export const payFloors = {
 };
 
 export const locations = {
+  /** Country the account searches in. Decides which national job boards are scanned. */
+  country: "Kenya",
+  /** Remote posts must name one of these (or an accepted location) to count as open to you. */
+  regionTerms: ["africa", "african", "kenya", "kenyan", "nairobi", "east africa", "sub-saharan"],
+  /** true: a remote post that never names your region is archived. false: worldwide remote posts are fine. */
+  remoteMustNameRegion: true,
   accepted: ["nairobi", "kenya", "mombasa", "kisumu", "nakuru", "eldoret", "thika", "machakos", "kiambu"],
   /** Abroad is accepted only when the post offers visa sponsorship or relocation. */
   abroadNeedsSponsorship: true,
@@ -90,6 +112,54 @@ export const industries: Industry[] = [
   { key: "services", label: "Hospitality, tourism, retail, education", keywords: ["hotel*", "hospitality", "tourism", "safari*", "retail*", "supermarket*", "school*", "universit*", "college", "restaurant*", "real estate"] },
 ];
 
+/**
+ * Extra presets offered to every account during onboarding (the owner's own defaults above are not changed).
+ * Weight 1: the account chose the title itself.
+ */
+export const extraTitleFamilies: (TitleFamily & { search: string[] })[] = [
+  { key: "data-analytics", label: "Data / Business Analyst", keywords: ["data analyst", "business analyst", "analytics engineer", "bi analyst", "data scientist", "reporting analyst"], weight: 1, search: ["data analyst", "business analyst"] },
+  { key: "product-project", label: "Product / Project Manager", keywords: ["product manager", "project manager", "programme manager", "program manager", "scrum master", "delivery manager", "product owner"], weight: 1, search: ["project manager", "product manager"] },
+  { key: "marketing-comms", label: "Marketing / Communications", keywords: ["marketing", "content", "copywriter", "communications", "social media", "seo", "brand manager", "digital marketing"], weight: 1, search: ["marketing manager", "content"] },
+  { key: "sales-bd", label: "Sales / Business Development", keywords: ["sales", "business development", "account executive", "account manager", "relationship manager", "partnerships"], weight: 1, search: ["sales", "business development"] },
+  { key: "finance-accounting", label: "Finance / Accounting", keywords: ["accountant", "accounting", "finance manager", "financial analyst", "auditor", "controller", "bookkeeper", "treasury", "credit analyst"], weight: 1, search: ["accountant", "finance manager"] },
+  { key: "hr-people", label: "HR / People & Talent", keywords: ["human resources", "hr manager", "hr officer", "recruiter", "talent acquisition", "people operations", "payroll"], weight: 1, search: ["human resources", "recruiter"] },
+  { key: "operations-supply", label: "Operations / Supply chain", keywords: ["operations manager", "operations officer", "supply chain", "logistics", "procurement", "warehouse", "fleet", "production manager"], weight: 1, search: ["operations manager", "supply chain"] },
+  { key: "customer-support", label: "Customer Success / Support", keywords: ["customer success", "customer support", "customer service", "support specialist", "client services", "call centre"], weight: 1, search: ["customer success", "customer support"] },
+  { key: "design-creative", label: "Design / Creative", keywords: ["designer", "graphic design", "ux", "ui design", "creative director", "illustrator", "video editor", "motion"], weight: 1, search: ["designer", "ux designer"] },
+  { key: "healthcare-clinical", label: "Healthcare / Clinical", keywords: ["nurse", "clinical", "physician", "doctor", "pharmacist", "medical officer", "lab technician", "public health"], weight: 1, search: ["nurse", "clinical officer"] },
+  { key: "education-training", label: "Teaching / Training", keywords: ["teacher", "lecturer", "tutor", "instructor", "trainer", "curriculum", "education officer"], weight: 1, search: ["teacher", "trainer"] },
+  { key: "engineering-technical", label: "Engineering (civil, mechanical, electrical)", keywords: ["civil engineer", "mechanical engineer", "electrical engineer", "site engineer", "quantity surveyor", "project engineer", "maintenance engineer"], weight: 1, search: ["civil engineer", "mechanical engineer"] },
+  { key: "legal-compliance", label: "Legal / Compliance", keywords: ["lawyer", "legal officer", "legal counsel", "advocate", "compliance", "paralegal", "risk officer"], weight: 1, search: ["legal officer", "compliance"] },
+];
+
+/** Extra industry presets (the owner's defaults above are not changed). */
+export const extraIndustries: Industry[] = [
+  { key: "technology", label: "Technology & software", keywords: ["software", "saas", "tech*", "cloud", "cyber*", "fintech", "app development", "it services", "data centre"] },
+  { key: "telecom-media", label: "Telecoms, media & marketing", keywords: ["telecom*", "mobile network", "broadcast*", "media", "publishing", "advertising", "agency", "marketing agency", "isp"] },
+  { key: "energy-construction", label: "Energy, construction & infrastructure", keywords: ["energy", "solar", "utilit*", "oil", "gas", "construction", "engineering firm", "infrastructure", "contractor*", "real estate developer*", "mining"] },
+  { key: "public-ngo", label: "Government, NGOs & development", keywords: ["ngo", "non-profit", "nonprofit", "foundation", "ministry", "county government", "united nations", "donor", "development partner*", "charity", "public sector"] },
+  { key: "professional", label: "Professional services (legal, accounting, consulting)", keywords: ["law firm", "legal", "accounting firm", "audit*", "consulting", "consultancy", "advisory", "recruitment", "tax"] },
+  { key: "ecommerce-consumer", label: "E-commerce & consumer goods", keywords: ["e-commerce", "ecommerce", "marketplace", "consumer goods", "cosmetic*", "fashion", "online store", "delivery"] },
+];
+
+/**
+ * What decision makers in each industry care about. The pitch writer weighs these when it picks an angle, so a pitch to a
+ * clinic talks about patients and compliance while one to a factory talks about downtime and margins. Custom industries
+ * are not listed: the writer infers them from the research.
+ */
+export const industryValueDrivers: Record<string, string> = {
+  finance: "trust, regulatory compliance, fraud and credit risk, member or customer retention, cost-to-serve, audit trails",
+  health: "patient outcomes and safety, regulatory compliance, clinician time, record accuracy, supply availability, cost control",
+  logistics: "on-time delivery, utilisation and downtime, inventory accuracy, input costs and margins, traceability, seasonal peaks",
+  services: "occupancy or footfall, repeat customers and reviews, staff scheduling, seasonality, direct bookings, local reputation",
+  technology: "shipping speed, reliability and security, hiring bandwidth, customer churn, unit economics",
+  "telecom-media": "audience growth and retention, content throughput, ad revenue, churn, network or platform quality",
+  "energy-construction": "project margins and schedule, safety and compliance, asset uptime, procurement cost, tender wins",
+  "public-ngo": "donor and regulator reporting, measurable impact, cost per beneficiary, transparency, grant compliance, small teams",
+  professional: "billable utilisation, client retention, referrals, turnaround time, quality control, partner reputation",
+  "ecommerce-consumer": "conversion rate, customer acquisition cost, repeat purchase, fulfilment speed, returns, brand trust",
+};
+
 /** Signals that a company is non-tech / late to AI (good for us). */
 export const lowMaturityKeywords = ["excel", "manual*", "paper-based", "spreadsheet*", "digitis*", "digitiz*", "moderni*", "legacy", "erp", "automate*", "automation", "digital transformation", "sage", "quickbooks", "tally"];
 
@@ -129,6 +199,8 @@ export const company = {
   },
   /** Prospect must be able to afford at least this (Strategy Sprint) or a retainer. */
   clientFloorKes: 60000,
+  /** ISO currency the offer, packages and client floor are written in. */
+  currency: "KES",
 };
 
 /**

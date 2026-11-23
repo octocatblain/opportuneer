@@ -14,6 +14,8 @@ import {
   industries,
   KES_PER_USD,
   locations,
+  PER_USD,
+  scoring,
   lowMaturityKeywords,
   packages,
   payFloors,
@@ -32,7 +34,9 @@ import { applyUserPrefs } from "@/lib/kyc";
 
 export type AppConfig = {
   profile: typeof profile;
-  fx: { kesPerUsd: number };
+  fx: { kesPerUsd: number; perUsd: Record<string, number> };
+  /** Scoring signals that only suit an AI-services business; off for accounts that did not opt in. */
+  scoring: { lateAiAdopter: boolean; pitchAiMaturity: boolean };
   payFloors: typeof payFloors;
   locations: typeof locations;
   titleFamilies: TitleFamily[];
@@ -64,7 +68,8 @@ export type AppConfig = {
 export function defaultConfig(): AppConfig {
   return structuredClone({
     profile,
-    fx: { kesPerUsd: KES_PER_USD },
+    fx: { kesPerUsd: KES_PER_USD, perUsd: PER_USD },
+    scoring,
     payFloors,
     locations,
     titleFamilies,

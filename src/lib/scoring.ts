@@ -140,7 +140,8 @@ export function scoreJob(job: JobInput): JobFit {
     note: industry ? cfg().industries.find((i) => i.key === industry)!.label : "Industry not in your priority list (or unknown)",
   });
 
-  // 3. Late AI adopter (15)
+  // 3. Late AI adopter (15): only for accounts that sell AI services and opted in; otherwise the line is dropped.
+  if (cfg().scoring.lateAiAdopter) {
   let maturityPts = 8;
   let maturityNote = "No clear signal";
   if (job.companyAiMaturity) {
@@ -158,6 +159,7 @@ export function scoreJob(job: JobInput): JobFit {
     }
   }
   lines.push({ label: "Late AI adopter", points: maturityPts, max: 15, note: maturityNote });
+  }
 
   // 4. Pay (20)
   const isLocal = !job.remote || cfg().locations.accepted.some((l) => loc.includes(l));
@@ -188,39 +190,42 @@ export function scoreJob(job: JobInput): JobFit {
   // 5. Location (15)
   let locPts = 0;
   let locNote = "";
-  const excludedRegion = cfg().locations.excludedRegions.find((r) => loc.includes(r));
-  const kenyan = cfg().locations.accepted.some((l) => loc.includes(l));
+  const L = cfg().locations;
+  const regionTerms = [...L.regionTerms, ...L.accepted].filter(Boolean);
+  const inRegion = (text: string) => regionTerms.some((t) => kwRegex(t).test(text));
+  const excludedRegion = L.excludedRegions.find((r) => loc.includes(r));
+  const kenyan = L.accepted.some((l) => loc.includes(l)); // "local": inside one of the account's accepted locations
   const sponsors = /visa sponsor|sponsorship|relocation (support|package|assistance)/.test(desc);
-  const mentionsAfrica = /\b(africa|african|kenya|kenyan|nairobi|east africa|sub-saharan)\b/.test(`${loc} ${desc}`);
+  const mentionsRegion = inRegion(`${loc} ${desc}`);
   if (job.remote && kenyan) {
     locPts = 15;
-    locNote = `Remote, Kenya-based (${job.location})`;
+    locNote = `Remote, in your area (${job.location})`;
   } else if (job.remote) {
     const restricted =
       /(us|usa|united states|uk|eu|europe|canada|americas|emea|latam)[ -]only|must (be|reside) in (the )?(us|usa|united states|uk|europe)/.test(`${loc} ${desc}`) ||
       /\blatam\b|latin america|\(us\)|us-based|\busa\b|\bus only\b/.test(lc(job.title));
-    const africaInLocation = /\b(africa|kenya|nairobi)\b/.test(loc);
+    const regionInLocation = inRegion(loc);
     const worldwideLoc = !loc.trim() || /worldwide|anywhere|global|any location|^remote$/.test(loc.trim());
-    if ((restricted || !worldwideLoc) && !africaInLocation) {
+    if ((restricted || !worldwideLoc) && !regionInLocation) {
       locPts = 0;
       excluded = true;
       excludeReason = excludeReason ?? `Remote, but limited to ${job.location || "another region"}`;
       locNote = excludeReason;
-    } else if (!mentionsAfrica) {
+    } else if (L.remoteMustNameRegion && !mentionsRegion) {
       locPts = 0;
       excluded = true;
-      excludeReason = excludeReason ?? "Remote, but the post doesn't say it's open to Africa or Kenya";
+      excludeReason = excludeReason ?? "Remote, but the post doesn't say it's open to your region";
       locNote = excludeReason;
     } else {
       locPts = 15;
-      locNote = africaInLocation ? `Remote, open to ${job.location}` : "Remote; the post mentions Africa/Kenya";
+      locNote = regionInLocation ? `Remote, open to ${job.location}` : mentionsRegion ? "Remote; the post mentions your region" : "Remote, open worldwide";
     }
   } else if (kenyan) {
     locPts = 15;
-    locNote = job.location ?? "Kenya";
+    locNote = job.location ?? "Local";
   } else if (excludedRegion) {
     excluded = true;
-    excludeReason = excludeReason ?? `On-site in ${excludedRegion} (East Africa excluded)`;
+    excludeReason = excludeReason ?? `On-site in ${excludedRegion} (a region you excluded)`;
     locNote = excludeReason;
   } else if (sponsors) {
     locPts = 10;
@@ -242,7 +247,8 @@ export function scoreJob(job: JobInput): JobFit {
     excludeReason = excludeReason ?? `${trust.level === "suspicious" ? "Possible scam" : "Unclear post"}: ${trust.reasons.join("; ")}`;
   }
 
-  const score = lines.reduce((a, l) => a + l.points, 0);
+  // Out of 100 whichever lines apply (the late-AI line is dropped for accounts that did not opt in).
+  const score = Math.round((lines.reduce((a, l) => a + l.points, 0) / lines.reduce((a, l) => a + l.max, 0)) * 100);
   return {
     trust,
     score: excluded ? Math.min(score, 25) : score,
@@ -292,8 +298,10 @@ export function scoreCompany(c: CompanyInput): CompanyScore {
   });
 
   const m = c.aiMaturity ?? null;
-  const matPts = m === null ? 12 : [0, 25, 22, 14, 7, 3][m];
-  lines.push({ label: "Low AI maturity", points: matPts, max: 25, note: m === null ? "Unknown" : `AI maturity ${m}/5 (1 = none)` });
+  if (cfg().scoring.pitchAiMaturity) {
+    const matPts = m === null ? 12 : [0, 25, 22, 14, 7, 3][m];
+    lines.push({ label: "Low AI maturity", points: matPts, max: 25, note: m === null ? "Unknown" : `AI maturity ${m}/5 (1 = none)` });
+  }
 
   const g = countSignals(c.growthSignals);
   const gPts = g === 0 ? (c.growthSignals === null || c.growthSignals === undefined ? 5 : 0) : g === 1 ? 12 : g === 2 ? 16 : 20;
@@ -314,7 +322,8 @@ export function scoreCompany(c: CompanyInput): CompanyScore {
   // Floor: must plausibly afford a KES 60k Strategy Sprint or a retainer.
   const canAffordFloor = (e !== null && e >= 10) || Boolean(c.revenueNote) || (e === null && g > 0);
 
-  return { score: lines.reduce((a, l) => a + l.points, 0), lines, canAffordFloor };
+  const score = Math.round((lines.reduce((a, l) => a + l.points, 0) / lines.reduce((a, l) => a + l.max, 0)) * 100);
+  return { score, lines, canAffordFloor };
 }
 
 export type Recommendation = { track: "JOB" | "PITCH" | null; both: boolean; reason: string };
@@ -324,7 +333,8 @@ export function recommend(
   cs: CompanyScore,
   openJob?: { titleFamily: string | null; employment?: string | null } | null,
 ): Recommendation {
-  const lowMaturity = (c.aiMaturity ?? 3) <= 2;
+  // Low AI maturity only gates the pitch for accounts selling AI services; others rely on fit score and recurring needs.
+  const lowMaturity = cfg().scoring.pitchAiMaturity ? (c.aiMaturity ?? 3) <= 2 : true;
   const pitchable = cs.canAffordFloor && cs.score >= 50 && (lowMaturity || countSignals(c.recurringNeeds) > 0);
   const flexibleRole = /contract|part[- ]time|fractional|consult|freelance|temporary|fixed[- ]term/.test(lc(openJob?.employment));
 
@@ -348,14 +358,14 @@ export function recommend(
     return {
       track: "PITCH",
       both: false,
-      reason: `No matching job open, but the company can likely afford ${cfg().company.clientFloorKes.toLocaleString()} KES+ work and has room for AI with ongoing needs.`,
+      reason: `No matching job open, but the company can likely afford ${cfg().company.currency} ${cfg().company.clientFloorKes.toLocaleString()}+ work and has ongoing needs you can serve.`,
     };
   }
   if (!cs.canAffordFloor && (c.employees === null || c.employees === undefined)) {
     return { track: null, both: false, reason: "Not enough information yet. Research the company (or fill in the signals) to see if they can afford you." };
   }
   if (!cs.canAffordFloor) {
-    return { track: null, both: false, reason: "Probably too small to afford a Strategy Sprint or retainer. Skip for now." };
+    return { track: null, both: false, reason: "Probably too small to afford your minimum project or a retainer. Skip for now." };
   }
   return { track: null, both: false, reason: "Not enough fit or information yet. Research the company first." };
 }

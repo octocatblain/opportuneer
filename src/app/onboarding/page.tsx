@@ -54,7 +54,7 @@ export default async function Onboarding({ searchParams }: { searchParams: Promi
         <div className="min-w-0">
           {step === "basics" && <BasicsForm defaults={d.basics} returnTo={here} saveLabel="Save and continue" />}
           {step === "resume" && <ResumeForm resume={row?.resumeName ? { name: row.resumeName, updatedAt: row.resumeUpdatedAt, chars: row.resumeText?.length ?? 0 } : null} returnTo={here} required />}
-          {step === "job" && <JobForm defaults={d.job} returnTo={here} fx={base.fx.kesPerUsd} />}
+          {step === "job" && <JobForm defaults={d.job} returnTo={here} />}
           {step === "pitch" && <PitchForm defaults={d.pitch} returnTo={here} isOwner={false} />}
         </div>
       </div>

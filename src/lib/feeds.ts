@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
-import { cfg } from "@/lib/config";
+import { cfg, type AppConfig } from "@/lib/config";
+import { isAfrica, isKenya } from "@/lib/regions";
 import { htmlToText } from "@/lib/cv";
 import { parseSalary, type Salary } from "@/lib/salary";
 import { matchTitleFamily } from "@/lib/scoring";
@@ -49,6 +50,9 @@ function ldSalary(job: { baseSalary?: { currency?: string; value?: { minValue?: 
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** Per-feed cap on search terms, so a long title list does not turn one scan into hundreds of requests. */
+const MAX_TERMS = 10;
+
 const UA = { "User-Agent": "Mozilla/5.0 (Opportuneer personal job search)" };
 
 async function getJson<T>(url: string): Promise<T> {
@@ -80,7 +84,7 @@ const employmentOf = (s: string | null | undefined): string | null => {
 async function remotive(): Promise<RawJob[]> {
   type R = { jobs: { id: number; url: string; title: string; company_name: string; job_type: string; publication_date: string; candidate_required_location: string; salary: string; description: string }[] };
   const out: RawJob[] = [];
-  for (const term of cfg().searchTerms) {
+  for (const term of cfg().searchTerms.slice(0, MAX_TERMS)) {
     const data = await getJson<R>(`https://remotive.com/api/remote-jobs?search=${encodeURIComponent(term)}&limit=50`);
     for (const j of data.jobs) {
       out.push({
@@ -105,7 +109,7 @@ async function remotive(): Promise<RawJob[]> {
 async function jobicy(): Promise<RawJob[]> {
   type J = { jobs: { id: number; url: string; jobTitle: string; companyName: string; jobType: string[]; jobGeo: string; jobDescription: string; pubDate: string; salaryMin?: number; salaryMax?: number; salaryCurrency?: string; salaryPeriod?: string }[] };
   const out: RawJob[] = [];
-  for (const tag of ["automation", "ai", "full stack", "software engineer", "devops"]) {
+  for (const tag of cfg().searchTerms.slice(0, MAX_TERMS)) {
     const data = await getJson<J>(`https://jobicy.com/api/v2/remote-jobs?count=50&tag=${encodeURIComponent(tag)}`);
     for (const j of data.jobs ?? []) {
       out.push({
@@ -200,12 +204,18 @@ async function myjobmag(): Promise<RawJob[]> {
 
 // ---- BrighterMonday Kenya (category pages; keeps the board's "verified" employer badge) ----
 async function brightermonday(): Promise<RawJob[]> {
+  const techFamily = cfg().titleFamilies.some((f) => ["ai-automation", "transformation-lead", "fullstack", "solutions-systems", "platform"].includes(f.key));
   const pages = [
-    "https://www.brightermonday.co.ke/jobs/software-data",
-    "https://www.brightermonday.co.ke/jobs/software-data?page=2",
-    "https://www.brightermonday.co.ke/jobs/software-data?page=3",
-    "https://www.brightermonday.co.ke/jobs/engineering-technology",
-    "https://www.brightermonday.co.ke/jobs/consulting-strategy",
+    ...cfg().searchTerms.slice(0, MAX_TERMS).map((t) => `https://www.brightermonday.co.ke/jobs?q=${encodeURIComponent(t)}`),
+    ...(techFamily
+      ? [
+          "https://www.brightermonday.co.ke/jobs/software-data",
+          "https://www.brightermonday.co.ke/jobs/software-data?page=2",
+          "https://www.brightermonday.co.ke/jobs/software-data?page=3",
+          "https://www.brightermonday.co.ke/jobs/engineering-technology",
+          "https://www.brightermonday.co.ke/jobs/consulting-strategy",
+        ]
+      : []),
   ];
   const cards = new Map<string, { title: string; company: string; verified: boolean }>();
   for (const url of pages) {
@@ -257,7 +267,7 @@ async function brightermonday(): Promise<RawJob[]> {
 // ---- Remote4Africa (remote jobs open to Africa; attribution: link back) ----
 async function remote4africa(): Promise<RawJob[]> {
   const links = new Map<string, string>();
-  for (const term of ["software engineer", "full stack", "automation", "AI engineer", "solutions engineer", "devops"]) {
+  for (const term of cfg().searchTerms.slice(0, MAX_TERMS)) {
     const $ = cheerio.load(await getText(`https://remote4africa.com/jobs/search?q=${encodeURIComponent(term)}`));
     $('a[href^="/jobs/"]').each((_, a) => {
       const href = $(a).attr("href")!;
@@ -297,7 +307,7 @@ async function remote4africa(): Promise<RawJob[]> {
   return out;
 }
 
-// ---- Himalayas (remote; searched for roles open to Kenya; attribution: link back) ----
+// ---- Himalayas (remote; searched for roles open to the account's country; attribution: link back) ----
 async function himalayas(): Promise<RawJob[]> {
   type H = {
     jobs: {
@@ -306,8 +316,9 @@ async function himalayas(): Promise<RawJob[]> {
     }[];
   };
   const out: RawJob[] = [];
-  for (const term of cfg().searchTerms) {
-    const data = await getJson<H>(`https://himalayas.app/jobs/api/search?q=${encodeURIComponent(term)}&country=Kenya`);
+  const country = cfg().locations.country;
+  for (const term of cfg().searchTerms.slice(0, MAX_TERMS)) {
+    const data = await getJson<H>(`https://himalayas.app/jobs/api/search?q=${encodeURIComponent(term)}${country ? `&country=${encodeURIComponent(country)}` : ""}`);
     for (const j of data.jobs ?? []) {
       out.push({
         source: "himalayas",
@@ -333,17 +344,55 @@ async function himalayas(): Promise<RawJob[]> {
   return out;
 }
 
+// ---- Arbeitnow (Germany and nearby; English and German posts; public API) ----
+async function arbeitnow(): Promise<RawJob[]> {
+  type A = { data: { slug: string; company_name: string; title: string; description: string; remote: boolean; url: string; job_types?: string[]; location: string; created_at: number }[] };
+  const out: RawJob[] = [];
+  for (const page of [1, 2, 3]) {
+    const data = await getJson<A>(`https://www.arbeitnow.com/api/job-board-api?page=${page}`);
+    for (const j of data.data ?? []) {
+      out.push({
+        source: "arbeitnow",
+        sourceId: j.slug,
+        title: j.title,
+        companyName: j.company_name,
+        url: j.url,
+        description: htmlToText(j.description ?? ""),
+        location: j.location || "Germany",
+        remote: Boolean(j.remote),
+        employment: employmentOf((j.job_types ?? []).join(" ")),
+        salary: {},
+        postedAt: j.created_at ? new Date(j.created_at * 1000) : null,
+      });
+    }
+    await sleep(500);
+  }
+  return out;
+}
+
 export const feeds: Record<string, () => Promise<RawJob[]>> = {
-  // Kenya
+  // National boards (only run for accounts in that country: see feedApplies)
   brightermonday,
   myjobmag,
-  // Remote, Africa-focused first
   remote4africa,
+  arbeitnow,
+  // Remote boards, for everyone
   himalayas,
   remotive,
   jobicy,
   remoteok,
 };
+
+const EUROPE = /\b(germany|deutschland|austria|switzerland|europe|berlin|munich|hamburg|frankfurt|cologne|vienna|zurich)\b/i;
+
+/** Which boards make sense for an account: national boards only for their country, remote boards for all. */
+export const feedApplies: Record<string, (c: AppConfig) => boolean> = {
+  brightermonday: (c) => isKenya(c.locations.country),
+  myjobmag: (c) => isKenya(c.locations.country),
+  remote4africa: (c) => isAfrica(c.locations.country),
+  arbeitnow: (c) => EUROPE.test([c.locations.country, ...c.locations.accepted].join(" ")),
+};
+export const feedRuns = (name: string, c: AppConfig) => feedApplies[name]?.(c) ?? true;
 
 /** Fetch a job page (company careers page, BrighterMonday link, etc.) as plain text. */
 export async function fetchPageText(url: string) {

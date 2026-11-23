@@ -1,10 +1,11 @@
 import { z } from "zod";
 import { cfg } from "@/lib/config";
-import type { Package } from "@/config/profile";
+import { industryValueDrivers, type Package } from "@/config/profile";
 import { generateGroundedText, generateJson, generateText } from "@/lib/ai";
 import { extractBody } from "@/lib/cv";
 
-const VOICE = `Write in plain, confident British English as used in Kenya. Short sentences. No buzzwords
+/** The writing style rules. Kenyan accounts keep Kenyan English; everyone else gets plain professional English. */
+const voice = () => `Write in plain, confident ${/\bkenya\b/i.test(cfg().locations.country) ? "British English as used in Kenya" : "professional English, matching the spelling of the recipient's country"}. Short sentences. No buzzwords
 ("synergy", "leverage", "cutting-edge", "passionate", "delve"), no exclamation marks, no emojis.
 Never invent facts, employers, numbers, certifications or results that are not in the source material.`;
 
@@ -74,9 +75,15 @@ export const companyResearchSchema = () => z.object({
   research: z.string(),
 });
 
+/** The account's own offer in one line, so research and pitches are about what they actually sell. */
+function ourServices() {
+  const names = [...cfg().packages.map((p) => p.name), ...Object.values(cfg().serviceLines).flat()];
+  return [...new Set(names)].slice(0, 40).join(", ");
+}
+
 export function researchCompany(name: string, sourceText: string) {
   return generateJson(companyResearchSchema(), {
-    system: `You are a business analyst helping ${cfg().company.name || "an agency"}, a consultancy, qualify prospects. Be sceptical and evidence-based.`,
+    system: `You are a business analyst helping ${cfg().company.name || "a freelancer or agency"} qualify prospects for the services it sells. Be sceptical and evidence-based.`,
     prompt: `Assess "${name}" from the material below (their website text and any notes).
 
 Return:
@@ -85,9 +92,11 @@ Return:
 - revenueNote: any budget/revenue evidence (branches, turnover, funding, client list), or null
 - aiMaturity: 1 = paper/Excel, no tech team ... 5 = in-house data/AI team. null if unknown
 - growthSignals: separate signals with semicolons (new branches, funding, hiring, tenders, new products), or null
-- recurringNeeds: ongoing work an AI/software agency could own, separated by semicolons (customer support load, reporting, website/SEO, integrations, maintenance), or null
+- recurringNeeds: ongoing work that the services listed in <our_services> could own, separated by semicolons (for example support load, reporting, content, bookkeeping, design, integrations, maintenance), or null
 - contactName / contactEmail / contactRole: only if present in the material
-- research: 5-7 sentence brief: what they do, where they are weak (operations, systems, data, website, marketing, customer service), 3 concrete opportunities across AI/automation, software and marketing/growth, and anything that suggests they can or cannot pay.
+- research: 5-7 sentence brief: what they do, where they are weak (operations, systems, data, website, marketing, customer service), 3 concrete opportunities that the services in <our_services> could address for this company and its industry, and anything that suggests they can or cannot pay.
+
+<our_services>${ourServices() || "general consulting and delivery services"}</our_services>
 
 <material>
 ${sourceText.slice(0, 40000)}
@@ -109,7 +118,7 @@ export async function tailorCv(input: {
   mentionCompany: boolean;
 }) {
   const { text, provider } = await generateText({
-    system: `You tailor ${cfg().profile.name}'s CV to a specific job. ${VOICE}
+    system: `You tailor ${cfg().profile.name}'s CV to a specific job. ${voice()}
 You receive the CV's <body> HTML. Return the full tailored <body> inner HTML in a single \`\`\`html fenced block, followed by a short "CHANGES:" list.
 Rules:
 ${input.cvFormat === "text" ? `- The CV is given as plain resume text inside <pre>. Build the body HTML from it using ONLY this structure: <h1>Full name</h1><p class="role">target role line</p><p class="contact">contact details separated by " | "</p>, then for each section <h2>SECTION</h2>, jobs as <h3>Role, Employer</h3><p class="meta">dates, place</p><ul><li>bullet</li></ul>, other text as <p>/<ul>. No inline styles, no scripts.` : "- Keep every existing CSS class and the overall structure, so the existing stylesheet still applies."}
@@ -149,7 +158,7 @@ export function writeCoverLetter(input: {
   mentionCompany: boolean;
 }) {
   return generateJson(Letter, {
-    system: `You write cover letters for ${cfg().profile.name}. ${VOICE}`,
+    system: `You write cover letters for ${cfg().profile.name}. ${voice()}`,
     prompt: `Write a cover letter (250-350 words) for ${input.jobTitle} at ${input.companyName}.
 Structure: why this company (specific, from the research or posting), the 2-3 most relevant proofs from the CV (with real numbers from the CV), how ${cfg().profile.name || "the candidate"} would help this employer in practical steps (use the target roles and strengths from the CV), a short close with availability (notice period: ${cfg().profile.noticePeriod}).
 ${input.mentionCompany ? `Mention briefly that they run ${cfg().company.name}${cfg().company.tagline ? ` (${cfg().company.tagline})` : ""}, as supporting evidence.` : "Do not mention any side business or agency."}
@@ -170,7 +179,7 @@ export function writeApplicationEmail(input: {
   coverLetter: string;
 }) {
   return generateJson(Letter, {
-    system: `You write short job-application emails for ${cfg().profile.name}. ${VOICE}`,
+    system: `You write short job-application emails for ${cfg().profile.name}. ${voice()}`,
     prompt: `Write the email that carries the attached CV and cover letter for ${input.jobTitle} at ${input.companyName}.
 80-140 words. Greeting to ${input.contactName || "the hiring team"}. One line on the role, two lines with the strongest proof, mention the attachments, close politely. Signature: ${cfg().profile.name}, ${cfg().profile.phone}, ${cfg().profile.links.linkedin}.
 Subject: "Application: <role> – ${cfg().profile.name}".
@@ -195,7 +204,8 @@ export const Pitch = z.object({
 
 function priceLabel(p: Package) {
   if (!p.priceKes) return "price on request";
-  return `from KES ${p.priceKes.toLocaleString()}${p.monthlyKes && p.kind !== "retainer" ? ` + KES ${p.monthlyKes.toLocaleString()}/mo` : p.kind === "retainer" ? "/mo" : ""}`;
+  const cur = cfg().company.currency || "USD";
+  return `from ${cur} ${p.priceKes.toLocaleString()}${p.monthlyKes && p.kind !== "retainer" ? ` + ${cur} ${p.monthlyKes.toLocaleString()}/mo` : p.kind === "retainer" ? "/mo" : ""}`;
 }
 
 export function serviceMenu() {
@@ -219,11 +229,15 @@ export function writePitch(input: {
   contactName?: string | null;
   contactRole?: string | null;
   includeFoundingOffer: boolean;
+  /** Key of the prospect's industry (from the account's industry list), when known. */
+  industry?: string | null;
 }) {
+  const ind = cfg().industries.find((i) => i.key === input.industry);
+  const drivers = input.industry ? industryValueDrivers[input.industry] : undefined;
   return generateJson(Pitch, {
-    system: `You are the business-development lead for ${cfg().company.name} (${cfg().company.website}), ${cfg().company.tagline || "an agency"}, run by ${cfg().profile.name}${cfg().profile.location ? ` in ${cfg().profile.location}` : ""}. ${VOICE}
+    system: `You are the business-development lead for ${cfg().company.name} (${cfg().company.website}), ${cfg().company.tagline || "an agency"}, run by ${cfg().profile.name}${cfg().profile.location ? ` in ${cfg().profile.location}` : ""}. ${voice()}
 You choose the strongest angle for each prospect from the WHOLE service menu below, then write the first-contact email. The goal of the email is a free 30-minute call, not a sale.`,
-    prompt: `Step 1: Consider every service line and package below against the research. In "angles", list the 3-5 strongest options, each with the service, why it fits this company (evidence from the research), and a fit score 1-10. Weigh: size of the pain, whether they can afford it (they must be able to pay at least KES ${cfg().company.clientFloorKes.toLocaleString()} or a monthly retainer), and how likely it leads to long-term, recurring work.
+    prompt: `Step 1: Consider every service line and package below against the research. In "angles", list the 3-5 strongest options, each with the service, why it fits this company (evidence from the research), and a fit score 1-10. Weigh: size of the pain, whether they can afford it (they must be able to pay at least ${cfg().company.currency || "USD"} ${cfg().company.clientFloorKes.toLocaleString()} or a monthly retainer), whether it speaks to what decision makers in their industry care about (see <industry_value_drivers>), and how likely it leads to long-term, recurring work.
 Step 2: Set "chosenAngle" to the single best way in. It may combine a quick, low-risk first step with the bigger engagement it leads to.
 Step 3: Write the email to ${input.contactName ? `${input.contactName}${input.contactRole ? ` (${input.contactRole})` : ""}` : "the decision maker"} at ${input.companyName}:
 - 120-180 words. Open with one specific observation about their business, not "I hope this finds you well".
@@ -235,6 +249,8 @@ Step 3: Write the email to ${input.contactName ? `${input.contactName}${input.co
 
 ${serviceMenu()}
 
+<industry_value_drivers industry="${ind?.label ?? "unknown"}">${drivers ?? "Not predefined: infer from the research what matters most to leaders in this industry (money, risk, time, reputation, compliance) and frame the angle in those terms, not in generic tool language."}</industry_value_drivers>
+
 <research>${input.research}</research>`,
     maxTokens: 8000,
     effort: "high",
@@ -244,9 +260,9 @@ ${serviceMenu()}
 export async function writeProposal(input: { companyName: string; research: string; angle: string; packageKeys: string[]; otherServices: string[] }) {
   const chosen = cfg().packages.filter((p) => input.packageKeys.includes(p.key)).map((p) => ({ name: p.name, price: priceLabel(p), duration: p.duration, summary: p.summary }));
   return generateText({
-    system: `You write one-page proposals for ${cfg().company.name}. ${VOICE} Output clean Markdown only.`,
+    system: `You write one-page proposals for ${cfg().company.name}. ${voice()} Output clean Markdown only.`,
     prompt: `Write a one-page proposal for ${input.companyName} built around this angle: ${input.angle}
-Sections: Where you are today; What we propose (phases with outcomes, starting with a low-risk first phase and showing the ongoing work it leads to); Investment (use the package prices exactly, KES before VAT; custom-quoted services say "quoted after a free scoping call"); Timeline; Payment terms; Next step.
+Sections: Where you are today; What we propose (phases with outcomes, starting with a low-risk first phase and showing the ongoing work it leads to); Investment (use the package prices exactly, in ${cfg().company.currency || "USD"}, tax shown separately where it applies; custom-quoted services say "quoted after a free scoping call"); Timeline; Payment terms; Next step.
 Payment terms: ${cfg().company.terms.join("; ") || "to be agreed after the scoping call"}.
 
 <packages>${JSON.stringify(chosen)}</packages>
@@ -259,7 +275,7 @@ Payment terms: ${cfg().company.terms.join("; ") || "to be agreed after the scopi
 
 export function writeFollowUp(input: { kind: "job" | "pitch"; companyName: string; title: string; previous: string; daysSince: number }) {
   return generateJson(Letter, {
-    system: `You write polite, short follow-up emails for ${cfg().profile.name}. ${VOICE}`,
+    system: `You write polite, short follow-up emails for ${cfg().profile.name}. ${voice()}`,
     prompt: `Write a follow-up (60-100 words) ${input.daysSince} days after this ${input.kind === "job" ? "job application" : "pitch"} for "${input.title}" at ${input.companyName}. Add one new piece of value (a relevant idea or proof), and ask one easy question. Subject should start with "Re: ".
 
 <previous_email>${input.previous}</previous_email>`,

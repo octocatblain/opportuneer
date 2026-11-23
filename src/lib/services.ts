@@ -7,7 +7,7 @@ import { cfg, loadConfig, runForUser } from "@/lib/config";
 import { getProfile } from "@/lib/kyc";
 import { db, setSetting } from "@/lib/db";
 import { scanStatus, setScanRunning } from "@/lib/scan-status";
-import { feeds, fetchPageText, type RawJob } from "@/lib/feeds";
+import { feedRuns, feeds, fetchPageText, type RawJob } from "@/lib/feeds";
 import { parseSalary } from "@/lib/salary";
 import { matchTitleFamily, recommend, scoreCompany, scoreJob, shouldMentionCompany, type JobFit } from "@/lib/scoring";
 import {
@@ -250,6 +250,7 @@ async function doScanImpl(userId: string) {
   const counts: Record<string, { fetched: number; matched: number; added: number }> = {};
   const errors: string[] = [];
   for (const [name, fn] of Object.entries(feeds)) {
+    if (!feedRuns(name, cfg())) continue; // national board for another country
     counts[name] = { fetched: 0, matched: 0, added: 0 };
     try {
       const jobs = await fn();
@@ -404,7 +405,7 @@ async function generatePitchRunImpl(userId: string, id: string) {
   const c = o.company as Company;
   if (!c?.research) throw new Error("Research the company first (Companies → Research), so the pitch is specific.");
   const offer = await foundingOfferActive(userId);
-  const pitch = await writePitch({ companyName: c.name, research: c.research, contactName: c.contactName, contactRole: c.contactRole, includeFoundingOffer: offer });
+  const pitch = await writePitch({ companyName: c.name, research: c.research, contactName: c.contactName, contactRole: c.contactRole, includeFoundingOffer: offer, industry: c.industry });
   await saveDoc(id, "PITCH_EMAIL", pitch.data.body, { subject: pitch.data.subject, provider: pitch.provider });
 
   const proposal = await writeProposal({
