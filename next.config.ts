@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // The automated tests build into their own folder so they never disturb a running dev server.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   serverExternalPackages: ["puppeteer-core", "@prisma/client"],
   experimental: {
     serverActions: { bodySizeLimit: "5mb" },
