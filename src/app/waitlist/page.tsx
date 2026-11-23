@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { joinWaitlistAction } from "@/app/waitlist-actions";
+import { CircleTick, Envelope, Hearts, NoteArrow, PaperPlane, Sparkle, Spiral, Squiggle } from "@/components/doodles";
+import { Motion } from "@/components/gsap-motion";
 import { SubmitButton } from "@/components/submit-button";
 import { btnSignal, Flash, input } from "@/components/ui";
 import { industries } from "@/config/profile";
@@ -36,24 +38,43 @@ export default async function Waitlist({ searchParams }: { searchParams: Promise
 
   if (outcome) {
     return (
-      <div className="mx-auto max-w-lg space-y-5 pt-10 text-center">
-        <h1 className="page-title " style={{ fontSize: "clamp(2rem, 5vw, 3rem)" }}>
+      <Motion className="relative mx-auto max-w-lg space-y-5 pt-24 text-center">
+        <div aria-hidden className="pointer-events-none absolute inset-0 hidden md:block">
+          <CircleTick className="left-1/2 top-2 h-16 w-16 -translate-x-1/2 text-signal" />
+          <Sparkle className="-left-28 top-16 h-14 w-14 text-signal" float />
+          <PaperPlane className="-right-40 top-6 h-24 w-36 text-ink-4" float />
+          <Hearts className="-left-32 bottom-0 h-14 w-28 text-signal" float />
+          <Spiral className="-right-28 bottom-4 h-16 w-16 text-ink-4" />
+        </div>
+        <h1 data-m="chars" className="page-title " style={{ fontSize: "clamp(2rem, 5vw, 3rem)" }}>
           {outcome.title}
         </h1>
         <p className="text-base leading-relaxed text-muted">{outcome.body}</p>
         <Link href="/" className="link text-sm font-medium">
           Back to home
         </Link>
-      </div>
+      </Motion>
     );
   }
 
   return (
-    <div className="mx-auto max-w-lg space-y-6 pt-8">
+    <Motion className="relative mx-auto max-w-lg space-y-6 pt-8">
+      <div aria-hidden className="pointer-events-none absolute inset-0 hidden md:block">
+        <Sparkle className="-left-28 top-4 h-14 w-14 text-signal" float />
+        <PaperPlane className="-right-40 top-0 h-24 w-36 text-ink-4" float />
+        <NoteArrow className="-right-52 top-[19rem] hidden text-signal lg:block" text="only 30 places!" />
+        <Envelope className="-left-44 top-[26rem] h-20 w-28 -rotate-6 text-ink-4" float />
+        <Spiral className="-right-28 top-[46rem] h-16 w-16 text-signal" />
+        <Hearts className="-left-36 bottom-32 h-14 w-28 text-signal" float />
+        <Sparkle className="-right-20 bottom-10 h-10 w-10 text-ink-4" float />
+      </div>
       <div className="space-y-3">
-        <h1 className="page-title " style={{ fontSize: "clamp(2rem, 5vw, 3rem)" }}>
+        <h1 data-m="chars" className="relative inline-block page-title " style={{ fontSize: "clamp(2rem, 5vw, 3rem)" }}>
           Join the waitlist
         </h1>
+        <div aria-hidden className="relative hidden h-3 md:block">
+          <Squiggle className="left-0 top-0 h-4 w-48 text-signal" />
+        </div>
         {counts.full ? (
           <p className="text-sm leading-relaxed text-muted">
             All {PILOT_SIZE} pilot places are taken. Join the public-launch waitlist and we&apos;ll invite people in small batches, in the order they joined.
@@ -68,7 +89,7 @@ export default async function Waitlist({ searchParams }: { searchParams: Promise
 
       <Flash error={sp.error} />
 
-      <form action={joinWaitlistAction} className="relative space-y-3 rounded-xl border border-rule bg-white p-6">
+      <form action={joinWaitlistAction} className="relative space-y-3 rounded-md border border-rule bg-white p-6">
         <input type="hidden" name="src" value={sp.src ?? ""} />
         {/* Honeypot: hidden from people, tempting to bots. */}
         <div aria-hidden className="absolute h-0 w-0 overflow-hidden opacity-0">
@@ -152,13 +173,17 @@ export default async function Waitlist({ searchParams }: { searchParams: Promise
 
       <p className="text-xs leading-relaxed text-muted">
         Privacy: we store what you enter here to run the waitlist and pick the pilot mix, and nothing else. We never sell it. It is used only by Red Star Standard, and you can ask us to delete your entry at any time. Names and emails are not
-        used in analytics.
+        used in analytics.{" "}
+        <Link href="/privacy" className="link">
+          Read the full privacy note
+        </Link>
+        .
       </p>
       <p className="text-center text-xs text-muted">
         <Link href="/" className="link">
           Back to home
         </Link>
       </p>
-    </div>
+    </Motion>
   );
 }
