@@ -8,6 +8,7 @@ import { ScanOverlay } from "@/components/scan-overlay";
 import { AppShell } from "@/components/nav-links";
 import { PublicNav } from "@/components/public-nav";
 import { Footer } from "@/components/footer";
+import { SmoothScroll } from "@/components/gsap-motion";
 import { BackToTop } from "@/components/back-to-top";
 
 const interTight = Inter_Tight({ subsets: ["latin"], variable: "--font-inter-tight", display: "swap" });
@@ -49,6 +50,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
             <Footer signedIn={false} />
           </div>
         )}
+        <SmoothScroll />
         <BackToTop />
       </body>
     </html>

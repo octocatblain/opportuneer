@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FlashToast } from "@/components/flash-toast";
 import { SourceLabel } from "@/components/brand-icons";
 import type { ScoreLine } from "@/lib/scoring";
 
@@ -16,17 +17,9 @@ export const STAGE_LABEL: Record<string, string> = {
   ARCHIVED: "Archived",
 };
 
+/** Shows the ?ok= / ?error= message as a top-right toast. */
 export function Flash({ ok, error }: { ok?: string; error?: string }) {
-  if (!ok && !error) return null;
-  return (
-    <div
-      role="status"
-      className={`mb-6 rounded-2xl px-4 py-3 text-sm ${error ? "bg-signal-soft text-signal-dark" : "bg-white text-ink"}`}
-    >
-      <span className="font-semibold">{error ? "Error: " : "Done: "}</span>
-      {error ?? ok}
-    </div>
-  );
+  return <FlashToast ok={ok} error={error} />;
 }
 
 /** Page heading: a plain roman title, an optional meta line (a count or a date) and sub copy. */
@@ -130,7 +123,7 @@ export function Card({
   tone?: "light" | "dark";
 }) {
   return (
-    <section className={`rounded-[20px] p-5 shadow-[var(--shadow-card)] ${tone === "dark" ? "bg-paper-2" : "bg-white"}`}>
+    <section className={`rounded-md p-5 shadow-[var(--shadow-card)] ${tone === "dark" ? "bg-paper-2" : "bg-white"}`}>
       {(title || actions) && (
         <div className="mb-4 flex items-start justify-between gap-3">
           {title && <h2 className="text-lg font-semibold leading-tight text-ink">{title}</h2>}
@@ -143,7 +136,7 @@ export function Card({
 }
 
 export function Empty({ children }: { children: React.ReactNode }) {
-  return <p className="rounded-lg border border-dashed border-rule px-4 py-6 text-center text-sm text-muted">{children}</p>;
+  return <p className="rounded-md border border-dashed border-rule px-4 py-6 text-center text-sm text-muted">{children}</p>;
 }
 
 export function OppRow({
@@ -170,7 +163,7 @@ export function OppRow({
   return (
     <Link
       href={`${base}/opportunities/${o.id}`}
-      className="group -mx-3 grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-paper active:bg-paper-2 md:grid-cols-[2.5rem_minmax(0,1fr)_11rem_9rem_auto]"
+      className="group -mx-3 grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-3 rounded-md px-3 py-2 transition-colors hover:bg-paper active:bg-paper-2 md:grid-cols-[2.5rem_minmax(0,1fr)_11rem_9rem_auto]"
     >
       <ScorePill score={o.fitScore} />
       <div className="min-w-0">
@@ -194,13 +187,13 @@ export function OppRow({
 /** Segmented filter (view / track filters). */
 export function Segmented({ items }: { items: { href: string; label: string; active: boolean }[] }) {
   return (
-    <div className="inline-flex flex-wrap gap-0.5 rounded-xl bg-white p-1 text-sm shadow-[var(--shadow-card)]">
+    <div className="inline-flex flex-wrap gap-0.5 rounded-md bg-white p-1 text-sm shadow-[var(--shadow-card)]">
       {items.map((i) => (
         <Link
           key={i.href}
           href={i.href}
           aria-current={i.active ? "page" : undefined}
-          className={`rounded-lg px-3 py-1.5 font-medium transition-colors ${i.active ? "bg-ink text-white" : "text-muted hover:bg-paper-2 hover:text-ink active:bg-paper-3"}`}
+          className={`rounded-md px-3 py-1.5 font-medium transition-colors ${i.active ? "bg-ink text-white" : "text-muted hover:bg-paper-2 hover:text-ink active:bg-paper-3"}`}
         >
           {i.label}
         </Link>
@@ -210,13 +203,13 @@ export function Segmented({ items }: { items: { href: string; label: string; act
 }
 
 export const input =
-  "w-full rounded-xl border border-rule bg-white px-3 py-2 text-sm text-ink placeholder:text-mist transition-colors hover:border-ink-3 disabled:bg-paper disabled:text-mist";
+  "w-full rounded-md border border-rule bg-white px-3 py-2 text-sm text-ink placeholder:text-mist transition-colors hover:border-ink-3 disabled:bg-paper disabled:text-mist";
 export const btn =
-  "inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-ink-3 active:translate-y-px active:bg-ink-2 disabled:opacity-60";
+  "inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-ink-3 active:translate-y-px active:bg-ink-2 disabled:opacity-60";
 export const btnSignal =
-  "inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-signal-dark px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-signal-deep active:translate-y-px active:bg-signal-deep disabled:opacity-60";
+  "inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-signal-dark px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-signal-deep active:translate-y-px active:bg-signal-deep disabled:opacity-60";
 export const btnGhost =
-  "inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-rule bg-white px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-paper-2 active:translate-y-px active:bg-paper-3 disabled:opacity-60";
+  "inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-rule bg-white px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-paper-2 active:translate-y-px active:bg-paper-3 disabled:opacity-60";
 
 export const PAGE_SIZE = 25;
 
@@ -235,7 +228,7 @@ export function Pagination({ page, total, pageSize = PAGE_SIZE, hrefFor }: { pag
       <span className="text-xs text-muted">
         Showing {(cur - 1) * pageSize + 1} to {Math.min(cur * pageSize, total)} of {total}
       </span>
-      <div className="inline-flex flex-wrap items-center gap-0.5 rounded-lg border border-rule bg-white p-0.5">
+      <div className="inline-flex flex-wrap items-center gap-0.5 rounded-md border border-rule bg-white p-0.5">
         {cur > 1 ? (
           <Link href={hrefFor(cur - 1)} rel="prev" className={`${item} text-muted hover:bg-paper-2 hover:text-ink active:bg-paper-3`}>
             Previous
@@ -270,7 +263,7 @@ export function Pagination({ page, total, pageSize = PAGE_SIZE, hrefFor }: { pag
 /** Shown to the superuser when viewing another user's record: everything is read-only. */
 export function ReadOnlyNotice({ owner }: { owner: string }) {
   return (
-    <div role="status" className="rounded-lg border border-warn-ink/25 bg-warn-soft px-4 py-3 text-sm text-warn-ink">
+    <div role="status" className="rounded-md border border-warn-ink/25 bg-warn-soft px-4 py-3 text-sm text-warn-ink">
       Admin view: this belongs to <b>{owner}</b>. You can read it but not change it.
     </div>
   );

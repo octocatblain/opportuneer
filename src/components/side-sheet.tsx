@@ -15,6 +15,7 @@ export function SideSheet({
   children,
   label,
   zClass = "z-[100]",
+  square = false,
 }: {
   open?: boolean;
   title?: React.ReactNode;
@@ -23,6 +24,8 @@ export function SideSheet({
   children: React.ReactNode;
   label?: string;
   zClass?: string;
+  /** No rounded corners. */
+  square?: boolean;
 }) {
   useEffect(() => {
     if (!open || !onClose) return;
@@ -39,7 +42,7 @@ export function SideSheet({
         role="alertdialog"
         aria-modal="true"
         aria-label={label ?? (typeof title === "string" ? title : undefined)}
-        className={`relative flex h-full w-full ${widthClass} flex-col overflow-y-auto bg-white shadow-pop motion-safe:animate-[sheet-in_.25s_ease-out] sm:rounded-l-2xl`}
+        className={`relative flex h-full w-full ${widthClass} flex-col overflow-y-auto bg-white shadow-pop motion-safe:animate-[sheet-in_.25s_ease-out] ${square ? "" : "sm:rounded-l-2xl"}`}
       >
         {(title || onClose) && (
           <header className="flex items-center justify-between gap-4 px-6 pb-2 pt-6">
