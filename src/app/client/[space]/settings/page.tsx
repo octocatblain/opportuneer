@@ -8,31 +8,46 @@ import { Brand } from "@/components/brand-icons";
 import { currentSession, isSuper, requireSpace } from "@/lib/auth";
 import { clientBase, isSpace } from "@/lib/spaces";
 import { db } from "@/lib/db";
-import { btn, btnGhost, Card, Flash, input } from "@/components/ui";
+import { btn, btnGhost, Card, Chip, Flash, input } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { FeedbackForm } from "@/components/feedback-form";
 import { creditBalance } from "@/lib/credits";
 import { loadConfig } from "@/lib/config";
 import { getSetting } from "@/lib/db";
+import { ATTACHMENT_TYPES, fmtBytes, kindShort } from "@/lib/feedback-shared";
 import { gmailAccount, gmailConfigured } from "@/lib/gmail";
 
 export const dynamic = "force-dynamic";
 
 type Scan = { at: string; counts: Record<string, { fetched: number; matched: number; added: number }>; errors: string[] } | null;
 
+const sections = [
+  ["account", "Account"],
+  ["security", "Security"],
+  ["integrations", "Integrations"],
+  ["activity", "Activity"],
+  ["privacy", "Data and privacy"],
+  ["feedback", "Feedback"],
+] as const;
+type Tab = (typeof sections)[number][0];
+const STATUS_LABEL: Record<string, string> = { NEW: "Received", READ: "Seen by the team", RESOLVED: "Resolved" };
+
 export const metadata: Metadata = { title: "Settings" };
 
-export default async function Settings({ params, searchParams }: { params: Promise<{ space: string }>; searchParams: Promise<{ ok?: string; error?: string }> }) {
+export default async function Settings({ params, searchParams }: { params: Promise<{ space: string }>; searchParams: Promise<{ ok?: string; error?: string; tab?: string }> }) {
   const { space } = await params;
   if (!isSpace(space)) notFound();
   await requireSpace(space);
   const sp = await searchParams;
+  const tab: Tab = sections.find(([id]) => id === sp.tab)?.[0] ?? "account";
   const me = await currentSession();
   if (!me) redirect("/login");
   const sessions = await db.session.findMany({ where: { userId: me.user.id }, orderBy: { lastSeenAt: "desc" } });
   const full = await loadConfig();
   const credits = isSuper(me.user) ? null : await creditBalance(me.user.id);
   const [gmail, scan] = await Promise.all([gmailAccount(me.user.id), getSetting<Scan>(`lastScan:${me.user.id}`, null)]);
+
+  const history = tab === "feedback" ? await db.feedback.findMany({ where: { userId: me.user.id }, orderBy: { createdAt: "desc" }, take: 50, include: { attachments: { orderBy: { createdAt: "asc" } } } }) : [];
 
   return (
     <div className="space-y-6">
@@ -45,178 +60,278 @@ export default async function Settings({ params, searchParams }: { params: Promi
           </Link>
         )}
       </div>
-      <div className="grid items-start gap-6 lg:grid-cols-2">
-        <Card title="Usage and feedback">
-          <p className="text-sm">
-            {credits === null ? "Owner account: no credit limits." : <>Credits left: <b>{credits}</b>. Tracks: <b>{me.user.trackAccess.toLowerCase()}</b>.</>}
-          </p>
-          <div className="mt-4">
-            <FeedbackForm page={`${clientBase(space)}/settings`} name={me.user.name ?? ""} email={me.user.email} compact />
-          </div>
-        </Card>
-        <Card index={1} title={<Brand name="Gmail" label="Gmail (drafts only)" size={20} />}>
-          {gmail ? (
-            <div className="space-y-3 text-sm">
-              <p>
-                Connected as <b>{gmail}</b>. Opportuneer creates drafts in this account; you always send them yourself.
-              </p>
-              <form action={disconnectGmailAction}>
-                <button className={btnGhost}>Disconnect</button>
-              </form>
-            </div>
-          ) : gmailConfigured() ? (
-            <div className="space-y-3 text-sm">
-              <p>Google credentials found. Connect your Gmail account to start creating drafts.</p>
-              <a href="/api/gmail/connect" className={btn}>
-                Connect Gmail
-              </a>
-            </div>
-          ) : (
-            <ol className="list-decimal space-y-1 pl-5 text-sm">
-              <li>Go to console.cloud.google.com and create a project called “Opportuneer”.</li>
-              <li>In APIs &amp; Services, open Library and enable the <b>Gmail API</b>.</li>
-              <li>On the OAuth consent screen choose External and Testing mode, then add your Gmail address as a test user.</li>
-              <li>
-                Under Credentials, create an OAuth client ID of type Web application. Authorised redirect URI: <code className="rounded-md bg-paper px-1.5">http://localhost:3000/api/auth/callback/google</code>
-              </li>
-              <li>
-                Paste the Client ID and Secret into <code className="rounded-md bg-paper px-1.5">.env</code> as GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, then restart the app.
-              </li>
-            </ol>
-          )}
-        </Card>
-
-        <Card title="Profile">
-          <p className="mb-3 text-sm text-ink-3">
-            Your resume, job targets and agency offer live on the{" "}
-            <Link href={`/client/${space}/profile`} className="link">
-              Profile page
-            </Link>
-            .
-          </p>
-          <form action={updateProfileAction} className="space-y-2 text-sm">
-            <label className="block text-xs font-medium text-ink-3" htmlFor="profile-name">
-              Display name
-            </label>
-            <input id="profile-name" name="name" defaultValue={me.user.name ?? ""} maxLength={80} autoComplete="name" className={input} />
-            <SubmitButton className={btn} pending="Saving…">
-              Save name
-            </SubmitButton>
-          </form>
-          <form action={changeEmailAction} className="mt-4 space-y-2 border-t border-rule pt-3 text-sm">
-            <label className="block text-xs font-medium text-ink-3" htmlFor="profile-email">
-              Sign-in email
-            </label>
-            <input id="profile-email" name="email" type="email" required defaultValue={me.user.email} autoComplete="email" className={input} />
-            {me.user.passwordHash && <input name="password" type="password" required placeholder="Current password to confirm" autoComplete="current-password" className={input} />}
-            <SubmitButton className={btn} pending="Saving…">
-              Change email
-            </SubmitButton>
-          </form>
-        </Card>
-
-        <Card title="Your data">
-          <p className="text-sm text-ink-3">Download everything stored about you: profile, companies, opportunities, generated documents, credits and feedback, as one JSON file.</p>
-          <a href="/api/account/export" className={`${btnGhost} mt-3`}>
-            Download my data
-          </a>
-          <p className="mt-2 text-xs text-muted">
-            What we keep and why:{" "}
-            <Link href="/privacy" className="link">
-              privacy note
-            </Link>
-            .
-          </p>
-          {!isSuper(me.user) && (
-            <form action={deleteOwnAccountAction} className="mt-4 space-y-2 border-t border-rule pt-3 text-sm">
-              <p className="font-medium text-error">Delete account</p>
-              <p className="text-xs text-muted">This permanently removes your account, companies, opportunities and documents. It cannot be undone.</p>
-              <input name="confirm" required placeholder={`Type ${me.user.email} to confirm`} autoComplete="off" className={input} aria-label="Type your email to confirm" />
-              {me.user.passwordHash && <input name="password" type="password" required placeholder="Password" autoComplete="current-password" className={input} />}
-              <SubmitButton className={btnGhost} pending="Deleting…">
-                Delete my account
-              </SubmitButton>
-            </form>
-          )}
-        </Card>
-
-        <Card title="Account & sessions">
-          <p className="text-sm">
-            Signed in as <b>{me?.user.email}</b>
-            {me?.user.googleId ? " (Google linked)" : ""}. Sessions last {full.auth.sessionDays} days and renew while you use the app.
-          </p>
-          <ul className="mt-3 space-y-2 text-xs">
-            {sessions.map((s) => (
-              <li key={s.id} className="flex items-start justify-between gap-2 rounded-md border border-rule p-3">
-                <span className="space-y-0.5">
-                  <span className="block">
-                    <b>{s.id === me?.sessionId ? "This device" : "Other device"}</b>, {s.method}
-                  </span>
-                  <span className="block text-muted">
-                    {(s.userAgent ?? "unknown browser").slice(0, 70)}, {s.ip ?? "?"}
-                  </span>
-                  <span className="block text-muted">
-                    Last active {s.lastSeenAt.toLocaleString("en-GB")}, expires {s.expiresAt.toLocaleDateString("en-GB")}
-                  </span>
-                </span>
-                {s.id !== me?.sessionId && (
-                  <form action={revokeSessionAction}>
-                    <input type="hidden" name="id" value={s.id} />
-                    <button className={btnGhost}>Revoke</button>
-                  </form>
-                )}
+      <div className="grid items-start gap-8 lg:grid-cols-[200px_1fr]">
+        <nav aria-label="Settings sections" className="lg:sticky lg:top-6">
+          <ul role="tablist" aria-orientation="vertical" className="flex flex-wrap gap-2 lg:flex-col lg:gap-1">
+            {sections.map(([id, label]) => (
+              <li key={id}>
+                <Link
+                  href={`/client/${space}/settings?tab=${id}`}
+                  role="tab"
+                  aria-selected={tab === id}
+                  aria-current={tab === id ? "page" : undefined}
+                  className={`block rounded-md px-3 py-1.5 text-sm ${tab === id ? "bg-ink font-medium text-white" : "text-ink-3 hover:bg-white hover:text-ink"}`}
+                >
+                  {label}
+                </Link>
               </li>
             ))}
           </ul>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <form action={revokeOtherSessionsAction}>
-              <button className={btnGhost}>Sign out other devices</button>
-            </form>
-            <form action={logoutAction}>
-              <button className={btnGhost}>Sign out</button>
-            </form>
+        </nav>
+        <div className="max-w-3xl space-y-10">
+        {tab === "account" && (
+        <div id="account" role="tabpanel" className="space-y-4">
+          <div>
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">Account</h2>
+            <p className="text-sm text-ink-3">Who you are and what plan you are on.</p>
           </div>
-          <form action={changePasswordAction} className="mt-4 space-y-2 border-t border-rule pt-3 text-sm">
-            <p className="text-sm font-medium text-ink-3">{me?.user.passwordHash ? "Change password" : "Set a password (so you can also sign in with email)"}</p>
-            {me?.user.passwordHash && <input name="current" type="password" placeholder="Current password" required autoComplete="current-password" className="w-full rounded-md border border-mist bg-white px-3 py-2 text-sm" />}
-            <input name="next" type="password" placeholder="New password (10+ chars, letters and a number)" required minLength={10} autoComplete="new-password" className="w-full rounded-md border border-mist bg-white px-3 py-2 text-sm" />
-            <button className={btn}>Save password</button>
-          </form>
-        </Card>
+          <Card title="Profile">
+            <p className="mb-3 text-sm text-ink-3">
+              Your resume, job targets and agency offer live on the{" "}
+              <Link href={`/client/${space}/profile`} className="link">
+                Profile page
+              </Link>
+              .
+            </p>
+            <form action={updateProfileAction} className="space-y-2 text-sm">
+              <label className="block text-xs font-medium text-ink-3" htmlFor="profile-name">
+                Display name
+              </label>
+              <input id="profile-name" name="name" defaultValue={me.user.name ?? ""} maxLength={80} autoComplete="name" className={input} />
+              <SubmitButton className={btn} pending="Saving…">
+                Save name
+              </SubmitButton>
+            </form>
+            <form action={changeEmailAction} className="mt-4 space-y-2 border-t border-rule pt-3 text-sm">
+              <label className="block text-xs font-medium text-ink-3" htmlFor="profile-email">
+                Sign-in email
+              </label>
+              <input id="profile-email" name="email" type="email" required defaultValue={me.user.email} autoComplete="email" className={input} />
+              {me.user.passwordHash && <input name="password" type="password" required placeholder="Current password to confirm" autoComplete="current-password" className={input} />}
+              <SubmitButton className={btn} pending="Saving…">
+                Change email
+              </SubmitButton>
+            </form>
+          </Card>
+  <Card title="Plan and usage">
+            <p className="text-sm">
+              {credits === null ? "Owner account: no credit limits." : <>Credits left: <b>{credits}</b>. Tracks: <b>{me.user.trackAccess.toLowerCase()}</b>.</>}
+            </p>
+          </Card>
+        </div>
+        )}
 
-        <Card title="Last scan">
-          {scan ? (
-            <div className="text-sm">
-              <p>{new Date(scan.at).toLocaleString("en-GB")}</p>
-              <table className="mt-2 w-full text-left text-xs">
-                <thead>
-                  <tr className="text-left text-muted">
-                    <th>Source</th>
-                    <th>Fetched</th>
-                    <th>Matching titles</th>
-                    <th>New</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(scan.counts).map(([k, v]) => (
-                    <tr key={k}>
-                      <td>{k}</td>
-                      <td>{v.fetched}</td>
-                      <td>{v.matched}</td>
-                      <td>{v.added}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {scan.errors.length > 0 && <p className="mt-2 text-xs text-error">{scan.errors.join(", ")}</p>}
+        {tab === "security" && (
+        <div id="security" role="tabpanel" className="space-y-4">
+          <div>
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">Security</h2>
+            <p className="text-sm text-ink-3">Password, devices and active sessions.</p>
+          </div>
+          <Card title="Account & sessions">
+            <p className="text-sm">
+              Signed in as <b>{me?.user.email}</b>
+              {me?.user.googleId ? " (Google linked)" : ""}. Sessions last {full.auth.sessionDays} days and renew while you use the app.
+            </p>
+            <ul className="mt-3 space-y-2 text-xs">
+              {sessions.map((s) => (
+                <li key={s.id} className="flex items-start justify-between gap-2 rounded-md border border-rule p-3">
+                  <span className="space-y-0.5">
+                    <span className="block">
+                      <b>{s.id === me?.sessionId ? "This device" : "Other device"}</b>, {s.method}
+                    </span>
+                    <span className="block text-muted">
+                      {(s.userAgent ?? "unknown browser").slice(0, 70)}, {s.ip ?? "?"}
+                    </span>
+                    <span className="block text-muted">
+                      Last active {s.lastSeenAt.toLocaleString("en-GB")}, expires {s.expiresAt.toLocaleDateString("en-GB")}
+                    </span>
+                  </span>
+                  {s.id !== me?.sessionId && (
+                    <form action={revokeSessionAction}>
+                      <input type="hidden" name="id" value={s.id} />
+                      <button className={btnGhost}>Revoke</button>
+                    </form>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <form action={revokeOtherSessionsAction}>
+                <button className={btnGhost}>Sign out other devices</button>
+              </form>
+              <form action={logoutAction}>
+                <button className={btnGhost}>Sign out</button>
+              </form>
             </div>
-          ) : (
-            <p className="text-sm text-muted">No scan yet.</p>
-          )}
-          <p className="mt-2 text-xs text-muted">Sources: remote boards for everyone (Himalayas, Remotive, Jobicy, Remote OK), plus national boards for the country in your profile: BrighterMonday and MyJobMag for Kenya, Remote4Africa for African countries, Arbeitnow for Germany and nearby. Jobs outside those countries come from remote boards or pasted posts (Add job). Each job links back to its original post.</p>
-        </Card>
-      </div>
+            <form action={changePasswordAction} className="mt-4 space-y-2 border-t border-rule pt-3 text-sm">
+              <p className="text-sm font-medium text-ink-3">{me?.user.passwordHash ? "Change password" : "Set a password (so you can also sign in with email)"}</p>
+              {me?.user.passwordHash && <input name="current" type="password" placeholder="Current password" required autoComplete="current-password" className="w-full rounded-md border border-mist bg-white px-3 py-2 text-sm" />}
+              <input name="next" type="password" placeholder="New password (10+ chars, letters and a number)" required minLength={10} autoComplete="new-password" className="w-full rounded-md border border-mist bg-white px-3 py-2 text-sm" />
+              <button className={btn}>Save password</button>
+            </form>
+          </Card>
+        </div>
+        )}
 
+        {tab === "integrations" && (
+        <div id="integrations" role="tabpanel" className="space-y-4">
+          <div>
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">Integrations</h2>
+            <p className="text-sm text-ink-3">Connect outside services.</p>
+          </div>
+          <Card index={1} title={<Brand name="Gmail" label="Gmail (drafts only)" size={20} />}>
+            {gmail ? (
+              <div className="space-y-3 text-sm">
+                <p>
+                  Connected as <b>{gmail}</b>. Opportuneer creates drafts in this account; you always send them yourself.
+                </p>
+                <form action={disconnectGmailAction}>
+                  <button className={btnGhost}>Disconnect</button>
+                </form>
+              </div>
+            ) : gmailConfigured() ? (
+              <div className="space-y-3 text-sm">
+                <p>Google credentials found. Connect your Gmail account to start creating drafts.</p>
+                <a href="/api/gmail/connect" className={btn}>
+                  Connect Gmail
+                </a>
+              </div>
+            ) : (
+              <ol className="list-decimal space-y-1 pl-5 text-sm">
+                <li>Go to console.cloud.google.com and create a project called “Opportuneer”.</li>
+                <li>In APIs &amp; Services, open Library and enable the <b>Gmail API</b>.</li>
+                <li>On the OAuth consent screen choose External and Testing mode, then add your Gmail address as a test user.</li>
+                <li>
+                  Under Credentials, create an OAuth client ID of type Web application. Authorised redirect URI: <code className="rounded-md bg-paper px-1.5">http://localhost:3000/api/auth/callback/google</code>
+                </li>
+                <li>
+                  Paste the Client ID and Secret into <code className="rounded-md bg-paper px-1.5">.env</code> as GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, then restart the app.
+                </li>
+              </ol>
+            )}
+          </Card>
+        </div>
+        )}
+
+        {tab === "activity" && (
+        <div id="activity" role="tabpanel" className="space-y-4">
+          <div>
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">Activity</h2>
+            <p className="text-sm text-ink-3">What the last job scan found.</p>
+          </div>
+          <Card title="Last scan">
+            {scan ? (
+              <div className="text-sm">
+                <p>{new Date(scan.at).toLocaleString("en-GB")}</p>
+                <table className="mt-2 w-full text-left text-xs">
+                  <thead>
+                    <tr className="text-left text-muted">
+                      <th>Source</th>
+                      <th>Fetched</th>
+                      <th>Matching titles</th>
+                      <th>New</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(scan.counts).map(([k, v]) => (
+                      <tr key={k}>
+                        <td>{k}</td>
+                        <td>{v.fetched}</td>
+                        <td>{v.matched}</td>
+                        <td>{v.added}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {scan.errors.length > 0 && <p className="mt-2 text-xs text-error">{scan.errors.join(", ")}</p>}
+              </div>
+            ) : (
+              <p className="text-sm text-muted">No scan yet.</p>
+            )}
+            <p className="mt-2 text-xs text-muted">Sources: remote boards for everyone (Himalayas, Remotive, Jobicy, Remote OK), plus national boards for the country in your profile: BrighterMonday and MyJobMag for Kenya, Remote4Africa for African countries, Arbeitnow for Germany and nearby. Jobs outside those countries come from remote boards or pasted posts (Add job). Each job links back to its original post.</p>
+          </Card>
+        </div>
+        )}
+
+        {tab === "privacy" && (
+        <div id="privacy" role="tabpanel" className="space-y-4">
+          <div>
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">Data and privacy</h2>
+            <p className="text-sm text-ink-3">Export or delete what we store about you.</p>
+          </div>
+          <Card title="Your data">
+            <p className="text-sm text-ink-3">Download everything stored about you: profile, companies, opportunities, generated documents, credits and feedback, as one JSON file.</p>
+            <a href="/api/account/export" className={`${btnGhost} mt-3`}>
+              Download my data
+            </a>
+            <p className="mt-2 text-xs text-muted">
+              What we keep and why:{" "}
+              <Link href="/privacy" className="link">
+                privacy note
+              </Link>
+              .
+            </p>
+            {!isSuper(me.user) && (
+              <form action={deleteOwnAccountAction} className="mt-4 space-y-2 border-t border-rule pt-3 text-sm">
+                <p className="font-medium text-error">Delete account</p>
+                <p className="text-xs text-muted">This permanently removes your account, companies, opportunities and documents. It cannot be undone.</p>
+                <input name="confirm" required placeholder={`Type ${me.user.email} to confirm`} autoComplete="off" className={input} aria-label="Type your email to confirm" />
+                {me.user.passwordHash && <input name="password" type="password" required placeholder="Password" autoComplete="current-password" className={input} />}
+                <SubmitButton className={btnGhost} pending="Deleting…">
+                  Delete my account
+                </SubmitButton>
+              </form>
+            )}
+          </Card>
+        </div>
+        )}
+
+        {tab === "feedback" && (
+        <div id="feedback" role="tabpanel" className="space-y-4">
+          <div>
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">Feedback</h2>
+            <p className="text-sm text-ink-3">Tell us what is working and what is not.</p>
+          </div>
+  <Card title="Send feedback">
+            <div className="mt-4">
+              <FeedbackForm page={`${clientBase(space)}/settings`} name={me.user.name ?? ""} email={me.user.email} compact />
+            </div>
+          </Card>
+          <Card title="Your feedback history">
+            {history.length === 0 ? (
+              <p className="text-sm text-muted">Nothing sent yet. Anything you send above will show up here, with its status.</p>
+            ) : (
+              <ul className="divide-y divide-rule">
+                {history.map((f) => (
+                  <li key={f.id} className="space-y-2 py-4 first:pt-0 last:pb-0">
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+                      <span>{f.createdAt.toLocaleString("en-GB")}</span>
+                      <Chip tone={f.kind === "bug" ? "cream" : f.kind === "idea" ? "sky" : f.kind === "praise" ? "mint" : f.kind === "question" ? "signal" : "light"}>{kindShort(f.kind)}</Chip>
+                      {f.rating && <Chip tone="mint">{f.rating}/5</Chip>}
+                      <Chip tone={f.status === "NEW" ? "signal" : f.status === "RESOLVED" ? "mint" : "light"}>{STATUS_LABEL[f.status] ?? f.status}</Chip>
+                    </div>
+                    <p className="whitespace-pre-wrap text-sm">{f.message}</p>
+                    {f.attachments.length > 0 && (
+                      <ul className="flex flex-wrap gap-2 text-xs">
+                        {f.attachments.map((a) => (
+                          <li key={a.id}>
+                            <a href={`/api/feedback/files/${a.id}`} target="_blank" rel="noopener noreferrer" className="link">
+                              {a.name}
+                            </a>{" "}
+                            <span className="text-muted">({ATTACHMENT_TYPES[a.name.slice(a.name.lastIndexOf(".")).toLowerCase()]?.group ?? "file"}, {fmtBytes(a.size)})</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </div>
+        )}
+        </div>
+      </div>
     </div>
   );
 }
