@@ -156,6 +156,8 @@ model User {
   invitesSent   Invite[]         @relation("InvitedBy")
   invite        Invite?          @relation("AcceptedBy")
   credits       CreditLedger[]
+  subscription  Subscription?
+  payments      Payment[]
   feedback      Feedback[]
   events        AnalyticsEvent[]
   kyc           UserProfile?
@@ -309,4 +311,64 @@ model UserProfile {
   resumeText      String?
   resumeUpdatedAt DateTime?
   updatedAt       DateTime  @updatedAt
+}
+
+enum SubscriptionStatus {
+  ACTIVE // paid up for the current period
+  GRACE // renewal failed or is overdue: still works for a few days
+  PAUSED // grace ended or free period ended: AI actions stop, data stays
+  CANCELLED // the user cancelled: works until currentPeriodEnd, no renewal
+}
+
+/// One subscription per user. The price shown is derived from User.freeUntil / foundingUntil, never stored here.
+model Subscription {
+  id                String             @id @default(cuid())
+  userId            String             @unique
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan              TrackAccess
+  status            SubscriptionStatus @default(ACTIVE)
+  currentPeriodEnd  DateTime // paid until this moment
+  graceUntil        DateTime? // set when status is GRACE
+  cancelledAt       DateTime?
+  paystackCustomer  String? // Paystack customer code
+  authorizationCode String? // reusable card authorization (never a card number); null for M-Pesa
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([status, currentPeriodEnd])
+}
+
+enum PaymentKind {
+  SUBSCRIPTION
+  TOPUP
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+/// Every attempt to pay, with the receipt number once it succeeds. Amounts are whole KES.
+model Payment {
+  id           String        @id @default(cuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reference    String        @unique // our reference, sent to Paystack and echoed in webhooks
+  kind         PaymentKind
+  plan         TrackAccess? // set for SUBSCRIPTION
+  credits      Int           @default(0) // credits this payment grants (plan allowance or top-up)
+  amountKes    Int
+  stage        String? // free | founding | standard: the price stage applied
+  method       String? // mpesa | card
+  status       PaymentStatus @default(PENDING)
+  receiptNo    String?       @unique // e.g. OPP-2026-000123, set on success
+  paidAt       DateTime?
+  refundedAt   DateTime?
+  refundReason String?
+  paystackId   String? // Paystack transaction id
+  createdAt    DateTime      @default(now())
+
+  @@index([userId, createdAt])
 }

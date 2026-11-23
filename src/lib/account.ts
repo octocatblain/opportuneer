@@ -10,7 +10,7 @@ export async function exportAccount(userId: string) {
     where: { id: userId },
     select: { id: true, email: true, name: true, role: true, trackAccess: true, cohort: true, freeUntil: true, foundingUntil: true, createdAt: true, lastLoginAt: true, googleId: true },
   });
-  const [companies, opportunities, credits, feedback, sessions, waitlist, kyc] = await Promise.all([
+  const [companies, opportunities, credits, feedback, sessions, waitlist, kyc, subscription, payments] = await Promise.all([
     db.company.findMany({ where: { userId }, orderBy: { createdAt: "asc" } }),
     db.opportunity.findMany({ where: { userId }, orderBy: { createdAt: "asc" }, include: { documents: true, activities: true } }),
     db.creditLedger.findMany({ where: { userId }, orderBy: { createdAt: "asc" } }),
@@ -18,9 +18,11 @@ export async function exportAccount(userId: string) {
     db.session.findMany({ where: { userId }, select: { method: true, userAgent: true, ip: true, createdAt: true, lastSeenAt: true, expiresAt: true } }),
     db.waitlistEntry.findUnique({ where: { email: user.email }, select: { email: true, name: true, trackInterest: true, roleType: true, occupation: true, industry: true, country: true, source: true, consentMarketing: true, consentAt: true, phase: true, cohort: true, createdAt: true } }),
     db.userProfile.findUnique({ where: { userId }, select: { basics: true, jobPrefs: true, pitchPrefs: true, resumeName: true, resumeText: true, resumeUpdatedAt: true } }),
+    db.subscription.findUnique({ where: { userId }, select: { plan: true, status: true, currentPeriodEnd: true, graceUntil: true, cancelledAt: true, createdAt: true } }),
+    db.payment.findMany({ where: { userId }, orderBy: { createdAt: "asc" }, select: { reference: true, kind: true, plan: true, credits: true, amountKes: true, stage: true, method: true, status: true, receiptNo: true, paidAt: true, refundedAt: true, refundReason: true, createdAt: true } }),
   ]);
   const { googleId, ...rest } = user;
-  return { exportedAt: new Date().toISOString(), account: { ...rest, googleLinked: !!googleId }, profile: kyc, waitlist, companies, opportunities, credits, feedback, sessions };
+  return { exportedAt: new Date().toISOString(), account: { ...rest, googleLinked: !!googleId }, profile: kyc, waitlist, companies, opportunities, credits, subscription, payments, feedback, sessions };
 }
 
 /**

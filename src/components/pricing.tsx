@@ -2,41 +2,11 @@ import Link from "next/link";
 import { BestValueSeal, ScribbleRing } from "@/components/doodles";
 import { Motion } from "@/components/gsap-motion";
 import { btn, btnSignal } from "@/components/ui";
-
-// Source: plan.md "Pricing and monthly caps". KES, billed monthly. Change a price only after the real credit cost is measured in the pilot.
-const PLANS = [
-  {
-    name: "Jobs",
-    pitch: "For people looking for work.",
-    standard: 999,
-    founding: 499,
-    outcome: "Up to 25 full applications a month",
-    features: ["Daily scan of Kenyan and Africa-friendly remote boards", "Fit score and trust check on every role", "Company research", "Tailored CV and cover letter PDFs", "Gmail drafts and follow-ups"],
-  },
-  {
-    name: "Pitches",
-    pitch: "For freelancers, agencies and recruiters.",
-    standard: 2499,
-    founding: 1249,
-    outcome: "Up to 30 full proposals a month",
-    features: ["Prospect scoring: size, budget signals, AI readiness", "Company research", "Tailored proposal or pitch PDFs", "Gmail drafts and follow-ups", "Pipeline board with due follow-ups"],
-  },
-  {
-    name: "Duo",
-    pitch: "Both tracks, one shared monthly allowance.",
-    standard: 2999,
-    founding: 1499,
-    outcome: "About 19 applications and 22 proposals a month",
-    features: ["Everything in Jobs and Pitches", "Switch between the two spaces in one account", "Cheaper than buying both separately"],
-    featured: true,
-  },
-];
-
-const kes = (n: number) => `KES ${n.toLocaleString("en-US")}`;
+import { kes, PLAN_LIST, TOPUP } from "@/lib/plans";
 
 const FINE_PRINT = [
   "Prices are in Kenyan shillings, billed monthly. M-Pesa and card payments are planned; checkout opens with the public launch.",
-  "Allowances reset on your billing date and do not roll over. Extra credits (100 for KES 250) will be available as a top-up.",
+  `Allowances reset on your billing date and do not roll over. Extra credits (${TOPUP.credits} for ${kes(TOPUP.priceKes)}) will be available as a top-up.`,
   "Opportuneer never sends anything for you. Every email stays a Gmail draft until you send it.",
   "These are launch prices and may change after the pilot. Anyone already on a plan is told first.",
 ];
@@ -45,8 +15,8 @@ const FINE_PRINT = [
 export function PricingCards() {
   return (
     <Motion className="grid gap-4 lg:grid-cols-3">
-      {PLANS.map((p) => (
-        <div key={p.name} data-m="rise" data-m-hover className={`relative flex h-full flex-col rounded-md border p-6 ${p.featured ? "border-signal-dark bg-white ring-1 ring-signal-dark" : "border-rule bg-white"}`}>
+      {PLAN_LIST.map((p) => (
+        <div key={p.key} data-m="rise" data-m-hover className={`relative flex h-full flex-col rounded-md border p-6 ${p.featured ? "border-signal-dark bg-white ring-1 ring-signal-dark" : "border-rule bg-white"}`}>
           {p.featured && <BestValueSeal className="-right-5 -top-9 hidden h-20 w-16 rotate-12 text-signal-dark sm:block" float />}
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">{p.name}</h3>
@@ -61,11 +31,11 @@ export function PricingCards() {
           </div>
           <p className="mt-1 text-sm text-muted">{p.pitch}</p>
           <p className="mt-5 text-4xl font-extrabold tabular-nums">
-            {kes(p.standard)}
+            {kes(p.standardKes)}
             <span className="ml-1 text-sm font-medium text-muted">/month</span>
           </p>
           <p className="mt-1 text-sm text-muted">
-            Founding members: <strong className="text-ink">{kes(p.founding)}</strong> for the first 3 months
+            Founding members: <strong className="text-ink">{kes(p.foundingKes)}</strong> for the first 3 months
           </p>
           <p className="mt-4 rounded-md bg-paper px-3 py-2 text-sm font-medium">{p.outcome}</p>
           <ul className="mt-4 flex-1 space-y-2 text-sm text-muted">
