@@ -85,24 +85,47 @@ export function ScorePill({ score }: { score: number | null | undefined }) {
   );
 }
 
+/** Score criteria as compact rows: label, points, a bar coloured by how much of the maximum was earned, and the reason. */
 export function Breakdown({ lines }: { lines: ScoreLine[] }) {
   return (
-    <ul className="space-y-3 text-sm">
-      {lines.map((l) => (
-        <li key={l.label}>
-          <div className="flex items-baseline justify-between gap-3">
-            <span className="font-medium">{l.label}</span>
-            <span className="tabular-nums text-muted">
-              {l.points}/{l.max}
-            </span>
-          </div>
-          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-paper-2">
-            <div className="h-full rounded-full bg-signal" style={{ width: `${l.max ? Math.max(0, Math.min(100, Math.round((l.points / l.max) * 100))) : 0}%` }} />
-          </div>
-          {l.note && <div className="mt-1 text-xs text-muted">{l.note}</div>}
-        </li>
-      ))}
+    <ul className="divide-y divide-rule text-sm">
+      {lines.map((l) => {
+        const pct = l.max ? Math.max(0, Math.min(100, Math.round((l.points / l.max) * 100))) : 0;
+        const bar = pct >= 75 ? "bg-success" : pct >= 40 ? "bg-signal" : "bg-error";
+        return (
+          <li key={l.label} className="py-3 first:pt-0 last:pb-0">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="font-medium text-ink">{l.label}</span>
+              <span className="tabular-nums text-xs text-muted">
+                <b className="text-sm font-semibold text-ink">{l.points}</b>/{l.max}
+              </span>
+            </div>
+            <div role="meter" aria-label={l.label} aria-valuemin={0} aria-valuemax={l.max} aria-valuenow={l.points} className="mt-2 h-1.5 overflow-hidden rounded-full bg-paper-2">
+              <div className={`h-full rounded-full ${bar}`} style={{ width: `${Math.max(pct, l.points > 0 ? 4 : 0)}%` }} />
+            </div>
+            {l.note && <div className="mt-1.5 text-xs leading-snug text-muted">{l.note}</div>}
+          </li>
+        );
+      })}
     </ul>
+  );
+}
+
+/** Big score readout with a verdict, shown above the breakdown. */
+export function ScoreHeadline({ score }: { score: number | null | undefined }) {
+  const s = score ?? 0;
+  const [verdict, tone] = score == null ? ["Not scored", "text-muted"] : s >= 70 ? ["Strong fit", "text-success"] : s >= 50 ? ["Possible fit", "text-ink-3"] : ["Weak fit", "text-error"];
+  return (
+    <div className="mb-4 flex items-end justify-between gap-3 rounded-md bg-paper px-4 py-3">
+      <div>
+        <div className="text-xs font-medium uppercase tracking-wide text-muted">Overall</div>
+        <div className={`text-sm font-semibold ${tone}`}>{verdict}</div>
+      </div>
+      <div className="tabular-nums text-ink">
+        <span className="text-4xl font-semibold leading-none">{score ?? "n/a"}</span>
+        {score != null && <span className="text-sm text-muted"> /100</span>}
+      </div>
+    </div>
   );
 }
 

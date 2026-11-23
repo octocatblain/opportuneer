@@ -53,7 +53,7 @@ export async function importJobAction(form: FormData) {
   const user = await requireUser();
   const base = await baseFor(user);
   let id = "";
-  await attempt(`${base}/add`, async () => {
+  await attempt(`${base}/jobs?add=1`, async () => {
     const opp = await svc.importJob(user.id, { text: str(form, "text") ?? undefined, url: str(form, "url") ?? undefined });
     id = opp.id;
   });

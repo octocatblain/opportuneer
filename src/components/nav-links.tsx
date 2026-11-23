@@ -3,7 +3,8 @@
 import { FeedbackButton } from "@/components/feedback-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { AddJobSheet } from "@/components/add-job-sheet";
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { logoutAction } from "@/app/auth-actions";
@@ -49,6 +50,29 @@ export function AppShell({ children, admin = false, ownSpace = "duo", name, emai
   // Highlight the clicked item at once; the page itself follows when the server responds.
   const [pending, setPending] = useState<string | null>(null);
   useEffect(() => setPending(null), [path]);
+  // "Add job" opens a right-hand sheet; ?add=1 (old /add links, failed imports) opens it too.
+  const router = useRouter();
+  const params = useSearchParams();
+  const [addOpen, setAddOpen] = useState(false);
+  const addParam = params.get("add") === "1";
+  const addError = addParam ? params.get("error") : null;
+  useEffect(() => setAddOpen(addParam), [addParam, path]);
+  const closeAdd = () => {
+    setAddOpen(false);
+    if (addParam) router.replace(path);
+  };
+  // Collapsible sidebar: the user's choice is remembered, but opening a job in detail folds it away to give the page room.
+  const [collapsed, setCollapsed] = useState(false);
+  const inDetail = /\/opportunities\/[^/]+/.test(path);
+  useEffect(() => {
+    if (inDetail) setCollapsed(true);
+    else setCollapsed(localStorage.getItem("opp_sidebar") === "collapsed");
+  }, [inDetail]);
+  const toggleSidebar = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    if (!inDetail) localStorage.setItem("opp_sidebar", next ? "collapsed" : "open");
+  };
   const inAdmin = path === "/admin" || path.startsWith("/admin/");
   const seg = path.split("/")[2];
   const space: Space = path.startsWith("/client/") && isSpace(seg) ? seg : ownSpace;
@@ -87,13 +111,20 @@ export function AppShell({ children, admin = false, ownSpace = "duo", name, emai
 
   return (
     <div className="flex min-h-screen">
-      <aside data-app-shell className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col overflow-y-auto border-r border-rule bg-white p-4 lg:flex">
-        <Link href={locked ? "/onboarding" : adminMode ? "/admin" : base} className="mb-5 inline-flex items-center gap-2 self-start py-1.5 text-sm font-semibold text-ink">
-          <BrandMark size={32} tile={false} />
-          <Wordmark tone="light" />
-        </Link>
+      <aside data-app-shell className={`sticky top-0 hidden h-screen shrink-0 flex-col overflow-y-auto overflow-x-hidden border-r border-rule bg-white p-4 transition-[width] duration-200 lg:flex ${collapsed ? "w-[72px]" : "w-64"}`}>
+        <div className={`mb-5 flex items-center ${collapsed ? "flex-col gap-3" : "justify-between"}`}>
+          <Link href={locked ? "/onboarding" : adminMode ? "/admin" : base} title="Home" className="inline-flex items-center gap-2 py-1.5 text-sm font-semibold text-ink">
+            <BrandMark size={32} tile={false} />
+            {!collapsed && <Wordmark tone="light" />}
+          </Link>
+          <button type="button" onClick={toggleSidebar} aria-expanded={!collapsed} aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} title={collapsed ? "Expand sidebar" : "Collapse sidebar"} className="grid h-8 w-8 shrink-0 place-items-center rounded text-muted hover:bg-paper hover:text-ink">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={`h-[18px] w-[18px] ${collapsed ? "rotate-180" : ""}`} aria-hidden>
+              <path d="M15 6l-6 6 6 6" />
+            </svg>
+          </button>
+        </div>
 
-        {admin && (
+        {admin && !collapsed && (
           <div className="mb-5">
             <div className="mb-2 px-2 text-xs font-medium uppercase tracking-wide text-mist">Switch role</div>
             <div role="group" aria-label="Switch role" className="grid grid-cols-2 gap-1 rounded-md bg-paper p-1 text-xs">
@@ -111,33 +142,35 @@ export function AppShell({ children, admin = false, ownSpace = "duo", name, emai
           </div>
         )}
 
-        {locked && <p className="rounded-md bg-paper px-3 py-3 text-sm text-muted">Finish setting up your profile to unlock the dashboard, jobs, pipeline and settings.</p>}
+        {locked && !collapsed && <p className="rounded-md bg-paper px-3 py-3 text-sm text-muted">Finish setting up your profile to unlock the dashboard, jobs, pipeline and settings.</p>}
         <nav aria-label="Main" className="flex flex-col gap-1 text-sm">
           {items.map((i) => (
             <Link
               key={i.href}
               onClick={() => setPending(i.href)}
               href={i.href}
+              title={collapsed ? i.label : undefined}
+              aria-label={collapsed ? i.label : undefined}
               aria-current={on(i) ? "page" : undefined}
-              className={`relative flex items-center gap-3 rounded-md px-3 py-2.5 font-medium transition-colors ${
+              className={`relative flex items-center gap-3 rounded-md px-3 py-2.5 font-medium transition-colors ${collapsed ? "justify-center" : ""} ${
                 on(i) ? "bg-paper text-ink before:absolute before:-left-4 before:top-2 before:h-6 before:w-1 before:bg-ink" : "text-ink-4 hover:bg-paper hover:text-ink"
               }`}
             >
               <Icon name={i.icon} />
-              {i.label}
+              {!collapsed && i.label}
             </Link>
           ))}
         </nav>
 
         <div className="mt-auto space-y-3 pt-6">
           {!locked && !adminMode && showJobs && (
-            <Link href={`${base}/add`} className={`${btnSignal} w-full`}>
-              <Icon name="add" className="h-4 w-4" /> Add job
-            </Link>
+            <button type="button" onClick={() => setAddOpen(true)} aria-haspopup="dialog" title="Add job" aria-label="Add job" className={`${btnSignal} w-full`}>
+              <Icon name="add" className="h-4 w-4" /> {!collapsed && "Add job"}
+            </button>
           )}
-          <div className="flex items-center gap-3 border-t border-rule pt-4">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-signal-dark text-sm font-semibold text-white">{initials}</span>
-            <div className="min-w-0 flex-1 leading-tight">
+          <div className={`flex items-center border-t border-rule pt-4 ${collapsed ? "flex-col gap-2" : "gap-3"}`}>
+            <span title={name || email} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-signal-dark text-sm font-semibold text-white">{initials}</span>
+            <div className={`min-w-0 flex-1 leading-tight ${collapsed ? "hidden" : ""}`}>
               <div className="truncate text-sm font-medium">{name || email}</div>
               <div className="truncate text-xs text-muted">{admin ? "Administrator" : SPACE_LABEL[ownSpace]}</div>
             </div>
@@ -195,6 +228,7 @@ export function AppShell({ children, admin = false, ownSpace = "duo", name, emai
         <main data-app-shell className="w-full flex-1 px-4 pb-10 pt-6 lg:px-8">
           {children}
         </main>
+        {showJobs && !locked && !adminMode && <AddJobSheet open={addOpen} onClose={closeAdd} error={addError} />}
       </div>
     </div>
   );
