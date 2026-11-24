@@ -16,9 +16,9 @@ export const profile = {
   },
   noticePeriod: "1 month",
   /** Path to the master CV (HTML) that tailored CVs are built from. */
-  cvHtmlPath: "C:/home/personal/cv/source/blain-muema-cv.html",
+  cvHtmlPath: process.env.CV_HTML_PATH ?? "C:/home/personal/cv/source/blain-muema-cv.html",
   /** Where generated PDFs are copied for safekeeping (besides ./storage). */
-  coverLetterArchiveDir: "C:/home/personal/cover-letters",
+  coverLetterArchiveDir: process.env.COVER_LETTER_DIR ?? "C:/home/personal/cover-letters",
 };
 
 /** Exchange rate used to compare salaries. Update when it drifts. */
