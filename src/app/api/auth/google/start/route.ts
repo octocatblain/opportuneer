@@ -1,11 +1,12 @@
 import { randomBytes } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { cfg, loadConfig } from "@/lib/config";
+import { publicOrigin } from "@/lib/origin";
 import { ipFrom, rateLimited } from "@/lib/rate-limit";
 
 export async function GET(req: NextRequest) {
   await loadConfig();
-  const origin = req.nextUrl.origin;
+  const origin = publicOrigin(req);
   if (rateLimited(`google-start:${ipFrom(req.headers) ?? "?"}`, 30, 15 * 60 * 1000)) return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent("Too many attempts. Wait 15 minutes and try again.")}`, origin));
   const clientId = process.env.GOOGLE_CLIENT_ID;
   if (!clientId || !cfg().auth.allowGoogle) return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent("Google sign-in is not available.")}`, origin));

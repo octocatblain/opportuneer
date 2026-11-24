@@ -26,9 +26,10 @@ export async function POST(req: NextRequest) {
   const { issued, skipped } = await inviteCohort(cohort, user.id, req.nextUrl.origin);
   void logEvent("cohort_invited", user.id, { cohort, count: issued.length });
 
-  const lines = [["email", "name", "cohort", "invite_link", "expires_at", "note"].join(",")]
-    .concat(issued.map((i) => [i.email, i.name, i.cohort, i.url, i.expiresAt, ""].map(cell).join(",")))
-    .concat(skipped.map((s) => [s.email, "", cohort, "", "", `skipped: ${s.reason}`].map(cell).join(",")));
+  const signIn = `${req.nextUrl.origin}/login`;
+  const lines = [["email", "name", "cohort", "invite_link", "sign_in_link", "expires_at", "note"].join(",")]
+    .concat(issued.map((i) => [i.email, i.name, i.cohort, i.url, signIn, i.expiresAt, ""].map(cell).join(",")))
+    .concat(skipped.map((s) => [s.email, "", cohort, "", "", "", `skipped: ${s.reason}`].map(cell).join(",")));
   return new NextResponse(lines.join("\r\n"), {
     headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="cohort-${cohort}-invites.csv"`, "cache-control": "no-store" },
   });

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { BrandMark, Wordmark } from "@/components/brand-mark";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { btnSignal } from "@/components/ui";
+import { showSignIn } from "@/lib/flags";
 
 /** Header for visitors who aren't signed in: only the landing page and sign-in are reachable. */
 export function PublicNav() {
@@ -16,9 +17,11 @@ export function PublicNav() {
           Join waitlist
         </Link>
         <ThemeToggle />
-        <Link href="/login" className={btnSignal}>
-          Sign in
-        </Link>
+        {showSignIn() && (
+          <Link href="/login" className={btnSignal}>
+            Sign in
+          </Link>
+        )}
       </nav>
     </>
   );

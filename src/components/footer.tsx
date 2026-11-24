@@ -2,6 +2,7 @@ import Link from "next/link";
 import { BrandMark, Wordmark } from "@/components/brand-mark";
 import { Brand } from "@/components/brand-icons";
 import { btnSignal } from "@/components/ui";
+import { showSignIn } from "@/lib/flags";
 import { clientBase, spaceAllowsTrack, type Space } from "@/lib/spaces";
 
 /** Site footer. Signed-in users get app links; visitors get sign-in links. */
@@ -18,7 +19,7 @@ export function Footer({ signedIn, admin, ownSpace = "duo" }: { signedIn: boolea
       ]
     : [
         ["/waitlist", "Join the waitlist"],
-        ["/login", "Sign in"],
+        ...(showSignIn() ? [["/login", "Sign in"]] : []),
       ];
   const heading = "mb-3 text-xs font-semibold uppercase tracking-widest text-white/50";
   const link = "text-white/75 transition-colors hover:text-white focus-visible:text-white focus-visible:outline-none focus-visible:underline";

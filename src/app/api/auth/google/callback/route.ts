@@ -4,11 +4,13 @@ import { cfg, loadConfig } from "@/lib/config";
 import { db } from "@/lib/db";
 import { normalizeEmail, registerMember, startSession } from "@/lib/auth";
 import { landingFor } from "@/lib/spaces";
+import { publicOrigin } from "@/lib/origin";
 import { ipFrom, rateLimited } from "@/lib/rate-limit";
 
 export async function GET(req: NextRequest) {
   await loadConfig();
   const url = req.nextUrl;
+  const origin = publicOrigin(req);
   const jar = await cookies();
   const expected = jar.get("g_state")?.value;
   const next = jar.get("g_next")?.value ?? "/";
@@ -18,8 +20,8 @@ export async function GET(req: NextRequest) {
   jar.set("g_state", "", { path: "/api/auth/google", maxAge: 0 });
   jar.set("g_next", "", { path: "/api/auth/google", maxAge: 0 });
 
-  if (rateLimited(`google-callback:${ipFrom(req.headers) ?? "?"}`, 30, 15 * 60 * 1000)) return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent("Too many attempts. Wait 15 minutes and try again.")}`, url.origin));
-  const bounce = (msg: string) => NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(msg)}`, url.origin));
+  if (rateLimited(`google-callback:${ipFrom(req.headers) ?? "?"}`, 30, 15 * 60 * 1000)) return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent("Too many attempts. Wait 15 minutes and try again.")}`, origin));
+  const bounce = (msg: string) => NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(msg)}`, origin));
   if (url.searchParams.get("error")) return bounce(`Google: ${url.searchParams.get("error")}`);
   if (!cfg().auth.allowGoogle) return bounce("Google sign-in is turned off.");
   if (!expected || expected !== url.searchParams.get("state")) return bounce("Sign-in expired or was tampered with. Try again.");
@@ -32,7 +34,7 @@ export async function GET(req: NextRequest) {
       code: url.searchParams.get("code") ?? "",
       client_id: process.env.GOOGLE_CLIENT_ID ?? "",
       client_secret: process.env.GOOGLE_CLIENT_SECRET ?? "",
-      redirect_uri: `${url.origin}/api/auth/google/callback`,
+      redirect_uri: `${origin}/api/auth/google/callback`,
       grant_type: "authorization_code",
     }),
   });
@@ -58,5 +60,5 @@ export async function GET(req: NextRequest) {
   }
   await startSession(user.id, "google");
   const safe = next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\") ? next : "/";
-  return NextResponse.redirect(new URL(landingFor(user, safe), url.origin));
+  return NextResponse.redirect(new URL(landingFor(user, safe), origin));
 }

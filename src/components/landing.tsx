@@ -5,6 +5,7 @@ import { LaunchBanner } from "@/components/launch-banner";
 import { WorkflowMap } from "@/components/workflow-map";
 import { btn, btnGhost, btnSignal } from "@/components/ui";
 import { waitlistCounts } from "@/lib/waitlist";
+import { showSignIn } from "@/lib/flags";
 
 const FEATURES: [string, string, string][] = [
   ["01", "Scans the boards for you", "Kenyan job boards and remote boards that hire in Africa are checked every day. Only roles that match your target titles survive."],
@@ -48,9 +49,11 @@ export async function Landing() {
             <Link href="/waitlist" data-m="pop" data-m-rot="-6" data-m-hover className={btnSignal}>
               {counts.full ? "Join the public-launch waitlist" : "Join the waitlist"}
             </Link>
-            <Link href="/login" data-m="pop" data-m-rot="6" data-m-delay={0.1} data-m-hover className={btnGhost}>
-              Sign in
-            </Link>
+            {showSignIn() && (
+              <Link href="/login" data-m="pop" data-m-rot="6" data-m-delay={0.1} data-m-hover className={btnGhost}>
+                Sign in
+              </Link>
+            )}
           </div>
           <p data-m="rise" className="text-xs text-muted">
             {counts.full ? "All 30 pilot places are taken. The public-launch waitlist is open." : `The pilot opens 30 November with 30 places. ${counts.left} left.`} Signed-out visitors can see public pages only.
@@ -166,9 +169,11 @@ export async function Landing() {
           <Link href="/waitlist" data-m="pop" data-m-rot="-4" data-m-hover className={btn}>
             Join the waitlist
           </Link>
-          <Link href="/login" className="link text-sm font-medium">
-            Sign in
-          </Link>
+          {showSignIn() && (
+            <Link href="/login" className="link text-sm font-medium">
+              Sign in
+            </Link>
+          )}
         </div>
       </section>
     </Motion>

@@ -85,6 +85,8 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
         <Card title={`Invitation link for ${link.email}`}>
           <p className="mb-2 text-sm text-muted">Send this to them yourself. It works once, for 7 days, and only for this email. It is shown here now and cannot be shown again (use “Get new link” if you lose it).</p>
           <input readOnly value={link.url} aria-label="Invitation link" className={`${input} font-mono text-xs`} />
+          <p className="mb-1 mt-3 text-sm text-muted">Include this sign-in link in your email too. It is not linked anywhere public, so they need it to sign in after creating their account:</p>
+          <input readOnly value={new URL("/login", link.url).href} aria-label="Sign-in link" className={`${input} font-mono text-xs`} />
         </Card>
       )}
 
