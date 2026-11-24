@@ -48,7 +48,13 @@ jobs:
       - name: Migrate
         run: npx prisma migrate deploy
       - name: Build
-        run: npm run build
+        shell: bash
+        run: |
+          set +e
+          npm run build 2>&1 | tee build.log
+          code=${PIPESTATUS[0]}
+          if [ "$code" != 0 ]; then tail -25 build.log | while IFS= read -r l; do echo "::error::$l"; done; fi
+          exit $code
       - name: Tests
         shell: bash
         run: |
