@@ -1,0 +1,24 @@
+[Unit]
+Description=Opportuneer (Next.js, 127.0.0.1:3040)
+After=network.target postgresql-16.service
+Wants=postgresql-16.service
+
+[Service]
+Type=simple
+User=opportuneer
+Group=opportuneer
+WorkingDirectory=/var/www/opportuneer/current
+Environment=NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 HOME=/var/lib/opportuneer
+# settings and secrets are read from /var/www/opportuneer/shared/.env (mode 600) through the .env link in each release
+ExecStart=/opt/node-redstar/bin/node node_modules/next/dist/bin/next start -p 3040 -H 127.0.0.1
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+MemoryMax=1500M
+SyslogIdentifier=opportuneer
+
+[Install]
+WantedBy=multi-user.target

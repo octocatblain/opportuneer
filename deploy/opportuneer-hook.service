@@ -1,0 +1,22 @@
+[Unit]
+Description=Opportuneer deploy webhook receiver (127.0.0.1:9040)
+After=network.target
+
+[Service]
+Type=simple
+User=opportuneer
+Group=opportuneer
+EnvironmentFile=/etc/opportuneer/hook.env
+ExecStart=/opt/node-redstar/bin/node /usr/local/lib/opportuneer/hook-server.mjs
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/opportuneer-deploy
+MemoryMax=100M
+SyslogIdentifier=opportuneer-hook
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,12 @@
+[Unit]
+Description=Opportuneer database backup
+After=postgresql-16.service
+
+[Service]
+Type=oneshot
+User=opportuneer
+Group=opportuneer
+WorkingDirectory=/var/www/opportuneer/current
+Environment=HOME=/var/lib/opportuneer PG_BIN=/usr/pgsql-16/bin BACKUP_DIR=/var/backups/opportuneer BACKUP_KEEP=14
+ExecStart=/opt/node-redstar/bin/node node_modules/tsx/dist/cli.mjs --env-file=.env scripts/backup.ts
+Nice=10

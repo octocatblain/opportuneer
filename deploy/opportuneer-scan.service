@@ -1,0 +1,13 @@
+[Unit]
+Description=Opportuneer daily job scan
+After=postgresql-16.service
+
+[Service]
+Type=oneshot
+User=opportuneer
+Group=opportuneer
+WorkingDirectory=/var/www/opportuneer/current
+Environment=HOME=/var/lib/opportuneer NODE_ENV=production
+ExecStart=/opt/node-redstar/bin/node node_modules/tsx/dist/cli.mjs --env-file=.env scripts/scan.ts
+TimeoutStartSec=3000
+Nice=10

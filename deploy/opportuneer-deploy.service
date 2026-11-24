@@ -1,0 +1,8 @@
+[Unit]
+Description=Deploy Opportuneer (runs as root, started by opportuneer-deploy.path)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/opportuneer-deploy --request
+TimeoutStartSec=3600
+Nice=10
