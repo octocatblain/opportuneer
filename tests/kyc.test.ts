@@ -72,7 +72,7 @@ describe("form validation", () => {
 
   it("pitch profile validates packages and parses prices", () => {
     assert.ok("error" in parsePitchPrefs(pitchForm({ agencyName: "" })));
-    assert.match((parsePitchPrefs(pitchForm({ packages: "Broken | abc" })) as { error: string }).error, /numbers/);
+    assert.match((parsePitchPrefs(pitchForm({ packages: "Broken | 12x4" })) as { error: string }).error, /numbers/);
     assert.ok("error" in parsePitchPrefs(pitchForm({ packages: "", services: "" })));
     assert.ok("ok" in parsePitchPrefs(pitchForm()));
     const p = parsePackageLine("Care Plan | 0 | 8000 | monthly | Hosting", 40000);

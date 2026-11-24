@@ -88,6 +88,7 @@ describe("first login, in a real browser", { skip: !chrome }, () => {
     await page.click('input[name="industryKeys"][value="logistics"]');
     await fill("#j-local", "1800");
     await fill("#j-remote", "2600");
+    await fill("#j-loc", "kenya, remote");
     await submit("form:has(#j-local)");
     await shows("#p-name");
     assert.match(await page.content(), /Step 4 of 4/);
