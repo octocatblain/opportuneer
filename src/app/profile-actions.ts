@@ -30,7 +30,7 @@ export async function changeEmailAction(form: FormData) {
   const email = normalizeEmail(text(form, "email"));
   if (!validEmail(email)) go(settings, "error", "Enter a valid email address.");
   if (email === user.email) go(settings, "error", "That is already your email.");
-  if (throttled(`email-change:${user.id}`)) go(settings, "error", "Too many attempts. Try again later.");
+  if (await throttled(`email-change:${user.id}`)) go(settings, "error", "Too many attempts. Try again later.");
   if (user.passwordHash && !(await verifyPassword(String(form.get("password") ?? ""), user.passwordHash))) go(settings, "error", "Password is wrong.");
   if (await db.user.findUnique({ where: { email }, select: { id: true } })) go(settings, "error", "Another account already uses that email.");
   await db.user.update({ where: { id: user.id }, data: { email } });

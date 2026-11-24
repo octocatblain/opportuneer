@@ -23,7 +23,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
       <h1 className="text-center text-2xl font-semibold text-ink">
         Welcome back
       </h1>
-      <p className="text-center text-sm text-muted">Sign in to your workspace. Administrators sign in here too.</p>
+      <p className="text-center text-sm text-muted">Sign in to your workspace.</p>
       <Flash error={sp.error} />
       {google && (
         <a href={`/api/auth/google/start${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="flex items-center justify-center gap-3 min-h-10 rounded-md border border-rule bg-white px-4 py-2 text-sm font-semibold transition-colors hover:bg-paper-2 active:bg-paper-3">

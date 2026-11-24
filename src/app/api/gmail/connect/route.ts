@@ -8,7 +8,7 @@ import { rateLimited } from "@/lib/rate-limit";
 
 export async function GET() {
   const me = await requireUser();
-  if (rateLimited(`gmail-connect:${me.id}`, 10, 15 * 60 * 1000)) return new NextResponse("Too many attempts. Try again in a few minutes.", { status: 429 });
+  if (await rateLimited(`gmail-connect:${me.id}`, 10, 15 * 60 * 1000)) return new NextResponse("Too many attempts. Try again in a few minutes.", { status: 429 });
   await loadConfig();
   const state = randomBytes(16).toString("hex");
   (await cookies()).set("gmail_oauth_state", state, { httpOnly: true, sameSite: "lax", maxAge: 600, path: "/" });

@@ -23,7 +23,7 @@ before(async () => {
   await loadConfig(true);
 });
 beforeEach(async () => {
-  resetRateLimits();
+  await resetRateLimits();
   await setCredits({ dailyLimit: 0, perMinute: 0, killSwitch: { alertKes: 0, pauseKes: 0 } });
   await db.creditLedger.deleteMany({ where: { action: { not: "grant" }, userId: { in: users.map((u) => u.id) } } });
 });

@@ -7,6 +7,10 @@ import { rateLimited } from "@/lib/rate-limit";
 import { checkAttachment, removeFeedbackFiles, writeAttachment } from "@/lib/feedback-files";
 import { isFeedbackKind, MAX_FILES, MAX_TOTAL_BYTES } from "@/lib/feedback-shared";
 
+/** Per person, per rolling 24 hours: at most this many messages and this many bytes of attachments. */
+const MAX_PER_DAY = 25;
+const MAX_DAILY_BYTES = 150 * 1024 * 1024;
+
 const bad = (error: string, status = 400) => NextResponse.json({ ok: false, error }, { status });
 const clean = (v: FormDataEntryValue | null, max: number) => String(v ?? "").trim().slice(0, max);
 
@@ -15,7 +19,11 @@ export async function POST(req: Request) {
   const user = await getUser();
   if (!user) return bad("Not signed in", 401);
   if (Number(req.headers.get("content-length") ?? 0) > MAX_TOTAL_BYTES + 1024 * 1024) return bad("That is too much to upload at once (50 MB maximum in total).", 413);
-  if (rateLimited(`feedback:${user.id}`, 10, 60 * 60 * 1000)) return bad("That's a lot of feedback in an hour. Please try again later.", 429);
+  if (await rateLimited(`feedback:${user.id}`, 10, 60 * 60 * 1000)) return bad("That's a lot of feedback in an hour. Please try again later.", 429);
+  if (await rateLimited(`feedback-day:${user.id}`, MAX_PER_DAY, 24 * 60 * 60 * 1000)) return bad("You have reached today's feedback limit. Please try again tomorrow.", 429);
+  // Daily upload budget per person, counted from what is actually stored, so the disk cannot be filled one request at a time.
+  const sent = await db.feedbackAttachment.aggregate({ _sum: { size: true }, where: { feedback: { userId: user.id }, createdAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) } } });
+  if ((sent._sum.size ?? 0) + Number(req.headers.get("content-length") ?? 0) > MAX_DAILY_BYTES) return bad("You have reached today's upload limit. Please try again tomorrow, or send the message without large files.", 429);
 
   let form: FormData;
   try {

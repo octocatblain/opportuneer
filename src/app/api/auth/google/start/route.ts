@@ -7,7 +7,7 @@ import { ipFrom, rateLimited } from "@/lib/rate-limit";
 export async function GET(req: NextRequest) {
   await loadConfig();
   const origin = publicOrigin(req);
-  if (rateLimited(`google-start:${ipFrom(req.headers) ?? "?"}`, 30, 15 * 60 * 1000)) return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent("Too many attempts. Wait 15 minutes and try again.")}`, origin));
+  if (await rateLimited(`google-start:${ipFrom(req.headers) ?? "?"}`, 30, 15 * 60 * 1000)) return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent("Too many attempts. Wait 15 minutes and try again.")}`, origin));
   const clientId = process.env.GOOGLE_CLIENT_ID;
   if (!clientId || !cfg().auth.allowGoogle) return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent("Google sign-in is not available.")}`, origin));
   const state = randomBytes(16).toString("hex");

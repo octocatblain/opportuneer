@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Script from "next/script";
 import { joinWaitlistAction } from "@/app/waitlist-actions";
 import { CircleTick, Envelope, Hearts, NoteArrow, PaperPlane, Sparkle, Spiral, Squiggle } from "@/components/doodles";
 import { Motion } from "@/components/gsap-motion";
 import { SubmitButton } from "@/components/submit-button";
 import { btnSignal, Flash, input } from "@/components/ui";
 import { industries } from "@/config/profile";
+import { turnstileSiteKey } from "@/lib/turnstile";
 import { COHORT_A_SIZE, COHORT_B_SIZE, OCCUPATIONS, PILOT_SIZE, ROLE_TYPES, waitlistCounts } from "@/lib/waitlist";
 
 export const dynamic = "force-dynamic";
@@ -24,9 +26,9 @@ const OUTCOME: Record<string, { title: string; body: string }> = {
     title: "You're on the public-launch waitlist",
     body: "The 30 pilot places are taken, so you're on the list for the public launch. We invite people in small batches, in the order they joined.",
   },
-  dup: {
-    title: "You're already on the list",
-    body: "This email is already registered. There is nothing more to do; we'll email you when it's your turn.",
+  check: {
+    title: "Check your email",
+    body: "If that address can join, we have sent you a confirmation link. Your place is only reserved once you click it, and the link works for 48 hours. Nothing in your inbox? Check spam, or try again in a few minutes.",
   },
 };
 
@@ -34,6 +36,7 @@ const OUTCOME: Record<string, { title: string; body: string }> = {
 export default async function Waitlist({ searchParams }: { searchParams: Promise<{ joined?: string; error?: string; src?: string }> }) {
   const sp = await searchParams;
   const counts = await waitlistCounts();
+  const siteKey = turnstileSiteKey();
   const outcome = sp.joined ? OUTCOME[sp.joined] : undefined;
 
   if (outcome) {
@@ -165,6 +168,12 @@ export default async function Waitlist({ searchParams }: { searchParams: Promise
           <input type="checkbox" name="marketing" className="mt-0.5" />
           <span>Also send me occasional product updates (optional).</span>
         </label>
+        {siteKey && (
+          <>
+            <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" strategy="afterInteractive" />
+            <div className="cf-turnstile" data-sitekey={siteKey} />
+          </>
+        )}
         <SubmitButton className={`${btnSignal} w-full`} pending="Joining…">
           {counts.full ? "Join the public-launch waitlist" : "Claim my place"}
         </SubmitButton>

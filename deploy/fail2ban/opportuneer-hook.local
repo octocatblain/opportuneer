@@ -1,0 +1,10 @@
+# fail2ban jail. Install as /etc/fail2ban/jail.d/opportuneer-hook.local, then: systemctl reload fail2ban
+# Check with: fail2ban-client status opportuneer-hook
+[opportuneer-hook]
+enabled  = true
+filter   = opportuneer-hook
+port     = http,https
+logpath  = /var/log/httpd/opportuneer-ssl-access.log
+maxretry = 5
+findtime = 10m
+bantime  = 1h

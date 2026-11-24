@@ -1,28 +1,25 @@
-/**
- * Fixed-window rate limiter, in memory (enough for one server process).
- * Returns true when the caller has gone over `max` hits inside `windowMs`.
- */
-const hits = new Map<string, { n: number; first: number }>();
-const MAX_KEYS = 10_000;
+import { db } from "@/lib/db";
 
-export function rateLimited(key: string, max: number, windowMs: number): boolean {
-  const now = Date.now();
-  if (hits.size > MAX_KEYS) {
-    // Drop expired windows so a flood of distinct keys can't grow the map without bound.
-    for (const [k, v] of hits) if (now - v.first > windowMs) hits.delete(k);
-    if (hits.size > MAX_KEYS) hits.clear();
-  }
-  const a = hits.get(key);
-  if (!a || now - a.first > windowMs) {
-    hits.set(key, { n: 1, first: now });
-    return false;
-  }
-  a.n++;
-  return a.n > max;
+/**
+ * Fixed-window rate limiter backed by Postgres, so counters survive restarts and deploys and are shared by every process.
+ * Returns true when the caller has gone over `max` hits inside `windowMs`. One atomic upsert per call.
+ */
+export async function rateLimited(key: string, max: number, windowMs: number): Promise<boolean> {
+  const ms = Math.max(1, Math.floor(windowMs));
+  const rows = await db.$queryRaw<{ count: number }[]>`
+    INSERT INTO "RateLimit" ("key", "count", "resetAt")
+    VALUES (${key}, 1, now() + (${ms} * interval '1 millisecond'))
+    ON CONFLICT ("key") DO UPDATE SET
+      "count" = CASE WHEN "RateLimit"."resetAt" <= now() THEN 1 ELSE "RateLimit"."count" + 1 END,
+      "resetAt" = CASE WHEN "RateLimit"."resetAt" <= now() THEN now() + (${ms} * interval '1 millisecond') ELSE "RateLimit"."resetAt" END
+    RETURNING "count"`;
+  // Expired windows are only dead weight: sweep them now and then (npm run prune does it too).
+  if (Math.random() < 0.01) void db.rateLimit.deleteMany({ where: { resetAt: { lt: new Date() } } }).catch(() => {});
+  return (rows[0]?.count ?? 1) > max;
 }
 
-/** Test helper: forget every counter. */
-export const resetRateLimits = () => hits.clear();
+/** Forget every counter (tests, and the admin's "unblock everyone" if it ever needs one). */
+export const resetRateLimits = () => db.rateLimit.deleteMany().then(() => undefined);
 
 /**
  * Client address from the proxy header (null when the request has none).

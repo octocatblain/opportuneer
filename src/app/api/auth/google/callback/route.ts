@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   jar.set("g_state", "", { path: "/api/auth/google", maxAge: 0 });
   jar.set("g_next", "", { path: "/api/auth/google", maxAge: 0 });
 
-  if (rateLimited(`google-callback:${ipFrom(req.headers) ?? "?"}`, 30, 15 * 60 * 1000)) return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent("Too many attempts. Wait 15 minutes and try again.")}`, origin));
+  if (await rateLimited(`google-callback:${ipFrom(req.headers) ?? "?"}`, 30, 15 * 60 * 1000)) return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent("Too many attempts. Wait 15 minutes and try again.")}`, origin));
   const bounce = (msg: string) => NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(msg)}`, origin));
   if (url.searchParams.get("error")) return bounce(`Google: ${url.searchParams.get("error")}`);
   if (!cfg().auth.allowGoogle) return bounce("Google sign-in is turned off.");

@@ -395,3 +395,25 @@ model Payment {
 
   @@index([userId, createdAt])
 }
+
+/// Per-key hit counters for the rate limiter. Lives in Postgres so limits survive restarts and deploys.
+model RateLimit {
+  key     String   @id
+  count   Int
+  resetAt DateTime // the window ends here; the next hit after this starts a new window
+
+  @@index([resetAt])
+}
+
+/// A waitlist signup that has not been confirmed yet (double opt-in). No place is assigned until the emailed link is used.
+model WaitlistPending {
+  id        String   @id @default(cuid())
+  email     String   @unique // stored lowercase
+  tokenHash String   @unique // SHA-256 of the secret in the confirmation link
+  payload   Json // the form answers (JoinInput without the email)
+  sentAt    DateTime @default(now())
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+}

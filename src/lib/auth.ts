@@ -23,8 +23,8 @@ export const SESSION_COOKIE = "opp_session";
 const TOUCH_EVERY_MS = 5 * 60 * 1000;
 const DAY = 24 * 60 * 60 * 1000;
 
-// ---------- throttling (in memory; enough for one server) ----------
-export const throttled = (key: string, max = 6, windowMs = 15 * 60 * 1000): boolean => rateLimited(key, max, windowMs);
+// ---------- throttling (counters live in Postgres) ----------
+export const throttled = (key: string, max = 6, windowMs = 15 * 60 * 1000): Promise<boolean> => rateLimited(key, max, windowMs);
 
 // ---------- sessions ----------
 const hashToken = sha256;

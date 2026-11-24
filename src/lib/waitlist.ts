@@ -1,5 +1,8 @@
 import { Prisma, type WaitlistEntry } from "@prisma/client";
+import { newInviteToken, sha256 } from "@/lib/auth-crypto";
 import { db } from "@/lib/db";
+import { sendMail } from "@/lib/mail";
+import { rateLimited } from "@/lib/rate-limit";
 
 /** Pilot launch: 30 places. The first 10 signups are cohort A, the next 20 are cohort B. Later signups go to the public-launch waitlist. */
 export const COHORT_A_SIZE = 10;
@@ -118,4 +121,44 @@ export async function moveWaitlistEntry(id: string, target: "A" | "B" | "PUBLIC"
     },
     { timeout: 10_000 },
   );
+}
+
+// ---------- double opt-in ----------
+const CONFIRM_HOURS = 48;
+
+/** The public site address used in emailed links. Set SITE_URL in production; the request's own host is only a fallback for development. */
+export const siteUrl = (fallback: string) => (process.env.SITE_URL || fallback).replace(/\/+$/, "");
+
+/**
+ * Step 1 of signup: remember the form answers and email a confirmation link. No place is assigned yet, so bots and
+ * mistyped or stranger's addresses cannot take pilot seats. The caller shows the same "check your email" message
+ * whether the address is new, already on the list or throttled, so the form cannot be used to look up who has joined.
+ */
+export async function requestWaitlistConfirmation(input: JoinInput, origin: string): Promise<void> {
+  const { email, ...rest } = input;
+  if (await db.waitlistEntry.findUnique({ where: { email }, select: { id: true } })) return;
+  // At most 3 emails per address per day, however many different connections ask.
+  if (await rateLimited(`waitlist-mail:${email}`, 3, 24 * 60 * 60 * 1000)) return;
+  const token = newInviteToken();
+  const data = { tokenHash: sha256(token), payload: rest as Prisma.InputJsonObject, sentAt: new Date(), expiresAt: new Date(Date.now() + CONFIRM_HOURS * 3600_000) };
+  await db.waitlistPending.upsert({ where: { email }, create: { email, ...data }, update: data });
+  const link = `${siteUrl(origin)}/waitlist/confirm?token=${token}`;
+  // Not awaited: how long sending takes must not reveal whether the address was new.
+  void sendMail(
+    email,
+    "Confirm your place on the Opportuneer waitlist",
+    `Hi${input.name ? ` ${input.name}` : ""},\n\nSomeone (hopefully you) asked to join the Opportuneer waitlist with this email address. Your place is only reserved once you confirm:\n\n${link}\n\nThe link works for ${CONFIRM_HOURS} hours. If you did not ask for this, ignore this email and nothing will happen.\n\nRed Star Standard`,
+  );
+}
+
+export type ConfirmResult = { kind: "joined"; phase: "PILOT" | "PUBLIC"; cohort: "A" | "B" | null } | { kind: "duplicate" } | { kind: "invalid" };
+
+/** Step 2: the emailed link was used. Assigns the place (pilot cohort A, B or the public list) and removes the pending record. */
+export async function confirmWaitlist(token: string): Promise<ConfirmResult> {
+  if (!token) return { kind: "invalid" };
+  const p = await db.waitlistPending.findUnique({ where: { tokenHash: sha256(token) } });
+  if (!p || p.expiresAt.getTime() < Date.now()) return { kind: "invalid" };
+  const r = await joinWaitlist({ ...(p.payload as Omit<JoinInput, "email">), email: p.email });
+  await db.waitlistPending.deleteMany({ where: { id: p.id } });
+  return r;
 }

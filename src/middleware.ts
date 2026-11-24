@@ -14,7 +14,7 @@ export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|ico|css|js)$).*)"],
 };
 
-const PUBLIC = ["/", "/manifest.webmanifest", "/apple-icon", "/login", "/register", "/waitlist", "/pricing", "/privacy", "/terms", "/admin/login", "/api/auth/google/start", "/api/auth/google/callback"];
+const PUBLIC = ["/", "/manifest.webmanifest", "/apple-icon", "/login", "/register", "/waitlist", "/waitlist/confirm", "/pricing", "/privacy", "/terms", "/admin/login", "/api/auth/google/start", "/api/auth/google/callback"];
 // Pre-/client URLs: old bookmarks are sent to the same page inside the account's own space.
 const LEGACY = /^\/(pipeline|jobs|companies|opportunities|add|settings)(\/|$)/;
 

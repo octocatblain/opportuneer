@@ -46,10 +46,15 @@ export async function loginAction(form: FormData) {
   const next = safeNext(text(form, "next"));
   if (!cfg().auth.allowPassword) fail(page, next, "Email sign-in is turned off.");
   const { ip } = await clientInfo();
-  if (throttled(`login:${email}`) || throttled(`login-ip:${ip ?? "?"}`, 30)) fail(page, next, "Too many attempts. Wait 15 minutes and try again.");
+  // Counted per email AND connection, so a stranger guessing at someone's address from elsewhere cannot lock that person out.
+  // The per-email ceiling is far higher: it only stops a distributed guessing run, not one noisy attacker.
+  if ((await throttled(`login:${email}:${ip ?? "?"}`)) || (await throttled(`login-ip:${ip ?? "?"}`, 30)) || (await throttled(`login-email:${email}`, 60, 60 * 60 * 1000))) fail(page, next, "Too many attempts. Wait 15 minutes and try again.");
   const user = await db.user.findUnique({ where: { email } });
-  const ok = await verifyPassword(password, user?.passwordHash ?? null);
-  if (!user || !ok) fail(page, next, user && !user.passwordHash ? "This account uses Google sign-in." : "Wrong email or password.");
+  // The administrator signs in with Google only, so there is no password to guess. Everyone else can use a password.
+  const usable = user && user.role !== "SUPERUSER" ? user.passwordHash : null;
+  const ok = await verifyPassword(password, usable);
+  // One message for every failure, so the form does not reveal which addresses have accounts or how they sign in.
+  if (!user || !ok) fail(page, next, "Wrong email or password. If you signed up with Google, use Continue with Google.");
   await startSession(user!.id, "password");
   redirect(landingFor(user!, next));
 }
@@ -63,7 +68,7 @@ export async function registerAction(form: FormData) {
   const back = (msg: string): never => redirect(`/register?invite=${encodeURIComponent(token)}&error=${encodeURIComponent(msg)}`);
   if (!cfg().auth.allowPassword) back("Email sign-up is turned off.");
   const { ip } = await clientInfo();
-  if (throttled(`register-ip:${ip ?? "?"}`, 10)) back("Too many attempts. Try again later.");
+  if (await throttled(`register-ip:${ip ?? "?"}`, 10)) back("Too many attempts. Try again later.");
   const invite = await inviteForToken(token);
   if (!invite) redirect(`/login?error=${encodeURIComponent(SIGNUP_CLOSED)}`);
   const problem = passwordProblem(password);

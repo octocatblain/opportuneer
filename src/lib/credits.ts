@@ -77,7 +77,7 @@ export async function chargeCredits(userId: string, action: CreditAction, track:
   const costKes = c.costKes[action] ?? 0;
 
   if (user.role !== "SUPERUSER") {
-    if (c.perMinute > 0 && rateLimited(`ai:${userId}`, c.perMinute, 60_000)) throw new Error("You are going a bit fast. Wait a minute and try again.");
+    if (c.perMinute > 0 && (await rateLimited(`ai:${userId}`, c.perMinute, 60_000))) throw new Error("You are going a bit fast. Wait a minute and try again.");
     const spend = await spendStatus();
     void noteSpendAlert(spend);
     if (spend.state === "paused") throw new Error("AI actions are paused for everyone for the rest of this month to keep costs under control. Your data is safe; tell us in the feedback box if you need this sooner.");

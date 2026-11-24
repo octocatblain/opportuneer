@@ -59,3 +59,10 @@ To rotate the key: `ssh-keygen -t ed25519 -N "" -f key`, replace the line in `au
 - **Deploy said BUILD FAILED**: nothing changed, the old release is still live; the log has the compiler output.
 - **Deploy rolled back**: the new release did not answer `/login` in 90 s; the app log is printed above the rollback line.
 - **PDFs fail**: check `CHROME_PATH` in `shared/.env` and `journalctl -u opportuneer`.
+
+## Waitlist protection (set up once on the live server)
+
+- **Confirmation email and Turnstile.** Add to `/var/www/opportuneer/shared/.env`: `SITE_URL` (the public address), `SMTP_URL` and `MAIL_FROM` (a mailbox that can send), and `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY` (Cloudflare dashboard → Turnstile → add a widget for the domain). With the SMTP or Turnstile settings empty the app still runs, but confirmation links are only printed to the log and the bot check is skipped, so set all of them before launch. Then restart `opportuneer`.
+- **Administrator sign-in is Google-only.** The superuser account cannot use a password; make sure `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` are set and turn on 2-step verification on that Google account.
+- **Webhook ban list.** Apache now refuses anything but a small POST on `/hooks/deploy`. To also ban repeat offenders: copy `deploy/fail2ban/opportuneer-hook.conf` to `/etc/fail2ban/filter.d/` and `deploy/fail2ban/opportuneer-hook.local` to `/etc/fail2ban/jail.d/`, run `systemctl reload fail2ban`, and check with `fail2ban-client status opportuneer-hook`. Re-copy `deploy/apache-opportuneer.conf`, then `apachectl configtest && systemctl reload httpd`.
+- **Rate-limit counters** now live in the database (table `RateLimit`) and survive restarts; `npm run prune` clears spent ones and expired confirmations.

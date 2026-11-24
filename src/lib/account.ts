@@ -42,6 +42,7 @@ export async function deleteAccount(userId: string) {
     db.setting.deleteMany({ where: { key: { endsWith: `:${userId}` } } }),
     db.invite.deleteMany({ where: { email: user.email } }),
     db.waitlistEntry.deleteMany({ where: { email: user.email } }),
+    db.waitlistPending.deleteMany({ where: { email: user.email } }),
     db.user.delete({ where: { id: userId } }),
   ]);
   const root = path.resolve(STORAGE_DIR);
