@@ -73,7 +73,7 @@ const STEPS: Step[] = [
 /** Round "Start" sticker: the word curves gently along an arc inside the circle, with a hand-drawn underline swoosh. Same handwriting as the launch banner. */
 function StartSticker() {
   return (
-    <svg aria-hidden viewBox="0 0 84 84" className="absolute -left-7 -top-8 z-40 h-[84px] w-[84px] -rotate-[10deg]">
+    <svg aria-hidden viewBox="0 0 84 84" className="absolute -right-2 -top-9 z-40 h-[64px] w-[64px] rotate-[8deg] sm:h-[72px] sm:w-[72px] xl:-left-7 xl:-top-8 xl:right-auto xl:h-[84px] xl:w-[84px] xl:-rotate-[10deg]">
       <circle cx="44" cy="45" r="39" className="fill-ink" opacity="0.14" />
       <circle cx="42" cy="42" r="39" className="fill-signal" />
       <circle cx="42" cy="42" r="34" fill="none" className="stroke-ink" strokeWidth="1.3" strokeDasharray="3 3.5" />

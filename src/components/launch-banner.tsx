@@ -1,6 +1,7 @@
 import { Caveat } from "next/font/google";
 import Link from "next/link";
 import { Motion } from "@/components/gsap-motion";
+import { BrandMark } from "@/components/brand-mark";
 
 const hand = Caveat({ subsets: ["latin"], weight: ["500", "700"], display: "swap" });
 
@@ -17,9 +18,9 @@ type Item = { day: string; month: string; weekday: string; title: string; note: 
 
 const ITEMS: Item[] = [
   { day: "23", month: "Nov", weekday: "Mon", title: "Build in public", note: "One real update a day, right up to the pilot launch: scan, score, research, drafts, trust.", from: at(11, 23), until: at(11, 30), tag: "DAILY · until 30 Nov" },
-  { day: "24", month: "Nov", weekday: "Tue", title: "Waitlist opens", note: "Joining early decides your place in the pilot.", from: at(11, 24) },
-  { day: "30", month: "Nov", weekday: "Mon", title: "Cohort A: the first 10", note: "Invited by email on opening day.", from: at(11, 30), tag: "FREE · 3 months", fav: true },
-  { day: "7", month: "Dec", weekday: "Mon", title: "Cohort B: the next 20", note: "Founding members, then the standard price.", from: at(12, 7), tag: "HALF PRICE · 3 months" },
+  { day: "24", month: "Nov", weekday: "Tue", title: "Waitlist is open", note: "Joining early decides your place in the pilot.", from: at(11, 24) },
+  { day: "30", month: "Nov", weekday: "Mon", title: "Cohort A: the first 10", note: "Invited by email on opening day.", from: at(11, 30), tag: "PILOT · first 10", fav: true },
+  { day: "7", month: "Dec", weekday: "Mon", title: "Cohort B: the next 20", note: "Founding members join the pilot.", from: at(12, 7), tag: "PILOT · next 20" },
 ];
 
 const Star = ({ className = "" }: { className?: string }) => (
@@ -48,14 +49,17 @@ export function LaunchBanner({ left, full }: { left: number; full: boolean }) {
       {/* Headline, in the poster's big cream lettering */}
       <div className="relative flex flex-wrap items-end justify-between gap-x-6 gap-y-2 lg:flex-nowrap">
         <div className="min-w-0">
-          <p data-m="left" className={`${hand.className} text-2xl font-bold`}>Opportuneer is launching. Here is the plan:</p>
-          <h2 id="launch" data-m="chars" className="font-extrabold uppercase leading-[0.9] tracking-tight" style={{ color: CREAM, fontSize: "clamp(3rem, 8vw, 6.5rem)" }}>
-            Launch dates
-          </h2>
+          <p data-m="left" className={`${hand.className} text-xl font-bold sm:text-2xl`}>The waitlist is now open! Here is the plan:</p>
+          <div className="flex items-center gap-3 sm:gap-4">
+            <BrandMark size={96} className="h-[clamp(2.25rem,8vw,6rem)] w-[clamp(2.25rem,8vw,6rem)] shrink-0" />
+            <h2 id="launch" data-m="chars" className="font-extrabold uppercase leading-[0.9] tracking-tight" style={{ color: CREAM, fontSize: "clamp(2.25rem, 8vw, 6.5rem)" }}>
+              Launch dates
+            </h2>
+          </div>
         </div>
-        <div data-m="right" className="max-w-xs -rotate-2 pb-1 lg:shrink-0 lg:text-right">
-          <p className={`${hand.className} text-3xl font-bold leading-tight`}>
-            The pilot opens <span style={{ color: "#b5381d" }}>30 November!</span>
+        <div data-m="right" className="max-w-xs -rotate-1 pb-1 sm:-rotate-2 lg:shrink-0 lg:text-right">
+          <p className={`${hand.className} text-2xl font-bold leading-tight sm:text-3xl`}>
+            Waitlist <span style={{ color: "#b5381d" }}>open now!</span> Pilot starts 30 Nov.
           </p>
           <p className={`${hand.className} text-xl`}>{full ? "All 30 places are taken. Join the public-launch waitlist." : `30 places, first come first served. ${left} left.`}</p>
         </div>
@@ -115,7 +119,7 @@ export function LaunchBanner({ left, full }: { left: number; full: boolean }) {
             Invites go out in small weekly batches, in the order people joined. The date goes to the waitlist first.
           </p>
         </div>
-        <Link href="/waitlist" data-m="pop" data-m-rot="-4" data-m-hover className="rounded-md px-5 py-2.5 text-sm font-extrabold transition-opacity hover:opacity-90" style={{ background: BROWN, color: CREAM }}>
+        <Link href="/waitlist" data-m="pop" data-m-rot="-4" data-m-hover className="w-full rounded-md px-5 py-2.5 text-center text-sm font-extrabold transition-opacity hover:opacity-90 sm:w-auto" style={{ background: BROWN, color: CREAM }}>
           {full ? "Join the public-launch waitlist" : "Claim a pilot place"}
         </Link>
       </div>

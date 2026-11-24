@@ -11,10 +11,7 @@ export function PublicNav() {
         <BrandMark size={32} tile={false} />
         <Wordmark tone="light" />
       </Link>
-      <nav aria-label="Account" className="flex items-center gap-2 text-sm">
-        <Link href="/pricing" className="rounded-md px-3 py-2 font-medium text-muted transition-colors hover:bg-paper hover:text-ink active:bg-paper-2">
-          Pricing
-        </Link>
+      <nav aria-label="Account" className="flex flex-wrap items-center gap-1 text-sm sm:gap-2">
         <Link href="/waitlist" className="rounded-md px-3 py-2 font-medium text-muted transition-colors hover:bg-paper hover:text-ink active:bg-paper-2">
           Join waitlist
         </Link>

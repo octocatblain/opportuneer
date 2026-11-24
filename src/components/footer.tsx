@@ -17,7 +17,6 @@ export function Footer({ signedIn, admin, ownSpace = "duo" }: { signedIn: boolea
         ...(admin ? [["/admin", "Admin"]] : []),
       ]
     : [
-        ["/pricing", "Pricing"],
         ["/waitlist", "Join the waitlist"],
         ["/login", "Sign in"],
       ];
@@ -55,7 +54,7 @@ export function Footer({ signedIn, admin, ownSpace = "duo" }: { signedIn: boolea
         <div className="text-sm">
           <h2 className={heading}>You stay in control</h2>
           <ul className="space-y-2.5 text-white/75">
-            <li>Drafts only, never auto-sent</li>
+            <li>We draft. You decide.</li>
             <li>Your data stays in your account</li>
             <li>
               <Link href="/privacy" className={link}>
@@ -69,7 +68,7 @@ export function Footer({ signedIn, admin, ownSpace = "duo" }: { signedIn: boolea
           <h2 className={heading}>Works with</h2>
           <ul className="space-y-3">
             {[
-              ["Gmail", "Gmail", "Drafts only, never auto-sent"],
+              ["Gmail", "Gmail", "We draft. You decide."],
               ["LinkedIn", "LinkedIn", "Pasted by you, never scraped"],
             ].map(([brand, name, note]) => (
               <li key={brand} className="flex items-center gap-3">

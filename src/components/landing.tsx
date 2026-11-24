@@ -3,7 +3,6 @@ import { Brand } from "@/components/brand-icons";
 import { Motion } from "@/components/gsap-motion";
 import { LaunchBanner } from "@/components/launch-banner";
 import { WorkflowMap } from "@/components/workflow-map";
-import { PricingCards, PricingCta } from "@/components/pricing";
 import { btn, btnGhost, btnSignal } from "@/components/ui";
 import { waitlistCounts } from "@/lib/waitlist";
 
@@ -11,7 +10,7 @@ const FEATURES: [string, string, string][] = [
   ["01", "Scans the boards for you", "Kenyan job boards and remote boards that hire in Africa are checked every day. Only roles that match your target titles survive."],
   ["02", "Filters out the noise", "Posts that ask for fees, hide the employer or leave duties vague are archived with a reason, so your shortlist stays trustworthy."],
   ["03", "Scores every company", "Size, budget signals, how late a company is to AI and its growth. You see whether to apply, pitch your agency, or both."],
-  ["04", "Drafts, never sends", "Tailored CVs, cover letters and pitch proposals are written as PDFs. Emails land in your Gmail as drafts, so you stay in control."],
+  ["04", "We draft. You decide.", "Tailored CVs, cover letters and pitch proposals are written as PDFs. Emails land in your Gmail as drafts, so you stay in control."],
   ["05", "One pipeline", "A Kanban board from shortlist to won, with follow-ups that come due on their own."],
   ["06", "Private by design", "Every account sees only its own jobs, companies and documents. Nothing is shared between accounts."],
 ];
@@ -34,7 +33,7 @@ const SOURCE_GROUPS: { title: string; note: string; items: [string, string?][] }
 export async function Landing() {
   const counts = await waitlistCounts();
   return (
-    <Motion className="space-y-20">
+    <Motion className="space-y-14 sm:space-y-20">
       <LaunchBanner left={counts.left} full={counts.full} />
 
       <section className="grid items-center gap-10 pt-4 lg:grid-cols-5">
@@ -45,7 +44,7 @@ export async function Landing() {
           <p data-m="rise" className="max-w-xl text-lg leading-relaxed text-muted">
             Opportuneer finds and scores jobs, researches companies, and drafts tailored applications and pitches, then leaves every send to you.
           </p>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <Link href="/waitlist" data-m="pop" data-m-rot="-6" data-m-hover className={btnSignal}>
               {counts.full ? "Join the public-launch waitlist" : "Join the waitlist"}
             </Link>
@@ -75,10 +74,10 @@ export async function Landing() {
                 { tone: "bg-white/5", label: "The job hunt", score: "92", title: "Platform Engineer", sub: "Remote, open to Kenya", rows: [["84", "AI Automation Lead"], ["79", "Data Platform Lead"]], stat: "Roles that fit", num: "12" },
                 { tone: "bg-signal-dark", label: "The agency pitch", score: "71", title: "Logistics firm", sub: "Budget signals found", rows: [["68", "Retail chain"], ["65", "Clinic group"]], stat: "Prospects that can pay", num: "5" },
               ].map((s, i) => (
-                <div key={s.label} data-m={i === 0 ? "left" : "right"} className={`${s.tone} space-y-4 px-4 py-6`}>
+                <div key={s.label} data-m={i === 0 ? "left" : "right"} className={`${s.tone} min-w-0 space-y-4 px-3 py-6 sm:px-4`}>
                   <p className="text-[11px] font-bold uppercase tracking-widest text-white/80">{s.label}</p>
                   <div>
-                    <span data-m="count" data-m-count={s.score} className="block text-6xl font-extrabold leading-none tabular-nums">{s.score}</span>
+                    <span data-m="count" data-m-count={s.score} className="block text-5xl font-extrabold leading-none tabular-nums sm:text-6xl">{s.score}</span>
                     <span className="mt-2 block text-sm font-semibold leading-snug">{s.title}</span>
                     <span className="block text-xs text-white/75">{s.sub}</span>
                   </div>
@@ -141,17 +140,6 @@ export async function Landing() {
         </ol>
       </section>
 
-      <section aria-labelledby="pricing" className="space-y-8">
-        <div className="space-y-2">
-          <h2 id="pricing" data-m="chars" className="page-title " style={{ fontSize: "clamp(1.75rem, 3.5vw, 2.75rem)" }}>
-            Pricing in shillings.
-          </h2>
-          <p data-m="rise" className="max-w-xl text-muted">The first 10 to join get 3 months free, the next 20 get half price for 3 months. Standard prices below.</p>
-        </div>
-        <PricingCards />
-        <PricingCta full={counts.full} />
-      </section>
-
       <section aria-labelledby="sources" className="space-y-8">
         <div className="space-y-2">
           <h2 id="sources" data-m="chars" className="page-title " style={{ fontSize: "clamp(1.75rem, 3.5vw, 2.75rem)" }}>
@@ -159,7 +147,7 @@ export async function Landing() {
           </h2>
           <p data-m="rise" className="max-w-xl text-muted">Public boards are read for you. LinkedIn is only ever what you paste. Your Gmail is used for drafts, never for sending.</p>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {SOURCE_GROUPS.map((g) => (
             <div key={g.title} data-m="rise" data-m-hover className="rounded-md border border-rule bg-white p-5">
               <h3 className="text-sm font-semibold">{g.title}</h3>
@@ -174,7 +162,7 @@ export async function Landing() {
             </div>
           ))}
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <Link href="/waitlist" data-m="pop" data-m-rot="-4" data-m-hover className={btn}>
             Join the waitlist
           </Link>

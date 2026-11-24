@@ -14,11 +14,11 @@ export const metadata: Metadata = { title: "Join the waitlist" };
 const OUTCOME: Record<string, { title: string; body: string }> = {
   A: {
     title: "You're in the first 10",
-    body: "You have a pilot place in Cohort A. Invites go out by email when the pilot opens on Monday 30 November. Access is free for the first 3 months.",
+    body: "You have a pilot place in Cohort A. Invites go out by email when the pilot opens on Monday 30 November.",
   },
   B: {
     title: "You have a pilot place",
-    body: "You are in Cohort B, which opens on Monday 7 December. Cohort B members are founding members: half the standard price for the first 3 months. Details come with your invite.",
+    body: "You are in Cohort B, which opens on Monday 7 December. Cohort B members are founding members. Details come with your invite.",
   },
   P: {
     title: "You're on the public-launch waitlist",
@@ -39,7 +39,7 @@ export default async function Waitlist({ searchParams }: { searchParams: Promise
   if (outcome) {
     return (
       <Motion className="relative mx-auto max-w-lg space-y-5 pt-24 text-center">
-        <div aria-hidden className="pointer-events-none absolute inset-0 hidden md:block">
+        <div aria-hidden className="pointer-events-none absolute inset-0 hidden lg:block">
           <CircleTick className="left-1/2 top-2 h-16 w-16 -translate-x-1/2 text-signal" />
           <Sparkle className="-left-28 top-16 h-14 w-14 text-signal" float />
           <PaperPlane className="-right-40 top-6 h-24 w-36 text-ink-4" float />
@@ -59,7 +59,7 @@ export default async function Waitlist({ searchParams }: { searchParams: Promise
 
   return (
     <Motion className="relative mx-auto max-w-lg space-y-6 pt-8">
-      <div aria-hidden className="pointer-events-none absolute inset-0 hidden md:block">
+      <div aria-hidden className="pointer-events-none absolute inset-0 hidden lg:block">
         <Sparkle className="-left-28 top-4 h-14 w-14 text-signal" float />
         <PaperPlane className="-right-40 top-0 h-24 w-36 text-ink-4" float />
         <NoteArrow className="-right-52 top-[19rem] hidden text-signal lg:block" text="only 30 places!" />
@@ -81,8 +81,7 @@ export default async function Waitlist({ searchParams }: { searchParams: Promise
           </p>
         ) : (
           <p className="text-sm leading-relaxed text-muted">
-            The pilot has {PILOT_SIZE} places and opens on 30 November. <strong className="text-ink">{counts.left} left.</strong> The first {COHORT_A_SIZE} to join get free access for 3 months. The next {COHORT_B_SIZE} join as
-            founding members at half price for 3 months. After that the waitlist stays open for the public launch.
+            The pilot has {PILOT_SIZE} places and opens on 30 November. <strong className="text-ink">{counts.left} left.</strong> The first {COHORT_A_SIZE} to join are Cohort A. The next {COHORT_B_SIZE} join as founding members. After that the waitlist stays open for the public launch.
           </p>
         )}
       </div>
