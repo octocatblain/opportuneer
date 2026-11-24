@@ -50,6 +50,12 @@ jobs:
       - name: Build
         run: npm run build
       - name: Tests
+        shell: bash
         run: |
           echo "DATABASE_URL=$DATABASE_URL" > .env
-          npm test
+          set +e
+          npm test 2>&1 | tee test.log
+          code=${PIPESTATUS[0]}
+          # surface the failures as annotations so they show on the run page
+          grep -E "^(✖|\s+Error|\s+AssertionError)|exited early" test.log | head -25 | while IFS= read -r l; do echo "::error::$l"; done
+          exit $code
