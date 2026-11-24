@@ -51,8 +51,13 @@ jobs:
         shell: bash
         run: |
           set +e
-          npm run build 2>&1 | tee build.log
-          code=${PIPESTATUS[0]}
+          # next/font fetches Google Fonts at build time; retry the occasional network failure
+          for attempt in 1 2 3; do
+            npm run build 2>&1 | tee build.log
+            code=${PIPESTATUS[0]}
+            [ "$code" = 0 ] && break
+            sleep 10
+          done
           if [ "$code" != 0 ]; then tail -25 build.log | while IFS= read -r l; do echo "::error::$l"; done; fi
           exit $code
       - name: Tests

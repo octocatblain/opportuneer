@@ -84,8 +84,14 @@ deploy_one() {
     (cd "$rel" && as_app nice -n 10 npm ci --no-audit --no-fund) || { log "NPM CI FAILED, nothing changed"; rm -rf "$rel"; return 1; }
   fi
 
-  log "next build"
-  (cd "$rel" && as_app env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 nice -n 10 npx next build) || { log "BUILD FAILED, nothing changed"; rm -rf "$rel"; return 1; }
+  # next/font downloads Google Fonts during the build; that fetch fails now and then, so try up to 3 times
+  local attempt built=0
+  for attempt in 1 2 3; do
+    log "next build (attempt $attempt)"
+    if (cd "$rel" && as_app env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 nice -n 10 npx next build); then built=1; break; fi
+    sleep 10
+  done
+  if [ "$built" != 1 ]; then log "BUILD FAILED after 3 attempts, nothing changed"; rm -rf "$rel"; return 1; fi
   log "prisma migrate deploy"
   (cd "$rel" && as_app npx prisma migrate deploy) || { log "MIGRATION FAILED, nothing switched"; rm -rf "$rel"; return 1; }
 
