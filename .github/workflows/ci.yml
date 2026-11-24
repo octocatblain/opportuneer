@@ -1,7 +1,6 @@
 name: CI
 
-# The deploy webhook on the server listens for this workflow ("CI") finishing green on main.
-# Keep the name in sync with DEPLOY_WORKFLOW in /etc/opportuneer/hook.env.
+# CI on every push and pull request. A green push to main then deploys to the server (the deploy job below).
 on:
   push:
     branches: [main]
@@ -12,7 +11,8 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # never cancel a push run: it may be in the middle of deploying
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   test:
@@ -70,3 +70,25 @@ jobs:
           # surface the failures as annotations so they show on the run page
           grep -E "^(✖|\s+Error|\s+AssertionError)|exited early" test.log | head -25 | while IFS= read -r l; do echo "::error::$l"; done
           exit $code
+
+  deploy:
+    # Only a green push to main deploys. Pull requests never do.
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - name: Deploy over SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          if [ -z "$DEPLOY_SSH_KEY" ]; then echo "::error::Add the DEPLOY_SSH_KEY repository secret (see DEPLOY.md)"; exit 1; fi
+          install -m 700 -d ~/.ssh
+          echo "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          # the server's public host key, so the connection cannot be intercepted
+          echo "62.171.188.211 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDcg+QlY9sxOyYj+NaogRfzMOafEYRCv1p4kpUl0iblF" > ~/.ssh/known_hosts
+          # the key can only ask the server to deploy one commit; the server re-checks it is on main and not older than what is live
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 root@62.171.188.211 "${{ github.sha }}"
