@@ -61,6 +61,11 @@ export function Footer({ signedIn, admin, ownSpace = "duo" }: { signedIn: boolea
                 Privacy policy
               </Link>
             </li>
+            <li>
+              <Link href="/terms" className={link}>
+                Terms of service
+              </Link>
+            </li>
           </ul>
         </div>
 
