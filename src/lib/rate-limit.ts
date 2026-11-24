@@ -24,5 +24,9 @@ export function rateLimited(key: string, max: number, windowMs: number): boolean
 /** Test helper: forget every counter. */
 export const resetRateLimits = () => hits.clear();
 
-/** Best-effort client address from the proxy header (null when the request has none). */
-export const ipFrom = (h: { get(name: string): string | null }) => h.get("x-forwarded-for")?.split(",")[0].trim() || null;
+/**
+ * Client address from the proxy header (null when the request has none).
+ * Takes the LAST entry: the reverse proxy appends the real peer address, whereas earlier
+ * entries are client-supplied and spoofable (which would bypass per-IP throttles).
+ */
+export const ipFrom = (h: { get(name: string): string | null }) => h.get("x-forwarded-for")?.split(",").pop()?.trim() || null;

@@ -13,7 +13,7 @@ import { cfg, loadConfig } from "@/lib/config";
 import { db } from "@/lib/db";
 import { logEvent } from "@/lib/analytics";
 import { KYC_FLAGS } from "@/lib/kyc";
-import { rateLimited } from "@/lib/rate-limit";
+import { rateLimited, ipFrom } from "@/lib/rate-limit";
 import { canEnterSpace, clientBase, homeFor, isSpace, spaceForAccess, SPACE_COOKIE, type Space } from "@/lib/spaces";
 
 import { normalizeEmail, sha256 } from "@/lib/auth-crypto";
@@ -33,7 +33,7 @@ export async function clientInfo() {
   const h = await headers();
   return {
     userAgent: h.get("user-agent")?.slice(0, 250) ?? null,
-    ip: h.get("x-forwarded-for")?.split(",")[0].trim() ?? null,
+    ip: ipFrom(h),
   };
 }
 
